@@ -620,13 +620,26 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
         .filter(|l| l.req.kind.executable())
         .cloned()
         .collect();
-    for r in runner.run_all(&retiring) {
-        if r.status == "pass" {
-            report.warnings.push(format!(
-                "revert_incomplete:{} \"{}\" still passes after the revert",
-                r.id, r.statement
-            ));
-        }
+    if !retiring.is_empty() {
+        let still: Vec<String> = runner
+            .run_all(&retiring)
+            .into_iter()
+            .filter(|r| r.status == "pass")
+            .map(|r| format!("{} \"{}\"", r.id, r.statement))
+            .collect();
+        report.checks.push(CheckResult {
+            name: "revert_effective".into(),
+            passed: still.is_empty(),
+            detail: if still.is_empty() {
+                format!("{} reverted requirement(s) no longer hold", retiring.len())
+            } else {
+                format!(
+                    "the reverted behaviour is still present; these requirements still pass: {}",
+                    still.join(", ")
+                )
+            },
+        });
+        report.passed = report.checks.iter().all(|c| c.passed);
     }
     Ok((snap, report))
 }

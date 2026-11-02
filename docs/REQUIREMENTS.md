@@ -133,7 +133,7 @@ The validation step `requirements` replaces `source_tests_present`:
 | cherry-pick | the source intention's requirements, re-bound on the target, plus `ledger(target tip)` | nothing |
 | rebase (per step) | the step's source requirements plus the ledger of the running tip | nothing |
 | merge | `ledger(ours)` ∪ `ledger(theirs)` | requirements retired on either side |
-| revert | `ledger(tip)` minus the reverted intention's requirements | the reverted intention's requirements; if their checks still *pass* afterwards, warning `revert_incomplete:<id>` |
+| revert | `ledger(tip)` minus the reverted intention's requirements | the reverted intention's requirements, which **must no longer pass**: if their checks still pass, check `revert_effective` fails (the behaviour is still there) |
 
 * **Re-binding.** `test` requirements are matched by test name in the result
   tree. The ported requirement keeps its `id` and records `rebound_from`.
