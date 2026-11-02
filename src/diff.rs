@@ -76,7 +76,7 @@ fn walk_patch(patch: &str, mut f: impl FnMut(&str, char, &str)) {
         }
         if let Some(rest) = line.strip_prefix("@@") {
             // "@@ -a,b +c,d @@ context"
-            let ctx = rest.splitn(2, "@@").nth(1).unwrap_or("").trim();
+            let ctx = rest.split_once("@@").map(|x| x.1).unwrap_or("").trim();
             f(&file, '@', ctx);
             continue;
         }
@@ -191,11 +191,9 @@ pub fn source_files(root: &Path) -> Vec<PathBuf> {
                 if !SKIP_DIRS.contains(&name.as_str()) {
                     stack.push(p);
                 }
-            } else if ft.is_file() {
-                if e.metadata().map(|m| m.len() < 1_000_000).unwrap_or(false) {
-                    if let Ok(rel) = p.strip_prefix(root) {
-                        out.push(rel.to_path_buf());
-                    }
+            } else if ft.is_file() && e.metadata().map(|m| m.len() < 1_000_000).unwrap_or(false) {
+                if let Ok(rel) = p.strip_prefix(root) {
+                    out.push(rel.to_path_buf());
                 }
             }
         }

@@ -36,7 +36,9 @@ pub struct DiffInfo {
 /// Result of an in-memory merge-like operation.
 pub enum MergeOutcome {
     Clean(Oid),
-    Conflicts(Vec<String>),
+    /// Conflicting paths, plus a tree with every non-conflicting part applied
+    /// and conflicting paths kept as on our side.
+    Conflicts(Vec<String>, Option<Oid>),
 }
 
 impl Repo {
@@ -236,16 +238,32 @@ impl Repo {
     fn outcome(&self, mut idx: git2::Index) -> Result<MergeOutcome> {
         if idx.has_conflicts() {
             let mut paths = vec![];
+            let mut ours = vec![];
             for c in idx.conflicts()? {
                 let c = c?;
-                let e = c.our.or(c.their).or(c.ancestor);
-                if let Some(e) = e {
+                for e in [&c.our, &c.their, &c.ancestor].into_iter().flatten() {
                     paths.push(String::from_utf8_lossy(&e.path).to_string());
+                }
+                if let Some(o) = c.our {
+                    ours.push(o);
                 }
             }
             paths.sort();
             paths.dedup();
-            return Ok(MergeOutcome::Conflicts(paths));
+            // Resolve every conflict to our side to get a useful starting point.
+            for p in &paths {
+                let _ = idx.conflict_remove(Path::new(p));
+            }
+            for mut o in ours {
+                o.flags &= !0x3000; // clear the stage bits
+                let _ = idx.add(&o);
+            }
+            let partial = if idx.has_conflicts() {
+                None
+            } else {
+                idx.write_tree_to(&self.git).ok()
+            };
+            return Ok(MergeOutcome::Conflicts(paths, partial));
         }
         Ok(MergeOutcome::Clean(idx.write_tree_to(&self.git)?))
     }

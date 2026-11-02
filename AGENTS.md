@@ -31,7 +31,7 @@ Gitent is built by agents, for agents. Read this before changing anything.
 * Every public JSON shape is part of the API: changing it requires bumping
   `schema` versions and updating `gitent schema`.
 * Integration tests must run offline and deterministically. Use `command`
-  executors (shell scripts in `tests/fixtures/agents/`) and `scripted`/`command`
+  executors (shell scripts written by `tests/common/mod.rs`) and `scripted`/`command`
   providers as stand-ins. Real-LLM checks go in `evals/`.
 
 ## Layout
@@ -43,6 +43,7 @@ src/mcp.rs, http.rs    servers
 src/ops/               engine + operations
 src/analyze.rs         semantic extraction
 src/validate.rs        validation checks
+src/requirements.rs    requirements: collection, proof, ledger (ADR 0008)
 src/store.rs           notes + op journal
 src/repo.rs            git access
 src/llm/, src/agent/   providers and executors
