@@ -43,6 +43,9 @@ pub struct ExecutorConfig {
     pub timeout_secs: u64,
     /// Builtin agent: maximum tool steps per attempt.
     pub max_steps: u32,
+    /// Where operation worktrees are created. Empty = `<tmp>/gitent-worktrees/<repo-id>`.
+    /// Must be outside `.git/`: coding agents refuse to edit files under `.git` (ADR 0009).
+    pub worktree_root: String,
 }
 
 impl Default for ExecutorConfig {
@@ -52,6 +55,7 @@ impl Default for ExecutorConfig {
             command: String::new(),
             timeout_secs: 900,
             max_steps: 40,
+            worktree_root: String::new(),
         }
     }
 }
@@ -153,6 +157,9 @@ impl Config {
         }
         if let Some(v) = env("GITENT_TEST_COMMAND") {
             self.validation.test_command = v;
+        }
+        if let Some(v) = env("GITENT_WORKTREE_ROOT") {
+            self.executor.worktree_root = v;
         }
         if let Some(v) = env("GITENT_TEST_SELECTOR") {
             self.validation.test_selector = v;

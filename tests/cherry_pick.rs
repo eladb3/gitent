@@ -384,6 +384,9 @@ fn host_mode_roundtrip() {
     assert_eq!(code, 0, "{v}");
     assert_eq!(v["state"], "awaiting_host");
     let wt = std::path::PathBuf::from(v["worktree"].as_str().unwrap());
+    // ADR 0009: coding agents refuse to edit under .git/, so worktrees must live outside it.
+    assert!(!wt.starts_with(&r.path), "worktree must be outside the repository: {}", wt.display());
+    assert!(!wt.to_string_lossy().contains("/.git/"), "{}", wt.display());
     let brief = std::fs::read_to_string(v["brief"].as_str().unwrap()).unwrap();
     let req_id = r.note(&feature)["requirements"][0]["id"]
         .as_str()

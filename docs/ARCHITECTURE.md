@@ -49,7 +49,7 @@ Full schema: `gitent schema`.
 ### Operation (local journal, `.git/gitent/ops/<op_id>.json`)
 
 An operation is a list of **steps** executed sequentially in one isolated
-worktree (`.git/gitent/worktrees/<op_id>`). Step kinds:
+worktree (`<tmp>/gitent-worktrees/<repo-id>/<op_id>`, outside `.git/`, ADR 0009). Step kinds:
 
 * `apply {source_commit}` — cherry-pick / rebase step
 * `revert {source_commit}`
@@ -119,7 +119,7 @@ unavailable; agent touched files that contain none of the affected symbols.
 .gitent/config.toml               shared, committed config (test command, executor preset)
 .git/gitent/config.toml           local overrides (e.g. which agent CLI is installed)
 .git/gitent/ops/<op_id>.json      operation journal
-.git/gitent/worktrees/<op_id>/    isolated worktree (git worktree)
+<tmp>/gitent-worktrees/<repo>-<id>/<op_id>/  isolated worktree (git worktree; executor.worktree_root)
 .git/gitent/ops/<op_id>/brief.md  task brief handed to the executor
 refs/notes/gitent                 semantic records (push/fetch to share)
 ```
