@@ -11,7 +11,8 @@
  │                  → commit-in-worktree → finalize (CAS branch update) / rollback   │
  │ ops::{commit, cherry_pick, merge, rebase, revert}  build steps for the engine    │
  │ analyze          diff → SemanticChange (LLM | host-supplied | heuristic), checked │
- │ validate         test command, test-preservation guards, empty-diff, verifier LLM │
+ │ validate         requirements, test command, test guards, empty-diff, verifier   │
+ │ requirements     extraction, proof (fail-before/pass-after), ledger, re-binding   │
  │ store            SemanticChange ⇄ refs/notes/gitent (JSON), op journal            │
  │ repo             git2: trees, diffs, in-memory cherry-pick/merge/revert, commits │
  │                  git CLI: worktree add/remove                                     │
@@ -31,15 +32,15 @@ Full schema: `gitent schema`.
 
 | field | meaning |
 |-------|---------|
-| `schema` | `"gitent/semantic-change@1"` |
+| `schema` | `"gitent/semantic-change@2"` (`@1` records are read with the mapping in `docs/REQUIREMENTS.md` §3) |
 | `intent_id` | Identity of the *intention*. Shared by every realisation (original commit, cherry-picks, rebased copies). `int_<12 hex>` |
 | `kind` | `feature · fix · refactor · perf · test · docs · chore · revert · merge` |
 | `title`, `intent`, `behavior` | What and why; the observable behaviour after the change |
 | `changes[]` | Atomic sub-intentions `{summary, files, symbols}` |
 | `affected.files[]`, `affected.symbols[]` | Deterministically extracted from the diff; LLM-claimed symbols carry `verified` |
-| `constraints[]` | Things the change must preserve ("public signature of `get_user` unchanged") |
-| `acceptance[]` | Behavioural statements that must hold (used by agents and the verifier) |
-| `tests[]` | Test identifiers introduced/modified by the change (deterministic) — used as preservation guards |
+| `requirements[]` | Checkable statements the change must satisfy: `{id, statement, category, kind: test·command·judged, test?, check?, origin, proof}` (see `docs/REQUIREMENTS.md`) |
+| `retires[]` | Requirements this change deliberately ends: `{id, reason}` |
+| `tests[]` | Test identifiers introduced/modified by the change (deterministic); each also appears as an `auto` requirement |
 | `dependencies[]` | Preconditions (other intents or required code) |
 | `realization` | `{commit, parents, tree}` — the exact Git snapshot |
 | `provenance` | `{operation, derived_from?, reverts?, composes[], executor, attempts, analysis, validation, created_at}` |
@@ -83,17 +84,31 @@ In `host` mode, step 2 does not run an executor: the operation pauses in
 `awaiting_host` and returns `{op_id, worktree, brief}`. The host agent edits
 the worktree and calls `gitent continue`, which runs step 3 onward.
 
+## Requirements and the ledger
+
+Every record carries requirements (ADR 0008, `docs/REQUIREMENTS.md`). The
+**ledger** of a commit is the set of requirements introduced in its ancestry and
+not retired or reverted. Requirements are what operations must satisfy:
+
+* cherry-pick / rebase: the source's requirements (re-bound by test name) plus the target's ledger;
+* merge: the union of both sides' ledgers;
+* revert: the ledger minus the reverted intention's requirements.
+
+At commit time, executable requirements are **proven**: they must fail on the
+parent (with the commit's test files overlaid) and pass on the commit.
+`gitent check` evaluates a ledger on a working directory or revision.
+
 ## Validation
 
-All of these are deterministic except the verifier:
+All of these are deterministic except the verifier and judged requirements:
 
 | check | failure means |
 |-------|---------------|
 | `non_empty` | step produced no change |
+| `requirements` | an executable requirement the step must satisfy fails or its test is missing in the result (per-requirement results recorded) |
 | `tests` | configured `validation.test_command` exits non-zero (output captured as feedback) |
-| `source_tests_present` | a test introduced by the source change (e.g. `def test_cache_hit`) is missing in the result |
 | `existing_tests_preserved` | a test that existed at the target tip disappeared (agent deleted tests to go green) |
-| `verifier` (optional) | LLM judged the diff does not satisfy the intention with confidence ≥ threshold |
+| `verifier` (optional) | LLM judged the diff does not satisfy the intention or a `judged` requirement, with confidence ≥ threshold |
 
 Warnings (non-fatal, recorded): no test command configured; verifier
 unavailable; agent touched files that contain none of the affected symbols.

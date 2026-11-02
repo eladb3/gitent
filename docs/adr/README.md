@@ -11,3 +11,4 @@ Short, numbered, immutable once accepted (supersede instead of editing).
 | [0005](0005-json-action-protocol.md) | Builtin agent uses a provider-agnostic JSON action protocol, not native tool-calling |
 | [0006](0006-validation-policy.md) | Deterministic validation gates; LLM verifier is advisory unless configured strict |
 | [0007](0007-testing-strategy.md) | Integration tests use real processes as stand-in agents; real-LLM evals are separate |
+| [0008](0008-requirements.md) | Requirements are first-class, checkable parts of a commit; ledger; proof at commit time (amends 0006) |
