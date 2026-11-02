@@ -58,7 +58,7 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | R5 | `gitent check [rev]` runs the ledger, names the intention that introduced each failing requirement, exits 2 on failure. | ✅ `tests/requirements.rs::check_reports_regression_and_names_intention` |
 | R6 | Cherry-pick/rebase must satisfy the source's requirements (re-bound by test name) and the target's ledger; the brief lists them as the definition of done. | ✅ `tests/cherry_pick.rs::conflict_reimplemented_by_agent_with_provenance`, `host_mode_roundtrip` (brief), `clean_but_wrong_pick_escalates_to_agent` |
 | R7 | Merge must satisfy both ledgers; the compatibility check compares requirement statements. | ✅ `tests/merge_rebase_revert.rs::merge_conflict_composes_both_intentions` |
-| R8 | Revert retires the reverted intention's requirements; warns `revert_incomplete` if their checks still pass. | ✅ `tests/merge_rebase_revert.rs::revert_after_refactor_retires_requirements` (`revert_incomplete` warning: implemented, no dedicated test ⏳) |
+| R8 | Revert retires the reverted intention's requirements; a revert whose reverted requirements still pass is rejected (`revert_effective`). | ✅ `tests/merge_rebase_revert.rs::revert_after_refactor_retires_requirements`, `revert_that_keeps_the_behaviour_is_rejected` |
 | R9 | `--retire <id> "<reason>"` requires a reason, is shown in log/show; `--check-ledger` rejects a commit that breaks an unretired live requirement. | ✅ `tests/requirements.rs::retire_and_check_ledger` (also: editing a test bound to a live requirement is rejected under `--check-ledger`) |
 | R10 | `@1` records are read with the documented mapping (acceptance/constraints → judged, tests → test). | ✅ `model::tests::migrates_v1_records` |
 

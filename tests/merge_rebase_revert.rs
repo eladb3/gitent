@@ -265,3 +265,37 @@ fn revert_after_refactor_retires_requirements() {
         .iter()
         .all(|x| x["id"] != cache_req.as_str()));
 }
+
+#[test]
+fn revert_that_keeps_the_behaviour_is_rejected() {
+    let r = TestRepo::users();
+    r.write("app/users.py", USERS_CACHED_PY);
+    r.write("tests/test_cache.py", TEST_CACHE_PY);
+    r.commit("feat: cache user lookups", &[]);
+    let cache = r.head();
+    r.git(&["rm", "-q", "app/users.py"]);
+    r.write("app/accounts.py", ACCOUNTS_CACHED_PY);
+    r.write("tests/test_users.py", TEST_ACCOUNTS_PY);
+    r.write("tests/test_cache.py", TEST_CACHE_ACCOUNTS_PY);
+    r.commit("refactor: move users to accounts", &[]);
+    let before = r.head();
+    // A lazy agent: touches a comment, keeps the cache and its test.
+    let agent = r.script("lazy.sh", "cat > /dev/null\necho '# reverted' >> app/db.py");
+    let (code, v) = r.gitent(&[
+        "--executor",
+        "command",
+        "--executor-command",
+        &agent,
+        "--max-attempts",
+        "1",
+        "revert",
+        &cache,
+    ]);
+    assert_eq!(code, 2, "{v}");
+    let checks = v["steps"][0]["attempts"][1]["validation"]["checks"].to_string();
+    assert!(
+        checks.contains("revert_effective") && checks.contains("still present"),
+        "{checks}"
+    );
+    assert_eq!(r.head(), before);
+}
