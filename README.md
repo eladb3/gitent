@@ -36,8 +36,8 @@ lookups for 60 seconds" — is still perfectly applicable. Gitent:
    add becomes a requirement, and Gitent proves each one fails before the change
    and passes after it ([docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)). It also
    records the intention itself as a first-class, structured object
-   (`intent`, `behavior`, affected symbols, constraints, acceptance criteria,
-   the tests that encode it, and the exact Git snapshot that realised it);
+   (`intent`, `behavior`, affected symbols, and the exact Git snapshot that
+   realised it);
 2. tries the deterministic Git operation first, and **keeps it only if it
    validates** (tests pass, nothing lost);
 3. otherwise hands a bounded task brief to a coding agent in an isolated
