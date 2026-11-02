@@ -46,6 +46,21 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | D3 | Rebase replays each intention onto the new base using the same engine; any failed step leaves the branch untouched. | ✅ `tests/merge_rebase_revert.rs::rebase_*` |
 | D4 | Revert removes an intention's behaviour even after later refactors made `git revert` conflict, keeping later intentions' tests green. | ✅ `tests/merge_rebase_revert.rs::revert_*` · 📊 eval E5 |
 
+## R. Requirements (ADR 0008, `docs/REQUIREMENTS.md`)
+
+| ID | Criterion | Verified by |
+|----|-----------|-------------|
+| R1 | `gitent commit` stores requirements with stable `req_` ids from: every added test (auto), `--require/--test/--check` and intent drafts (author), and the analyzer (llm). | ⏳ `tests/requirements.rs::commit_collects_requirements` |
+| R2 | LLM-proposed requirements become executable only if their test exists in the diff; LLM-proposed commands are never executed (stored as `judged`). | ⏳ `tests/requirements.rs::llm_requirements_are_checked` |
+| R3 | Proof: each executable requirement fails on the parent (test files overlaid) and passes on the commit; non-discriminating checks are flagged (`prove=warn`) or rejected (`prove=require`); a failing `after` rejects the commit. | ⏳ `tests/requirements.rs::proof_*` |
+| R4 | Ledger: live requirements = introduced in ancestry − retired − reverted; merges union both parents; cherry-picked copies keep their id and count once. | ⏳ unit tests in `requirements.rs`, `tests/requirements.rs::ledger_*` |
+| R5 | `gitent check [rev]` runs the ledger, names the intention that introduced each failing requirement, exits 2 on failure. | ⏳ `tests/requirements.rs::check_reports_regression` |
+| R6 | Cherry-pick/rebase must satisfy the source's requirements (re-bound by test name) and the target's ledger; the brief lists them as the definition of done. | ⏳ `tests/cherry_pick.rs::requirements_drive_pick` |
+| R7 | Merge must satisfy both ledgers; the compatibility check compares requirement statements. | ⏳ `tests/merge_rebase_revert.rs::merge_requirements` |
+| R8 | Revert retires the reverted intention's requirements; warns `revert_incomplete` if their checks still pass. | ⏳ `tests/merge_rebase_revert.rs::revert_retires_requirements` |
+| R9 | `--retire <id> "<reason>"` requires a reason, is shown in log/show; `--check-ledger` rejects a commit that breaks an unretired live requirement. | ⏳ `tests/requirements.rs::retire_*` |
+| R10 | `@1` records are read with the documented mapping (acceptance/constraints → judged, tests → test). | ⏳ unit test in `model.rs` |
+
 ## E. Agent integration
 
 | ID | Criterion | Verified by |

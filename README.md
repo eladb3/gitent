@@ -1,13 +1,20 @@
 # Gitent
 
-**Agent-native version control.** Git tracks textual changes. Gitent tracks
-*semantic intentions* — what changed and why — and uses coding agents to carry
-those intentions across diverged code when a textual patch no longer applies.
+**A Git companion for agents.** Git records what the code *is*. Gitent also
+records what each change is *for* and what it must *keep doing*, as checkable
+requirements. It uses that to move changes (backports, fork syncs, merges of
+parallel agent branches, reverts after refactors) between versions of a code
+base that have drifted apart, and *proves* the result.
+
+It is not a Git replacement: keep using Git day to day, and reach for Gitent
+when a change has to land on code that has diverged. See
+[docs/VISION.md](docs/VISION.md).
 
 ```
 gitent init --agent claude-code      # or codex, kiro, gemini, aider, builtin, host
 gitent commit -m "Add caching"       # records a structured intention next to the git commit
 gitent log                           # history of intentions + provenance
+gitent check                         # are all live requirements still satisfied?
 gitent cherry-pick <commit>          # re-implements the intention on the current branch
 gitent merge <branch>                # composes intentions from both sides
 gitent rebase <onto>                 # replays intentions onto a new base
@@ -25,7 +32,10 @@ function, moved a file, or restructured the code, the patch conflicts (or,
 worse, applies cleanly and is silently wrong). The *intention* — "cache user
 lookups for 60 seconds" — is still perfectly applicable. Gitent:
 
-1. records the intention as a first-class, structured object when you commit
+1. records the intention and its **requirements** when you commit. Every test you
+   add becomes a requirement, and Gitent proves each one fails before the change
+   and passes after it ([docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)). It also
+   records the intention itself as a first-class, structured object
    (`intent`, `behavior`, affected symbols, constraints, acceptance criteria,
    the tests that encode it, and the exact Git snapshot that realised it);
 2. tries the deterministic Git operation first, and **keeps it only if it
