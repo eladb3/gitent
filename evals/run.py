@@ -33,7 +33,7 @@ sys.path.insert(0, str(HERE))
 from cases import CASES  # noqa: E402
 
 CLAUDE = ('claude -p --permission-mode acceptEdits --allowedTools '
-          '"Bash(python3:*)" "Bash(git diff:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git show:*)" "Bash(ls:*)"')
+          '"Bash(python3:*)" "Bash(python:*)" "Bash(git diff:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git show:*)" "Bash(ls:*)"')
 AGENTS = {"claude-code": CLAUDE, "claude-code-haiku": CLAUDE.replace("claude -p", "claude -p --model claude-haiku-5-5", 1)}
 CLEAN_ENV = {k: v for k, v in os.environ.items() if not k.startswith("GITENT_")}
 CLEAN_ENV.update(GIT_AUTHOR_NAME="Eval", GIT_AUTHOR_EMAIL="eval@example.com",

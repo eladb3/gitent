@@ -1,0 +1,541 @@
+{
+  "mirror": "/home/user/realbench/django.git",
+  "stats": {
+    "identical": 4,
+    "clean_differs": 1,
+    "conflict": 19,
+    "rejected": 442
+  },
+  "cases": [
+    {
+      "branch": "stable/6.1.x",
+      "B": "a92be5c4e2b252eeda0859c083d031c9ecf61093",
+      "X": "6b212c29e7dfa94f92110d5be034033f449a0cf2",
+      "subject": "[6.1.x] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+      "kind": "identical",
+      "target": "8485c6ac386c6d41cf46001851c19360275c7cc9",
+      "size": 89,
+      "hidden_labels": [
+        "defer.tests"
+      ],
+      "visible_labels": [
+        "defer.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/defer/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "8485c6ac386c6d41cf46001851c19360275c7cc9",
+      "X": "817df1c4d6d38f416460d7d9354d7deab9d35139",
+      "subject": "[6.1.x] Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+      "kind": "identical",
+      "target": "317287d6cdf7ed463dccb4f08083329f0c69e77a",
+      "size": 24,
+      "hidden_labels": [
+        "forms_tests.tests.test_forms"
+      ],
+      "visible_labels": [
+        "forms_tests.tests.test_forms"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/forms_tests/tests/test_forms.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "0931d3c35213b9b9562f0585629745bad89f5d9b",
+      "X": "1b4d021b6525bff6439b9d3b8d5388a1a1906ecd",
+      "subject": "[6.1.x] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.",
+      "kind": "identical",
+      "target": "04f978e40701dc6aaf47a37cac8cea599fd16911",
+      "size": 29,
+      "hidden_labels": [
+        "model_fields.test_jsonfield"
+      ],
+      "visible_labels": [
+        "model_fields.test_jsonfield"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/model_fields/test_jsonfield.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "cce6c57ed30ea83725f9d6abb2fe5ee932bab107",
+      "X": "83cbd21be57483e6b3eb6e4688a561c841aff75e",
+      "subject": "[6.1.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "kind": "identical",
+      "target": "4e77ef1e69c94780006b82795aa7db101996c3af",
+      "size": 110,
+      "hidden_labels": [
+        "model_formsets.tests"
+      ],
+      "visible_labels": [
+        "model_formsets.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/model_formsets/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "8590dfdb4132ab56a9a26c13094e01f2d2a74ee6",
+      "X": "50eef95591b1e5d8c47b2e8c96066cb0c516753a",
+      "subject": "[6.1.x] Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.",
+      "kind": "conflict",
+      "target": "c9f6dfb5d17ba5cfe41868bf97179c73d93d89db",
+      "size": 51,
+      "hidden_labels": [
+        "composite_pk.test_filter",
+        "foreign_object.test_tuple_lookups"
+      ],
+      "visible_labels": [
+        "composite_pk.test_filter",
+        "foreign_object.test_tuple_lookups"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/composite_pk/test_filter.py"
+        ],
+        [
+          "M",
+          "tests/foreign_object/test_tuple_lookups.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "cabad83ed107655e6f785d64b5a4673f05ff42c5",
+      "X": "d992705f9eb56199dc474b77af16474e5ce3d2ab",
+      "subject": "[6.1.x] Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.",
+      "kind": "conflict",
+      "target": "d3549de3228543ca7ac90c40e1f65168c640d93a",
+      "size": 152,
+      "hidden_labels": [
+        "basic.tests"
+      ],
+      "visible_labels": [
+        "basic.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/basic/models.py"
+        ],
+        [
+          "M",
+          "tests/basic/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "969450ebcc20f5534fa329ebf9f46f6257e6cdd8",
+      "X": "082b3df4067c3899dd4d57e8c2eca5baea9d07bb",
+      "subject": "[6.1.x] Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.",
+      "kind": "conflict",
+      "target": "c1595b6fd26739042624aa69484d6595e31230be",
+      "size": 45,
+      "hidden_labels": [
+        "admin_changelist.tests"
+      ],
+      "visible_labels": [
+        "admin_changelist.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/admin_changelist/models.py"
+        ],
+        [
+          "M",
+          "tests/admin_changelist/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "bc529fb8a6c289e066f3aadc8a6944333e35f12f",
+      "X": "2e48636c54910e435eb31e1b7d8a8089c84233ad",
+      "subject": "[6.1.x] Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.",
+      "kind": "conflict",
+      "target": "3143a7e7a7e327fd30dee3cd22014b635137f0d7",
+      "size": 31,
+      "hidden_labels": [
+        "admin_views.test_actions",
+        "modeladmin.tests"
+      ],
+      "visible_labels": [
+        "admin_views.test_actions",
+        "modeladmin.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/admin_views/test_actions.py"
+        ],
+        [
+          "M",
+          "tests/modeladmin/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.1.x",
+      "B": "3143a7e7a7e327fd30dee3cd22014b635137f0d7",
+      "X": "260d136920acf27dbd3cae9bc80eba2a43b44bba",
+      "subject": "[6.1.x] Refs #37187 -- Implemented warn_about_implementation() deprecation utility.",
+      "kind": "conflict",
+      "target": "4b28273dc54856354a30d0040a5b62766b370e89",
+      "size": 284,
+      "hidden_labels": [
+        "deprecation.test_warn_about_implementation"
+      ],
+      "visible_labels": [
+        "deprecation"
+      ],
+      "hidden_files": [
+        [
+          "A",
+          "tests/deprecation/test_warn_about_implementation.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "b83ab92bc5474558b083a840ea4628b3261b2cfe",
+      "X": "83cbd21be57483e6b3eb6e4688a561c841aff75e",
+      "subject": "[6.0.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "kind": "conflict",
+      "target": "a2347fe8234a1831d56c875acc0ea51e0742957c",
+      "size": 110,
+      "hidden_labels": [
+        "model_formsets.tests"
+      ],
+      "visible_labels": [
+        "model_formsets.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/model_formsets/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "3d8f121695c21234aff3071de0d38b6bd38c3f52",
+      "X": "7ff7fcc0508864a4bc39693128ace38b1e95a890",
+      "subject": "[6.0.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "kind": "conflict",
+      "target": "3d32ee80ae52745d686bf94d3555000ddf073267",
+      "size": 130,
+      "hidden_labels": [
+        "utils_tests.test_http"
+      ],
+      "visible_labels": [
+        "utils_tests.test_http"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/utils_tests/test_http.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "3d32ee80ae52745d686bf94d3555000ddf073267",
+      "X": "c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc",
+      "subject": "[6.0.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "kind": "conflict",
+      "target": "74d000ca2098262273cece4d331eb99849335a4d",
+      "size": 154,
+      "hidden_labels": [
+        "i18n.tests"
+      ],
+      "visible_labels": [
+        "i18n.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/i18n/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "ad8f9e19e0897ea45ded7c046ff28daf6f773e92",
+      "X": "5a89e341bfc77dd67b7fd57b7091b6430558e1f4",
+      "subject": "[6.0.x] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.",
+      "kind": "clean_differs",
+      "target": "990ab01e70fd8f55e867b4a234c0ee242fd33fec",
+      "size": 119,
+      "hidden_labels": [
+        "asgi.tests",
+        "requests_tests.tests"
+      ],
+      "visible_labels": [
+        "asgi.tests",
+        "requests_tests.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/asgi/tests.py"
+        ],
+        [
+          "M",
+          "tests/requests_tests/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "0910af60468216c856dfbcac1177372c225deb76",
+      "X": "7e9885f99cee771b51692fadc5592bdbf19641aa",
+      "subject": "[6.0.x] Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.",
+      "kind": "conflict",
+      "target": "428c48f358c5a0ed5ca2834fb721d615eb2b0e11",
+      "size": 106,
+      "hidden_labels": [
+        "requests_tests.tests"
+      ],
+      "visible_labels": [
+        "requests_tests.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/requests_tests/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "4b86ba51e486530db982341a23e53c7a1e1e6e71",
+      "X": "a33540b3e20b5d759aa8b2e4b9ca0e8edd285344",
+      "subject": "[6.0.x] Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.",
+      "kind": "conflict",
+      "target": "8f77e7301174834573614ae90e1826fdf27f8a24",
+      "size": 55,
+      "hidden_labels": [
+        "utils_tests.test_text"
+      ],
+      "visible_labels": [
+        "utils_tests.test_text"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/utils_tests/test_text.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/6.0.x",
+      "B": "972dbdd4f7f69e9c405e6fe12a1b90e4713c1611",
+      "X": "eb22e1d6d643360e952609ef562c139a100ea4eb",
+      "subject": "[6.0.x] Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.",
+      "kind": "conflict",
+      "target": "d72cc3be3be0bbebdcaea5a8c8106b4d6f2a32bd",
+      "size": 75,
+      "hidden_labels": [
+        "asgi.tests"
+      ],
+      "visible_labels": [
+        "asgi.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/asgi/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "ff27883ca055aa9ab23015b50674a5b10dfe5a41",
+      "X": "83cbd21be57483e6b3eb6e4688a561c841aff75e",
+      "subject": "[5.2.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "kind": "conflict",
+      "target": "dd0558d1617619e0d66163675ef02135d0f54e5f",
+      "size": 110,
+      "hidden_labels": [
+        "model_formsets.tests"
+      ],
+      "visible_labels": [
+        "model_formsets.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/model_formsets/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "6ecd66e09a383be004a78a3a738ea9727ff07b0e",
+      "X": "7ff7fcc0508864a4bc39693128ace38b1e95a890",
+      "subject": "[5.2.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "kind": "conflict",
+      "target": "02a69e3791e3df23d45ea4ea7e7fc489f0eef2be",
+      "size": 130,
+      "hidden_labels": [
+        "utils_tests.test_http"
+      ],
+      "visible_labels": [
+        "utils_tests.test_http"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/utils_tests/test_http.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "02a69e3791e3df23d45ea4ea7e7fc489f0eef2be",
+      "X": "c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc",
+      "subject": "[5.2.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "kind": "conflict",
+      "target": "f59aef2ee9b5c988fd4179d8f2835030bd76297c",
+      "size": 154,
+      "hidden_labels": [
+        "i18n.tests"
+      ],
+      "visible_labels": [
+        "i18n.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/i18n/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "b9adb81339cc418f8f56b1050cca6dfec3ab6349",
+      "X": "47511a21026cdd721d8fbf8571cc079bc38bb46d",
+      "subject": "[5.2.x] Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.",
+      "kind": "conflict",
+      "target": "ba80833fa656dd09660b97c4429331067db1b080",
+      "size": 55,
+      "hidden_labels": [
+        "admin_utils.tests"
+      ],
+      "visible_labels": [
+        "admin_utils.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/admin_utils/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "c72a5dbb64d0777f3f471f1be94e8b2ca91e0959",
+      "X": "27137e655e442e81095f1f8f77ff3870d9fdf169",
+      "subject": "[5.2.x] Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().",
+      "kind": "conflict",
+      "target": "115ffd0463a765ab1cc93de18e94b5459b8a300e",
+      "size": 94,
+      "hidden_labels": [
+        "i18n.tests"
+      ],
+      "visible_labels": [
+        "i18n.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/i18n/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "d5d60ed0323cddaa0ce0237a26a3d49ac21ee05e",
+      "X": "3a720d0d8bf2529253b98968f10ca73daf6d693c",
+      "subject": "[5.2.x] Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.",
+      "kind": "conflict",
+      "target": "6c66eb8cec52b303af85c2c6e4dd00aa37654dbc",
+      "size": 60,
+      "hidden_labels": [
+        "validators.tests"
+      ],
+      "visible_labels": [
+        "validators.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/validators/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "721685aa7799cc9327bd202cd1f70bd012ca95a7",
+      "X": "6e365f8d01f2ba0bbd90968d76a42600fb8bc4b1",
+      "subject": "[5.2.x] Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.",
+      "kind": "conflict",
+      "target": "61a829d13aa5589cc12b10cc96194125f84f2e69",
+      "size": 74,
+      "hidden_labels": [
+        "cache.tests"
+      ],
+      "visible_labels": [
+        "cache.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/cache/tests.py"
+        ]
+      ]
+    },
+    {
+      "branch": "stable/5.2.x",
+      "B": "9b62b0af71a14c657d19d95371630ba839e83d9a",
+      "X": "42aa0b3364d312e7c6472258d8b0e9c0277fbf22",
+      "subject": "[5.2.x] Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.",
+      "kind": "conflict",
+      "target": "050a3dc276f9142067260e990e4d8d42d5e32863",
+      "size": 68,
+      "hidden_labels": [
+        "cache.tests"
+      ],
+      "visible_labels": [
+        "cache.tests"
+      ],
+      "hidden_files": [
+        [
+          "M",
+          "tests/cache/tests.py"
+        ]
+      ]
+    }
+  ]
+}
