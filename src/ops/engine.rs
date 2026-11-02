@@ -8,6 +8,7 @@ use crate::diff;
 use crate::llm::{extract_json, Message};
 use crate::model::*;
 use crate::repo::{short, MergeOutcome, Repo};
+use crate::requirements;
 use crate::store;
 use crate::validate;
 use anyhow::{Context, Result};
@@ -248,6 +249,32 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                 step.required_tests = t.into_iter().collect();
             }
         }
+        // Requirements this step must satisfy (ADR 0008 §7).
+        let tip_ledger = requirements::ledger(&s.repo, tip)?;
+        let (reqs, retiring) = match &kind {
+            StepKind::Apply { source } => {
+                let src = requirements::live_from_record(&ctx.records[0].1, source);
+                (requirements::union(src, tip_ledger), vec![])
+            }
+            StepKind::Revert { .. } => {
+                let ids: std::collections::HashSet<String> = ctx.records[0]
+                    .1
+                    .requirements
+                    .iter()
+                    .map(|r| r.id.clone())
+                    .collect();
+                let (gone, keep): (Vec<_>, Vec<_>) = tip_ledger
+                    .into_iter()
+                    .partition(|l| ids.contains(&l.req.id));
+                (keep, gone)
+            }
+            StepKind::Merge { theirs, .. } => {
+                let theirs_ledger = requirements::ledger(&s.repo, Oid::from_str(theirs)?)?;
+                (requirements::union(tip_ledger, theirs_ledger), vec![])
+            }
+        };
+        op.steps[i].requirements = reqs;
+        op.steps[i].retiring = retiring;
 
         // ---- 1. deterministic attempt ----
         let mut starting_point = String::from("The worktree is at the current tip of the branch.");
@@ -465,6 +492,9 @@ fn write_brief(
         required_tests: &step.required_tests,
         removable_tests: &step.removable_tests,
         test_command: &s.cfg.validation.test_command,
+        test_selector: &s.cfg.validation.test_selector,
+        requirements: &step.requirements,
+        retiring: &step.retiring,
         feedback,
     });
     let dir = s.ops_dir().join(&op.id);
@@ -489,16 +519,98 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
     if let StepKind::Merge { .. } = step.kind {
         goal.push_str("\n(For a merge, the diff below is relative to OUR side; it should add their intentions.)");
     }
-    let report = validate::validate(&validate::Ctx {
+    // Executable requirements first (ADR 0008 §7); judged ones go to the verifier.
+    let mut runner = requirements::Runner::new(&wt.workdir, &s.cfg);
+    let exec: Vec<_> = step
+        .requirements
+        .iter()
+        .filter(|l| l.req.kind.executable())
+        .cloned()
+        .collect();
+    let results = runner.run_all(&exec);
+    let failing: Vec<_> = results.iter().filter(|r| r.status == "fail").collect();
+    let skipped = results.iter().filter(|r| r.status == "skipped").count();
+    let judged: Vec<String> = step
+        .requirements
+        .iter()
+        .filter(|l| !l.req.kind.executable())
+        .map(|l| {
+            format!(
+                "- [{}] {} (from \"{}\")",
+                l.req.category, l.req.statement, l.title
+            )
+        })
+        .collect();
+    if s.cfg.requirements.judge_in_operations && !judged.is_empty() {
+        goal.push_str(&format!(
+            "\n\nJudged requirements that must also hold:\n{}",
+            judged.join("\n")
+        ));
+    }
+    let mut vcfg = s.cfg.validation.clone();
+    if !failing.is_empty() {
+        vcfg.verifier = false;
+    }
+    let mut report = validate::validate(&validate::Ctx {
         worktree: &wt.workdir,
         diff: &d,
         tests_before: &before,
         required_tests: &step.required_tests,
         removable_tests: &step.removable_tests,
-        cfg: &s.cfg.validation,
+        cfg: &vcfg,
         verifier: s.provider(),
         goal: &goal,
     });
+    if !exec.is_empty() {
+        report.checks.insert(
+            1,
+            CheckResult {
+                name: "requirements".into(),
+                passed: failing.is_empty(),
+                detail: if failing.is_empty() {
+                    format!(
+                        "{} executable requirement(s) satisfied{}",
+                        results.len() - skipped,
+                        if skipped > 0 {
+                            format!(", {skipped} skipped")
+                        } else {
+                            String::new()
+                        }
+                    )
+                } else {
+                    failing
+                        .iter()
+                        .map(|r| {
+                            format!(
+                                "{} \"{}\" (from \"{}\"): {}",
+                                r.id,
+                                r.statement,
+                                r.intent_title,
+                                r.detail.lines().take(4).collect::<Vec<_>>().join(" | ")
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                },
+            },
+        );
+        report.passed = report.checks.iter().all(|c| c.passed);
+    }
+    // Revert: the removed requirements should no longer hold.
+    let retiring: Vec<_> = step
+        .retiring
+        .iter()
+        .filter(|l| l.req.kind.executable())
+        .cloned()
+        .collect();
+    for r in runner.run_all(&retiring) {
+        if r.status == "pass" {
+            report.warnings.push(format!(
+                "revert_incomplete:{} \"{}\" still passes after the revert",
+                r.id, r.statement
+            ));
+        }
+    }
     Ok((snap, report))
 }
 
@@ -543,6 +655,12 @@ fn commit_step(
                 commit: source.clone(),
                 intent_id: src.intent_id.clone(),
             });
+            // Same requirement ids, re-bound to this realisation (by test name).
+            for r in rec.requirements.iter_mut() {
+                r.rebound_from = Some(source.clone());
+                r.proof = None;
+            }
+            rec.retires = vec![];
             let src_msg = s
                 .repo
                 .git
@@ -575,8 +693,15 @@ fn commit_step(
                 "The behaviour described as \"{}\" no longer applies.",
                 src.behavior
             );
-            rec.constraints = vec!["Later intentions must keep working".into()];
-            rec.acceptance = vec![];
+            rec.retires = src
+                .requirements
+                .iter()
+                .map(|r| Retirement {
+                    id: r.id.clone(),
+                    reason: format!("reverted \"{}\"", src.title),
+                })
+                .collect();
+            rec.requirements = vec![];
             rec.provenance.reverts = Some(SourceRef {
                 commit: source.clone(),
                 intent_id: src.intent_id.clone(),
@@ -608,19 +733,7 @@ fn commit_step(
                     "Compose the intentions of {theirs_name} with {branch}: {}",
                     titles.join("; ")
                 ),
-                behavior: "All composed intentions hold simultaneously.".into(),
-                acceptance: ctx
-                    .records
-                    .iter()
-                    .chain(ctx.preserve.iter())
-                    .flat_map(|(_, r)| r.acceptance.clone())
-                    .collect(),
-                constraints: ctx
-                    .records
-                    .iter()
-                    .chain(ctx.preserve.iter())
-                    .flat_map(|(_, r)| r.constraints.clone())
-                    .collect(),
+                behavior: "All composed intentions hold simultaneously; the ledgers of both parents remain live.".into(),
                 ..Default::default()
             };
             rec.provenance.composes = ctx
@@ -678,6 +791,22 @@ fn commit_step(
     }
 
     let commit = s.repo.commit(None, &message, tree, &parents)?;
+    // Prove ported requirements still discriminate on the target (spec §7).
+    if matches!(step.kind, StepKind::Apply { .. }) && s.cfg.requirements.prove != "off" {
+        let rep = requirements::prove(
+            &s.repo,
+            &s.cfg,
+            &mut rec.requirements,
+            commit,
+            Some(tip),
+            true,
+        )?;
+        for id in rep.non_discriminating {
+            op.warnings.push(format!(
+                "non_discriminating:{id} passes on the target even without the change"
+            ));
+        }
+    }
     rec.realization = store::realization(&s.repo, commit)?;
     store::put(&s.repo, commit, &rec)?;
     let wt = Repo::open_exact(Path::new(&op.worktree))?;
@@ -701,13 +830,13 @@ fn compatibility(s: &Session, ctx: &StepCtx) -> Result<Option<serde_json::Value>
         recs.iter()
             .map(|(_, r)| {
                 format!(
-                    "- {} `{}`\n  why: {}\n  behaviour: {}\n  constraints: {}\n  acceptance: {}",
+                    "- {} `{}`\n  why: {}\n  behaviour: {}\n  constraints: {}\n  requirements: {}",
                     r.title,
                     r.intent_id,
                     r.intent,
                     r.behavior,
-                    r.constraints.join(" | "),
-                    r.acceptance.join(" | ")
+                    r.statements("constraint").join(" | "),
+                    r.statements("behavior").join(" | ")
                 )
             })
             .collect::<Vec<_>>()

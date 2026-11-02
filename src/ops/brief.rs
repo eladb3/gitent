@@ -21,6 +21,11 @@ pub struct BriefInput<'a> {
     pub required_tests: &'a [String],
     pub removable_tests: &'a [String],
     pub test_command: &'a str,
+    pub test_selector: &'a str,
+    /// Requirements the result must satisfy (definition of done).
+    pub requirements: &'a [crate::requirements::LiveReq],
+    /// Requirements being removed (revert).
+    pub retiring: &'a [crate::requirements::LiveReq],
     pub feedback: &'a [String],
 }
 
@@ -65,11 +70,17 @@ pub fn render(b: &BriefInput) -> String {
             if !r.behavior.is_empty() {
                 s.push_str(&format!("- **Behaviour:** {}\n", r.behavior));
             }
-            for a in &r.acceptance {
-                s.push_str(&format!("- **Must hold:** {a}\n"));
-            }
-            for c in &r.constraints {
-                s.push_str(&format!("- **Constraint:** {c}\n"));
+            for q in &r.requirements {
+                s.push_str(&format!(
+                    "- **{}:** {} (`{}`)\n",
+                    if q.category == "constraint" {
+                        "Constraint"
+                    } else {
+                        "Requirement"
+                    },
+                    q.statement,
+                    q.id
+                ));
             }
             for d in &r.dependencies {
                 s.push_str(&format!("- **Depends on:** {d}\n"));
@@ -141,14 +152,46 @@ pub fn render(b: &BriefInput) -> String {
     }
     s.push_str("```\n\n");
 
-    s.push_str("## Requirements\n\n");
+    s.push_str("## Definition of done: requirements Gitent will check\n\n");
+    if b.requirements.is_empty() {
+        s.push_str("(no recorded requirements; the test suite and the goal above are the definition of done)\n");
+    }
+    for l in b.requirements {
+        let how = match l.req.kind {
+            crate::model::ReqKind::Test => {
+                if b.test_selector.trim().is_empty() {
+                    format!("test `{}` must exist and the suite must pass", l.req.test)
+                } else {
+                    format!("`{}`", b.test_selector.replace("{test}", &l.req.test))
+                }
+            }
+            crate::model::ReqKind::Command => format!(
+                "`{}`",
+                l.req.check.as_ref().map(|c| c.run.as_str()).unwrap_or("")
+            ),
+            crate::model::ReqKind::Judged => "judged by the verifier".to_string(),
+        };
+        s.push_str(&format!(
+            "- `{}` [{}] {} — from \"{}\" — checked by {how}\n",
+            l.req.id, l.req.category, l.req.statement, l.title
+        ));
+    }
+    if !b.retiring.is_empty() {
+        s.push_str("\nThese requirements are being REMOVED and should no longer hold:\n");
+        for l in b.retiring {
+            s.push_str(&format!("- `{}` {}\n", l.req.id, l.req.statement));
+        }
+    }
+    s.push('\n');
+
+    s.push_str("## Rules\n\n");
     s.push_str("- Realise the behaviour in the *current* code structure: adapt to renamed functions, moved files and changed signatures.\n");
     s.push_str(
         "- Keep the change minimal and focused on the goal; do not refactor unrelated code.\n",
     );
     if !b.required_tests.is_empty() {
         s.push_str(&format!(
-            "- Port the tests from the reference change, adapted to the current code, **keeping these test names**: {}.\n",
+            "- Port the tests from the reference change, adapted to the current code, **keeping these test names** (requirements are matched by test name): {}.\n",
             b.required_tests.iter().map(|t| format!("`{t}`")).collect::<Vec<_>>().join(", ")
         ));
     }

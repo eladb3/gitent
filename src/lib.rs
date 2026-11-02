@@ -12,6 +12,7 @@ pub mod model;
 pub mod ops;
 pub mod proc;
 pub mod repo;
+pub mod requirements;
 pub mod store;
 pub mod tools;
 pub mod validate;

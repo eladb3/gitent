@@ -9,7 +9,9 @@ use git2::Oid;
 
 pub fn get(repo: &Repo, oid: Oid) -> Option<SemanticChange> {
     let body = repo.read_note(oid)?;
-    serde_json::from_str(&body).ok()
+    serde_json::from_str::<SemanticChange>(&body)
+        .ok()
+        .map(SemanticChange::migrate)
 }
 
 pub fn put(repo: &Repo, oid: Oid, rec: &SemanticChange) -> Result<()> {

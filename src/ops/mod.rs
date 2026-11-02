@@ -192,6 +192,12 @@ pub struct Step {
     pub brief_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compatibility: Option<serde_json::Value>,
+    /// Requirements the result must satisfy (source + ledger), ADR 0008.
+    #[serde(default)]
+    pub requirements: Vec<crate::requirements::LiveReq>,
+    /// Requirements being removed (revert).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub retiring: Vec<crate::requirements::LiveReq>,
 }
 
 impl Step {
@@ -207,6 +213,8 @@ impl Step {
             goal: String::new(),
             brief_path: None,
             compatibility: None,
+            requirements: vec![],
+            retiring: vec![],
         }
     }
 
