@@ -1,0 +1,86 @@
+# Eval results
+
+Date: 2026-11-02 · git 2.43.0 · agent: Claude Code CLI 2.1.316 (`claude -p`) ·
+Raw data: `evals/results/run*.json` · Harness: `evals/run.py`, scenarios: `evals/cases.py`.
+
+**Arms.** All three start from an identical, freshly built repository.
+
+* `git`: the plain git operation.
+* `baseline`: the coding agent alone. It gets the commit message(s), the diff and
+  the repo, and reports `RESULT: SUCCESS|FAILURE`.
+* `gitent`: Gitent driving the *same* agent as its executor.
+
+**Scoring.** Each case is scored by **hidden tests** that no arm ever sees. A
+*false success* is an arm reporting success on a result that fails the hidden
+tests.
+
+## Summary
+
+| | plain git | agent alone (baseline) | Gitent + same agent |
+|---|---|---|---|
+| Live, Claude Code (run 7, 9 cases) | 1/9 · 1 false success | **9/9** · 0 | **9/9** · 0 |
+| Live, Claude Code on Haiku 5.5 (run 4) | 1/9 · 1 | 9/9 · 0 | 9/9 · 0 |
+| Fault injection: "stale port" agent (run 6) | — | 1/9 · **8 false successes** | 1/9 · **0 false successes** |
+| Wall time, run 7 (sum over 9 cases) | ~1 s | 212 s | 510 s (~2.4×) |
+| Agent invocations, run 7 | 0 | 9 | 10 (0 on the parity case; 3 on the 3-step rebase) |
+
+## What this shows (and what it does not)
+
+1. **Against plain Git the claim holds.**
+   * Git conflicted on 7 of the 8 diverged scenarios.
+   * On the 8th (E3, money switched to cents) it applied cleanly and was
+     **silently wrong**.
+   * Gitent reconstructed the intended behaviour in all 8, and used Git's own
+     result, with no agent call, where Git was right (E0).
+2. **Against a capable agent, Gitent ties on correctness; it does not beat it.**
+   Claude Code alone solved every scenario, even on the small Haiku model.
+   These scenarios are within easy reach of current agents. The headline
+   criterion F ("Gitent ≥ baseline") is met as a tie. We have **no evidence yet
+   that Gitent makes a capable agent more correct**.
+3. **Gitent's distinct value is safety and accountability, not extra capability.**
+   With a faulty agent, the baseline reported success on 8 wrong results, and
+   Gitent on 0. Gitent never moved a branch to an unvalidated result. Every
+   result carries:
+   * the source intention and its requirements;
+   * the validation evidence;
+   * the agent used.
+4. **It costs time.** Gitent took about 2.4× the baseline's wall time. That time
+   goes to the extra verifier LLM call, running the suite plus each requirement,
+   proofs on the target, and briefs. The verifier is optional (`--llm`); the
+   offline checks are cheap.
+
+## Findings that changed Gitent
+
+| run | finding | fix |
+|---|---|---|
+| 1 | Gitent 3/6 vs baseline 6/6. Claude Code **refuses to edit files under `.git/`**, where Gitent placed worktrees. The offline test suite could not see this, because stand-in agents don't care. | ADR 0009: worktrees outside `.git/` |
+| offline | A 3-step rebase failed because a later step was already realised and produced "no change". | already-realised steps are skipped, like git's empty commits (C11) |
+| 5 | Fault injection: Gitent let **4 of 8** stale ports through. Resurrected modules made the original tests pass; overwritten target code was not covered by any test. | ADR 0010: `target_preserved` guard. Run 6: 0 of 8. |
+| design | A revert that left the feature in place passed with only a warning. | `revert_effective` is now a failing check |
+
+## Runs
+
+| run | config | git | baseline | gitent |
+|---|---|---|---|---|
+| 1 | Claude Code, worktrees in `.git/` (6 cases) | 1/6 | 6/6 | 3/6 |
+| 2 | Claude Code, ADR 0009 (6 cases) | 1/6 | 6/6 | 6/6 |
+| 3 | Claude Code (9 cases) | 1/9 | 9/9 | 9/9 |
+| 4 | Claude Code on Haiku 5.5 (9 cases) | 1/9 | 9/9 | 9/9 |
+| 5 | fault injection, before ADR 0010 | — | 1/9, 8 FS | 1/9, 4 FS |
+| 6 | fault injection, with ADR 0010 | — | 1/9, 8 FS | 1/9, 0 FS |
+| 7 | Claude Code, with ADR 0010 (9 cases) | 1/9 | 9/9 | 9/9 |
+
+(FS = false successes. Each live run is a single sample; agent behaviour is
+non-deterministic.)
+
+## Next steps for the eval
+
+* **Harder scenarios**, where capable agents actually fail: larger code bases,
+  long rebase stacks, conflicting requirements, changes spread across many
+  files. Without these, the comparison with an agent stays a tie.
+* **Repeated runs** (n ≥ 5 per case) to measure variance.
+* **More realistic fault models** than "stale port":
+  * partial ports;
+  * weakened tests;
+  * an agent that over-claims.
+* **Cost accounting** in tokens, not just wall time.

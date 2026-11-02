@@ -1,0 +1,313 @@
+{
+  "meta": {
+    "started": "2026-11-02T17-59-28Z",
+    "agent": "stale",
+    "llm": null,
+    "arms": [
+      "baseline",
+      "gitent"
+    ],
+    "git": "git version 2.43.0",
+    "agent_version": "",
+    "agent_command": "stale"
+  },
+  "results": [
+    {
+      "id": "E0-parity-clean-pick",
+      "kind": "parity",
+      "description": "Control: the target only changed unrelated files. Git's cherry-pick is correct; Gitent must match it without any agent call.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 0.3,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E1-pick-after-rename-move",
+      "kind": "recovery",
+      "description": "Cherry-pick caching onto a branch where get_user was renamed to fetch_user and moved to app/accounts.py (git: modify/delete conflict).",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_second_lookup_cached (tests.test_hidden.Hidden.test_second_lookup_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E1-pick-after-rename-move/baseline/score/tests/test_hidden.py\", line 11, in test_second_lookup_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout c7d6e2d26111b6c1e4e23e2b15cbcd10c7d5d93d -- app/users.py tests/test_cache.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 0.5,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_second_lookup_cached (tests.test_hidden.Hidden.test_second_lookup_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E1-pick-after-rename-move/gitent/score/tests/test_hidden.py\", line 11, in test_second_lookup_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": true
+        }
+      }
+    },
+    {
+      "id": "E2-pick-after-signature-change",
+      "kind": "recovery",
+      "description": "Cherry-pick retry-on-5xx onto a branch where the get_json(url) function became a Client class with timeout/headers (git: content conflict).",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": false,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E2-pick-after-signature-change/baseline/score/tests/test_hidden.py\", line 3, in <module>\n    from app.http import Client\nImportError: cannot import name 'Client' from 'app.http' (/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E2-pick-after-signature-change/baseline/score/app/http.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 571f005c47e7ffdf2cdf56c6acd999769ca21de5 -- app/http.py tests/test_retry.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 571f005c47e7ffdf2cdf56c6acd999769ca21de5 -- app/http.py tests/test_retry.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "unittest discover -q -k test_timeout_and_headers` failed | ====================================================================== | ERROR: tests.test_http (unittest.loader._FailedTest.tests.test_http) | ----------------------------------------------------------------------\n- check `tests` failed: `python3 -m unittest discover -q` FAILED in 113 ms\n======================================================================\nERROR: tests.test_http (unittest.loader._FailedTest.tests.test_http)\n----------------------------------------------------------------------\nImportError: Failed to import test module: tests.test_http\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 403, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 346, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/tmp/gitent-worktrees/repo-041b4bb92477/op_20261102175930_f4251a/tests/test_http.py\", line 2, in <module>\n    from app.http import Client\nImportError: cannot import name 'Client' from 'app.http' (/tmp/gitent-worktrees/repo-041b4bb92477/op_20261102175930_f4251a/app/http.py)\n\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (errors=1)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-041b4bb92477/op_20261102175930_f4251a (remove with `gitent abort op_20261102175930_f4251a`).",
+          "seconds": 0.9,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "-----------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E2-pick-after-signature-change/gitent/score/tests/test_hidden.py\", line 13, in test_recovers_after_two_5xx\n    body = Client(\"http://h\", timeout=3).get_json(\"/p\", headers={\"a\": \"b\"})\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E2-pick-after-signature-change/gitent/score/app/http.py\", line 14, in get_json\n    raise IOError(f\"HTTP {resp['status']}\")\nOSError: HTTP 503\n\n======================================================================\nFAIL: test_three_attempts_then_error (tests.test_hidden.Hidden.test_three_attempts_then_error)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E2-pick-after-signature-change/gitent/score/tests/test_hidden.py\", line 22, in test_three_attempts_then_error\n    self.assertEqual(transport.CALLS[\"n\"] - b, 3)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 3\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (failures=1, errors=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E3-pick-clean-but-wrong",
+      "kind": "recovery",
+      "description": "Cherry-pick a '10% off orders over $100' discount onto a branch that switched all money to integer cents. Git applies cleanly but the threshold is now wrong.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": false,
+          "hidden_pass": false,
+          "hidden_output": "===================================\nFAIL: test_no_discount_at_exactly_100 (tests.test_hidden.Hidden.test_no_discount_at_exactly_100)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E3-pick-clean-but-wrong/baseline/score/tests/test_hidden.py\", line 13, in test_no_discount_at_exactly_100\n    self.assertEqual(total([(100, 1)]), 10500)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 105 != 10500\n\n======================================================================\nFAIL: test_no_discount_small_order (tests.test_hidden.Hidden.test_no_discount_small_order)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E3-pick-clean-but-wrong/baseline/score/tests/test_hidden.py\", line 10, in test_no_discount_small_order\n    self.assertEqual(total([(1.5, 2)]), 800)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 8.0 != 800\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (failures=3)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 5259eec1d5bb50577ff7ee78e7661cef96bf9346 -- app/pricing.py tests/test_discount.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 5259eec1d5bb50577ff7ee78e7661cef96bf9346 -- app/pricing.py tests/test_discount.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "rejected: validation failed after 2 agent attempt(s):\n- check `tests` failed: `python3 -m unittest discover -q` FAILED in 114 ms\n======================================================================\nFAIL: test_total (tests.test_pricing.PricingTest.test_total)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-c063a84988d6/op_20261102175929_1b06fd/tests/test_pricing.py\", line 7, in test_total\n    self.assertEqual(total([(1.5, 2)]), 800)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 8.0 != 800\n\n----------------------------------------------------------------------\nRan 2 tests in 0.003s\n\nFAILED (failures=1)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-c063a84988d6/op_20261102175929_1b06fd (remove with `gitent abort op_20261102175929_1b06fd`).",
+          "seconds": 0.7,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_discount_applies_over_100_dollars (tests.test_hidden.Hidden.test_discount_applies_over_100_dollars)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E3-pick-clean-but-wrong/gitent/score/tests/test_hidden.py\", line 7, in test_discount_applies_over_100_dollars\n    self.assertEqual(total([(60, 2)]), 11300)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 12500 != 11300\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E4-merge-both-intentions",
+      "kind": "recovery",
+      "description": "Merge a branch adding an optional punctuation argument into a branch that title-cases and trims names; both edit the same line.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": false,
+          "hidden_pass": false,
+          "hidden_output": "---------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E4-merge-both-intentions/baseline/score/tests/test_hidden.py\", line 7, in test_both\n    self.assertEqual(greet(\" ada lovelace \", \"!\"), \"Hello, Ada Lovelace!\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'Hello,  ada lovelace !' != 'Hello, Ada Lovelace!'\n- Hello,  ada lovelace !\n?        ^^   ^       -\n+ Hello, Ada Lovelace!\n?        ^   ^\n\n\n======================================================================\nFAIL: test_default (tests.test_hidden.Hidden.test_default)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E4-merge-both-intentions/baseline/score/tests/test_hidden.py\", line 10, in test_default\n    self.assertEqual(greet(\"bob\"), \"Hello, Bob\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'Hello, bob' != 'Hello, Bob'\n- Hello, bob\n?        ^\n+ Hello, Bob\n?        ^\n\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nFAILED (failures=2)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 0141f43bca7ba18e8f36c420358b66b4fcad979d -- app/greet.py tests/test_punct.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 0141f43bca7ba18e8f36c420358b66b4fcad979d -- app/greet.py tests/test_punct.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "rejected: validation failed after 2 agent attempt(s):\n- check `requirements` failed: req_58d600db \"title case\" (from \"trim and title-case names in greetings\"): `python3 -m unittest discover -q -k test_title_case` failed | ====================================================================== | FAIL: test_title_case (tests.test_title.TitleTest.test_title_case) | ----------------------------------------------------------------------\n- check `tests` failed: `python3 -m unittest discover -q` FAILED in 101 ms\n======================================================================\nFAIL: test_title_case (tests.test_title.TitleTest.test_title_case)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-ef4c5a4b6f44/op_20261102175931_275cff/tests/test_title.py\", line 7, in test_title_case\n    self.assertEqual(greet(\" ada lovelace \"), \"Hello, Ada Lovelace\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'Hello,  ada lovelace ' != 'Hello, Ada Lovelace'\n- Hello,  ada lovelace \n?        ^^   ^       -\n+ Hello, Ada Lovelace\n?        ^   ^\n\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (failures=1)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-ef4c5a4b6f44/op_20261102175931_275cff (remove with `gitent abort op_20261102175931_275cff`).",
+          "seconds": 0.7,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "====================================\nERROR: test_both (tests.test_hidden.Hidden.test_both)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E4-merge-both-intentions/gitent/score/tests/test_hidden.py\", line 7, in test_both\n    self.assertEqual(greet(\" ada lovelace \", \"!\"), \"Hello, Ada Lovelace!\")\n                     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: greet() takes 1 positional argument but 2 were given\n\n======================================================================\nERROR: test_punct_only (tests.test_hidden.Hidden.test_punct_only)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E4-merge-both-intentions/gitent/score/tests/test_hidden.py\", line 13, in test_punct_only\n    self.assertEqual(greet(\"Bob\", \"?\"), \"Hello, Bob?\")\n                     ~~~~~^^^^^^^^^^^^\nTypeError: greet() takes 1 positional argument but 2 were given\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (errors=2)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E5-revert-after-refactor",
+      "kind": "recovery",
+      "description": "Revert the caching feature after later commits moved the code and built fetch_many() on top of it (git: revert conflicts).",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_no_longer_cached (tests.test_hidden.Hidden.test_no_longer_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E5-revert-after-refactor/baseline/score/tests/test_hidden.py\", line 11, in test_no_longer_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 2)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 9d3b311a910f9865ba195400deee741dc5b91c62^ -- app/users.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 9d3b311a910f9865ba195400deee741dc5b91c62^ -- app/users.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "rejected: validation failed after 2 agent attempt(s):\n- check `revert_effective` failed: the reverted behaviour is still present; these requirements still pass: req_621f470e \"cache hit\"\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-262adc35e9e5/op_20261102175933_4b9210 (remove with `gitent abort op_20261102175933_4b9210`).",
+          "seconds": 0.9,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_no_longer_cached (tests.test_hidden.Hidden.test_no_longer_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E5-revert-after-refactor/gitent/score/tests/test_hidden.py\", line 11, in test_no_longer_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 2)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 4 tests in 0.002s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E6-rebase-stack-onto-refactor",
+      "kind": "recovery",
+      "description": "Rebase a 3-commit feature stack (cache, TTL expiry, hit/miss stats) onto a main that renamed get_user to fetch_user and moved it to app/accounts.py.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E6-rebase-stack-onto-refactor/baseline/score/tests/test_hidden.py\", line 3, in <module>\n    from app.accounts import fetch_user, display_name, cache_stats\nImportError: cannot import name 'cache_stats' from 'app.accounts' (/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E6-rebase-stack-onto-refactor/baseline/score/app/accounts.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 68f2383d422736cf848e0e938bd5e34b5fcf0ac0 -- app/users.py tests/test_cache.py tests/test_stats.py tests/test_ttl.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "git",
+            "command:cat > /dev/null; git checkout 68f2383d422736cf848e0e938bd5e34b5fcf0ac0 -- app/users.py tests/test_cache.py tests/test_stats.py tests/test_ttl.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "git"
+          ],
+          "agent_calls": 2,
+          "warnings": [
+            "already_satisfied:b367a634c9",
+            "already_satisfied:68f2383d42"
+          ],
+          "detail": "",
+          "seconds": 1.2,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E6-rebase-stack-onto-refactor/gitent/score/tests/test_hidden.py\", line 3, in <module>\n    from app.accounts import fetch_user, display_name, cache_stats\nImportError: cannot import name 'cache_stats' from 'app.accounts' (/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E6-rebase-stack-onto-refactor/gitent/score/app/accounts.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": true
+        }
+      }
+    },
+    {
+      "id": "E7-pick-into-target-invariant",
+      "kind": "recovery",
+      "description": "Cherry-pick caching onto a branch that (besides renaming) promises callers independent copies of user records. A naive cache returns the same dict and silently breaks that promise.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_cached (tests.test_hidden.Hidden.test_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E7-pick-into-target-invariant/baseline/score/tests/test_hidden.py\", line 11, in test_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 42b168c9fc771a56a89bab67c4cd8f5fcc8981e6 -- app/users.py tests/test_cache.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 0.5,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_cached (tests.test_hidden.Hidden.test_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E7-pick-into-target-invariant/gitent/score/tests/test_hidden.py\", line 11, in test_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": true
+        }
+      }
+    },
+    {
+      "id": "E8-pick-multi-site-intent",
+      "kind": "recovery",
+      "description": "Cherry-pick 'audit every state-changing order operation' onto a branch that renamed cancel_order to void_order, moved refunds to app/refunds.py, and added ship_order.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E8-pick-multi-site-intent/baseline/score/tests/test_hidden.py\", line 3, in <module>\n    from app.orders import create_order, void_order, ship_order\nImportError: cannot import name 'void_order' from 'app.orders' (/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E8-pick-multi-site-intent/baseline/score/app/orders.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 8ae3611b5f47550efc4655920bf50998980e3231 -- app/orders.py tests/test_audit.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 0.4,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E8-pick-multi-site-intent/gitent/score/tests/test_hidden.py\", line 3, in <module>\n    from app.orders import create_order, void_order, ship_order\nImportError: cannot import name 'void_order' from 'app.orders' (/home/user/gitent/evals/runs/2026-11-02T17-59-28Z-stale/E8-pick-multi-site-intent/gitent/score/app/orders.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": true
+        }
+      }
+    }
+  ]
+}

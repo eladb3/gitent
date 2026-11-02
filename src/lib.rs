@@ -10,6 +10,7 @@ pub mod llm;
 pub mod mcp;
 pub mod model;
 pub mod ops;
+pub mod preserve;
 pub mod proc;
 pub mod repo;
 pub mod requirements;

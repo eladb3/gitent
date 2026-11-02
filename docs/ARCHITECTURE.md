@@ -107,6 +107,8 @@ All of these are deterministic except the verifier and judged requirements:
 | `non_empty` | step produced no change |
 | `requirements` | an executable requirement the step must satisfy fails or its test is missing in the result (per-requirement results recorded) |
 | `tests` | configured `validation.test_command` exits non-zero (output captured as feedback) |
+| `target_preserved` | the result recreates a path the target deleted, or drops a target definition, beyond what the moved change does (ADR 0010) |
+| `revert_effective` | (revert) the reverted requirements still pass |
 | `existing_tests_preserved` | a test that existed at the target tip disappeared (agent deleted tests to go green) |
 | `verifier` (optional) | LLM judged the diff does not satisfy the intention or a `judged` requirement, with confidence ≥ threshold |
 

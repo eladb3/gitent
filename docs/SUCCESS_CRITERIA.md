@@ -33,6 +33,8 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | C3 | When the patch applies cleanly but is **semantically wrong** (tests fail), Gitent detects it and escalates to the agent instead of committing. | ✅ `tests/cherry_pick.rs::clean_but_wrong_pick_escalates_to_agent` · 📊 evals ⏳ |
 | C4 | Agent output that fails validation is retried with feedback up to `max_attempts`, then **rejected**: branch untouched, worktree kept for inspection, operation marked failed. | ✅ `tests/cherry_pick.rs::bad_agent_is_retried_then_rejected` |
 | C5 | Guards: an agent cannot pass by deleting/renaming the source change's tests or pre-existing tests. | ✅ `tests/cherry_pick.rs::deleting_tests_is_rejected` |
+| C10 | A result that resurrects paths the target deleted, or drops definitions the target has (beyond what the moved change does), is rejected (ADR 0010). | ✅ `tests/cherry_pick.rs::stale_port_resurrecting_deleted_module_is_rejected`, `dropping_target_definitions_is_rejected` |
+| C11 | A step whose change is already realised (no diff, source requirements pass) is skipped like git's empty commit, not failed. | ✅ `tests/cherry_pick.rs::already_realised_change_is_skipped_not_failed` |
 | C9 | On a textual conflict the agent starts from all non-conflicting parts already applied (conflicting files as on the target). | ✅ `tests/merge_rebase_revert.rs::merge_conflict_composes_both_intentions` |
 | C6 | Refuses to start with a dirty working tree; never overwrites uncommitted changes; aborts if the branch moved during the operation. | ✅ `tests/cherry_pick.rs::dirty_tree_is_refused`, `branch_moved_during_operation_aborts` |
 | C7 | Provenance: the result commit's record links `derived_from` (source commit + intent id), shares the `intent_id`, and stores validation evidence and the executor used. | ✅ `tests/cherry_pick.rs::conflict_reimplemented_by_agent_with_provenance` |
@@ -82,9 +84,10 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 
 | ID | Criterion | Verified by |
 |----|-----------|-------------|
-| F1 | An eval suite of ≥ 5 scenarios (rename/move, signature change, clean-but-wrong, merge, revert-after-refactor), each with **hidden** acceptance tests the agents never see. | `evals/scenarios/` |
-| F2 | A runner executes three arms on each scenario — `git` (plain git op), `baseline` (same coding agent, given the diff + message, no Gitent), `gitent` — and scores each against the hidden tests. | `evals/run.sh` |
-| F3 | Gitent ≥ baseline ≥ git on scenario pass rate, and Gitent never reports success on a result that fails hidden tests (no false "success"). | 📊 `evals/RESULTS.md` |
+| F1 | An eval suite of ≥ 5 scenarios (rename/move, signature change, clean-but-wrong, merge, revert-after-refactor), each with **hidden** acceptance tests the agents never see. | ✅ 9 scenarios in `evals/cases.py` (+ parity control), validated by `--agent offline` |
+| F2 | A runner executes three arms on each scenario — `git` (plain git op), `baseline` (same coding agent, given the diff + message, no Gitent), `gitent` — and scores each against the hidden tests. | ✅ `evals/run.py` (also: fault-injection agent `--agent stale`) |
+| F3 | Gitent ≥ baseline ≥ git on scenario pass rate, and Gitent never reports success on a result that fails hidden tests (no false "success"). | 📊 met in `evals/RESULTS.md` run 7: git 1/9, baseline 9/9, gitent 9/9, 0 false successes; fault injection: baseline 8 false successes, gitent 0. **Gitent ties a capable agent; it does not (yet) beat it.** |
+| F4 | Scenarios hard enough that a capable agent alone fails some, to test whether Gitent improves correctness (not just safety). | ⏳ |
 
 The eval measures real agent behaviour and is therefore not part of `cargo
 test` (it costs money and is non-deterministic). Results are committed with the
