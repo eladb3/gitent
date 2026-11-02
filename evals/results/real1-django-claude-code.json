@@ -1,0 +1,944 @@
+{
+  "meta": {
+    "started": "2026-11-02T21-51-57Z",
+    "agent": "claude-code",
+    "llm": "claude -p",
+    "arms": [
+      "git",
+      "baseline",
+      "gitent"
+    ],
+    "source": "django real backports",
+    "agent_command": "claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+  },
+  "results": [
+    {
+      "id": "stable-6.1.x-8485c6ac38",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging django/forms/boundfield.py\n[main a800c1d99d] Fixed #37463 -- Fixed attrs mutation in legend_tag().\n Author: Jacob Walls <jacobtylerwalls@gmail.com>\n Date: Wed Oct 28 17:03:56 2026 -0400\n 3 files changed, 22 insertions(+), 2 deletions(-)\n",
+          "seconds": 0.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8485c6ac38/git/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.479s\n\nOK (skipped=125)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch, and all 274 tests in `forms_tests.tests.test_forms` pass (125 skipped). I didn't confirm that the new test fails without the fix: the commands I tried to temporarily undo the fix were blocked by permission checks.\n\nThe code here matched the original commit, so the change applied without changes:\n\n- **`django/forms/boundfield.py`**: `label_tag()` now works on its own copy of `attrs` (`attrs = {**(attrs or {})}`). Before, calling `legend_tag(attrs=...)` with a required field changed the caller's dict, so reusing that dict added `required_css_class` again on every call. I also removed the two `attrs = attrs or {}` lines this makes redundant.\n- **`tests/forms_tests/tests/test_forms.py`**: added `test_legend_has_required_css_class_multiple_render`, which calls `legend_tag()` twice with the same `attrs` dict.\n- **`docs/releases/6.1.3.txt`**: added the release note for ticket #37463 under Bugfixes.\n\nNothing was committed and git history is untouched.\n\nRESULT: SUCCESS\n",
+          "seconds": 36.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.332s\n\nOK (skipped=125)\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 57.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8485c6ac38/gitent/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.419s\n\nOK (skipped=125)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-0931d3c352",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging django/db/models/fields/json.py\nAuto-merging tests/model_fields/test_jsonfield.py\n[main b3cb4eb329] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.\n Author: Clifford Gama <cliffygamy@gmail.com>\n Date: Tue Oct 6 20:42:45 2026 +0200\n 3 files changed, 23 insertions(+), 6 deletions(-)\n",
+          "seconds": 0.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-0931d3c352/git/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.356s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix from commit 1b4d021b65 to `main`. Value expressions holding `None` with a non-JSON output field no longer crash JSONField `__in` lookups on SQLite. The JSONField test suite passes (129 tests, 9 skipped). I tried to also confirm that the new test case fails without the fix, but that command needed approval and wasn't run.\n\nThe code on this branch matched the original closely, so the patch went in almost unchanged:\n\n- **`django/db/models/fields/json.py`**: `JSONIn.resolve_expression_parameter` now skips the JSON encoding and wrapping step for a `Value(None)` whose output field isn't a `JSONField`. On Oracle, the branch now uses the same `is_value` check as the rest of the method.\n- **`tests/model_fields/test_jsonfield.py`**: added the `Value(None, output_field=models.CharField())` case, which should return no rows.\n- **`docs/releases/6.1.3.txt`**: added the release note for ticket #37403.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 42.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-0931d3c352/baseline/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.189s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 67.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-0931d3c352/gitent/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.187s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-a92be5c4e2",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging django/db/models/query_utils.py\nAuto-merging tests/defer/tests.py\n[main cbae305598] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.\n Author: Namraa Patel <patelnamraa310806@gmail.com>\n Date: Tue Oct 20 21:13:50 2026 +0530\n 3 files changed, 82 insertions(+), 7 deletions(-)\n",
+          "seconds": 0.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-a92be5c4e2/git/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.102s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the change to `main`. The code here was close enough to the development branch that the commit applied almost unchanged; only the test insertion point needed adjusting.\n\n- **`django/db/models/query_utils.py`**:\n  - `fetch_many()` now only fetches peers that don't already have the field loaded and that have a primary key. A missing row (a deleted peer) is skipped instead of raising a `KeyError`. So values a peer changed locally, or loaded with `refresh_from_db(fields=...)`, are no longer overwritten.\n  - `DeferredAttribute.__get__()` now raises `DoesNotExist` when the instance being read was itself deleted and the peer fetch couldn't load the field.\n- **`docs/releases/6.1.3.txt`**: added the bugfix note for ticket #37436.\n- **`tests/defer/tests.py`**: added the five new `FETCH_PEERS` tests to `DeferTests`. This branch doesn't have the test the original diff used as its anchor, so they go after `test_defer_fetch_mode_raise`.\n\n**Tests:** `defer` passes (51 tests), and so do the related suites `defer_regress`, `model_fields`, `basic`, `many_to_one` and `one_to_one`. I didn't run the new tests against the unpatched code to confirm they fail without the fix.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 51.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-a92be5c4e2/baseline/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.058s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [
+            "non_discriminating:req_5f457d15 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 90.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-a92be5c4e2/gitent/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.053s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cce6c57ed3",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging django/forms/models.py\nAuto-merging tests/model_formsets/tests.py\n[main 8df21bdda0] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.\n Author: Jacob Walls <jacobtylerwalls@gmail.com>\n Date: Wed Sep 2 15:49:28 2026 -0400\n 5 files changed, 106 insertions(+), 4 deletions(-)\n",
+          "seconds": 0.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cce6c57ed3/git/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.957s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix for CVE-2026-87975 to this branch. The specified suite, `model_formsets.tests`, passes (78 tests). So do the related suites I also ran: `model_formsets_regress`, `inline_formsets`, `admin_inlines`, `admin_views`, `generic_relations` and `forms_tests` (303 skipped).\n\nThe upstream diff applied without real changes to its content:\n\n- **Fix (`django/forms/models.py`):** `save_existing_objects()` now also skips any instance whose `_state.adding` is set. That stops forged POST data from deleting objects outside the queryset, or creating objects through edit-only formsets, when the primary key can be edited. I also updated the code comment above it.\n- **Tests (`tests/model_formsets/tests.py`):** I added the three new tests: two deletion tests (one inline, one with an editable PK) and `test_edit_only_editable_pk`. The models they use (`Owner`, `OwnerProfile`, `Place`, `CustomPrimaryKey`) were already imported here.\n- **Release notes:** I added the CVE section before \"Bugfixes\" in `docs/releases/5.2.18.txt`, `6.0.9.txt` and `6.1.2.txt`, as upstream does. Upstream didn't change the issue counts in those files' intros, so neither did I.\n\nI didn't confirm that the new tests fail without the fix: the command to temporarily swap in the old `models.py` needed approval and didn't run. Nothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 98.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.717s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 65.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cce6c57ed3/gitent/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.694s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-969450ebcc",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "LICT (content): Merge conflict in tests/admin_changelist/tests.py\nerror: could not apply 082b3df406... Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "</div>\\n    </div>\\n  </div>\\n\\n          \\n          <br class=\"clear\">\\n        </div>\\n        <!-- END Content -->\\n      </main>\\n    </div>\\n    <footer id=\"footer\"></footer>\\n</div>\\n<!-- END Container -->\\n\\n<!-- SVGs -->\\n<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"base-svgs\">\\n  <symbol viewBox=\"0 0 24 24\" id=\"icon-auto\"><path d=\"M0 0h24v24H0z\" fill=\"currentColor\"/><path d=\"M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2V4a8 8 0 1 0 0 16z\"/></symbol>\\n  <symbol viewBox=\"0 0 24 24\" id=\"icon-moon\"><path d=\"M0 0h24v24H0z\" fill=\"currentColor\"/><path d=\"M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z\"/></symbol>\\n  <symbol viewBox=\"0 0 24 24\" id=\"icon-sun\"><path d=\"M0 0h24v24H0z\" fill=\"currentColor\"/><path d=\"M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z\"/></symbol>\\n</svg>\\n<!-- END SVGs -->\\n\\n</body>\\n</html>\\n'\n\n----------------------------------------------------------------------\nRan 93 tests in 1.148s\n\nFAILED (failures=1, skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix for #37270 to this branch. The code here matched the original commit closely, so the diff applied almost unchanged. The `admin_changelist.tests` suite passes (98 tests, 10 skipped). I didn't confirm that the two new tests fail without the fix: that check needed `git stash`, and the permission prompt for it was declined.\n\n**What changed:**\n- **The fix**, in `django/contrib/admin/templatetags/admin_list.py`: for a `list_display` entry that follows several relations with `__`, the changelist now shows the value it looked up. Before, it re-read the field by name from the starting object, so `parent__parent` showed the child instead of the parent. I also updated the code comment above it, as the original commit did.\n- **Test model**, in `tests/admin_changelist/models.py`: `Musician` now has a nullable `genre` link to `Genre`, which one of the new tests needs.\n- **New tests**, in `tests/admin_changelist/tests.py`:\n  - `test_list_display_second_degree_relation` checks that `parent__parent` shows the parent.\n  - `test_list_display_related_field_uses_display_for_field` checks that `genre__file` still renders as a file link.\n- **Release note**: added the bugfix entry to `docs/releases/6.1.1.txt`.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 43.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 1.287s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_29f40f0e passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 150.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-969450ebcc/gitent/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 1.314s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cabad83ed1",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "-merging docs/internals/deprecation.txt\nAuto-merging docs/ref/models/instances.txt\nerror: could not apply d992705f9e... Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "gnatureRelated.objects.select_related(\"old\").get(\n        pk=related.pk\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/git/score/django/db/models/query.py\", line 679, in get\n    num = len(clone)\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/git/score/django/db/models/query.py\", line 416, in __len__\n    self._fetch_all()\n    ~~~~~~~~~~~~~~~^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/git/score/django/db/models/query.py\", line 2239, in _fetch_all\n    self._result_cache = list(self._iterable_class(self))\n                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/git/score/django/db/models/query.py\", line 141, in __iter__\n    rel_populator.populate(row, obj)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/git/score/django/db/models/query.py\", line 3021, in populate\n    obj = self.model_cls.from_db(\n        self.db,\n    ...<2 lines>...\n        fetch_mode=self.fetch_mode,\n    )\nTypeError: FromDbOldSignature.from_db() got an unexpected keyword argument 'fetch_mode'\n\n----------------------------------------------------------------------\nRan 83 tests in 0.204s\n\nFAILED (errors=4, skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix: models whose `from_db()` override uses the old four-argument signature, `(cls, db, field_names, values)`, work again on this branch instead of crashing with a `TypeError`. They now get a `RemovedInDjango70Warning` asking their authors to accept `fetch_mode`. The check runs once per query, not once per row. `basic.tests` passes (83 tests, 3 skipped), including the six new `ModelFromDbTests`. I also ran the raw query, select_related, defer, queries, model inheritance and known-related-objects suites to check for regressions, and they passed (703 tests).\n\n**One adaptation:** the upstream commit imports `django_file_prefixes` from `django.utils.warnings`, which doesn't exist on this branch. Here it comes from `django.utils.deprecation`, the same place `django/conf/__init__.py` imports it from.\n\n**What changed:**\n- **`django/db/models/query.py`:** added the `_get_from_db()` helper. The three paths that build objects from query rows now call it: normal queryset iteration, `raw()` queries, and `select_related()`.\n- **Docs:** added the deprecation to `deprecation.txt`, `ref/models/instances.txt` and the 6.1 release notes, and the bugfix entry to the 6.1.1 release notes.\n- **Tests:** added the three test models to `tests/basic/models.py` and `ModelFromDbTests` to `tests/basic/tests.py`.\n\nflake8 and black aren't installed in this environment, so I couldn't run the lint or formatting checks. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 81.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/baseline/score/django'\nFound 83 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........................................s..............s.......................s...\n----------------------------------------------------------------------\nRan 83 tests in 0.206s\n\nOK (skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_ff6d2c1a passes on the target even without the change",
+            "non_discriminating:req_13a17023 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 153.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-cabad83ed1/gitent/score/django'\nFound 83 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........................................s..............s.......................s...\n----------------------------------------------------------------------\nRan 83 tests in 0.216s\n\nOK (skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-bc529fb8a6",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "min/options.py\nCONFLICT (content): Merge conflict in django/contrib/admin/options.py\nerror: could not apply 2e48636c54... Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "             ^^\n\n\n======================================================================\nFAIL: test_get_list_select_related_returns_true_deprecated (modeladmin.tests.ModelAdminTests.test_get_list_select_related_returns_true_deprecated)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-bc529fb8a6/git/score/tests/modeladmin/tests.py\", line 1080, in test_get_list_select_related_returns_true_deprecated\n    self.assertEqual(warning.filename, __file__)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '/hom[66 chars]ble-6.1.x-bc529fb8a6/git/score/django/contrib/admin/options.py' != '/hom[66 chars]ble-6.1.x-bc529fb8a6/git/score/tests/modeladmin/tests.py'\n- /home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-bc529fb8a6/git/score/django/contrib/admin/options.py\n?                                                                                                       ^^^^^^^^^^^^^^      -- ^^^\n+ /home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-bc529fb8a6/git/score/tests/modeladmin/tests.py\n?                                                                                                      ++++++++ ^^       ^^^\n\n\n----------------------------------------------------------------------\nRan 92 tests in 2.413s\n\nFAILED (failures=2)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported commit 2e48636c54 to this branch. The three ModelAdmin deprecation warnings now point at the subclass that uses the deprecated code, not at Django internals or wsgiref. The requested tests pass (92 tests, OK). flake8 and black aren't installed here, so I couldn't run the lint and formatting checks.\n\n**`django/contrib/admin/options.py`**\n- The warnings for `get_list_select_related()` returning `True`, and for overriding `get_actions()` or `get_action_choices()` without `action_location`, now use `warn_about_implementation()`, as in the original commit.\n- One adaptation: this branch imports `django_file_prefixes` on the same line as `RemovedInDjango70Warning`. Unlike the development branch, other warnings in the file still use it, so I kept it and added `warn_about_implementation` to that import.\n\n**Tests** (ported from the commit unchanged)\n- `tests/admin_views/test_actions.py` now imports `admin_filename` and checks that each warning is reported from that file. The redundant `filterwarnings` call is removed.\n- `tests/modeladmin/tests.py` now checks that `warning.filename == __file__` in the two `list_select_related` deprecation tests.\n\nRESULT: SUCCESS\n",
+          "seconds": 76.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-bc529fb8a6/baseline/score/django'\nFound 92 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n............................................................................................\n----------------------------------------------------------------------\nRan 92 tests in 2.559s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 97.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-bc529fb8a6/gitent/score/django'\nFound 92 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n............................................................................................\n----------------------------------------------------------------------\nRan 92 tests in 2.694s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-3143a7e7a7",
+      "kind": "conflict",
+      "description": "[6.1.x] Refs #37187 -- Implemented warn_about_implementation() deprecation utility.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "ils/deprecation.py\nCONFLICT (content): Merge conflict in django/utils/deprecation.py\nerror: could not apply 260d136920... Refs #37187 -- Implemented warn_about_implementation() deprecation utility.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-3143a7e7a7/git/score/django'\nFound 1 test(s).\nSystem check identified no issues (0 silenced).\nE\n======================================================================\nERROR: test_warn_about_implementation (unittest.loader._FailedTest.test_warn_about_implementation)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_warn_about_implementation\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-3143a7e7a7/git/score/tests/deprecation/test_warn_about_implementation.py\", line 7, in <module>\n    from django.utils.deprecation import warn_about_implementation\nImportError: cannot import name 'warn_about_implementation' from 'django.utils.deprecation' (/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-3143a7e7a7/git/score/django/utils/deprecation.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the change: `warn_about_implementation()` now exists in `django/utils/deprecation.py` on this branch. The full `deprecation` suite passes \u2014 80 tests, including all 17 new ones. One test is skipped, but it's an existing one that only runs on Python 3.14 or later; this environment has 3.13.\n\n- **Code:** I added the new function just above `warn_about_renamed_method`, plus the `import sys` it needs. The rest of the file differs from the development branch (this one also imports `os` and `markcoroutinefunction`), so I inserted the code by hand instead of applying the patch directly.\n- **Tests:** The commit was available in this checkout, so I copied `tests/deprecation/test_warn_about_implementation.py` from it unchanged.\n- **Python versions:** This branch supports Python 3.12+, and the newer features the code and tests rely on all exist in 3.12, so nothing needed adapting.\n- **Lint:** I couldn't run flake8 or black because neither is installed here.\n\nNothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 27.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-3143a7e7a7/baseline/score/django'\nFound 18 test(s).\nSystem check identified no issues (0 silenced).\n..................\n----------------------------------------------------------------------\nRan 18 tests in 0.007s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 139.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-3143a7e7a7/gitent/score/django'\nFound 18 test(s).\nSystem check identified no issues (0 silenced).\n..................\n----------------------------------------------------------------------\nRan 18 tests in 0.006s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-b83ab92bc5",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "leases/6.1.2.txt left in tree.\nAuto-merging tests/model_formsets/tests.py\nerror: could not apply 83cbd21be5... Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.4,
+          "hidden_pass": false,
+          "hidden_output": "======================================\nFAIL: test_deletion_not_allowed_outside_formset_queryset_editable_pk (model_formsets.tests.DeletionTests.test_deletion_not_allowed_outside_formset_queryset_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-b83ab92bc5/git/score/tests/model_formsets/tests.py\", line 203, in test_deletion_not_allowed_outside_formset_queryset_editable_pk\n    self.assertIs(CustomPrimaryKey.objects.filter(pk=obj.pk).exists(), True)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_edit_only_editable_pk (model_formsets.tests.ModelFormsetTest.test_edit_only_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-b83ab92bc5/git/score/tests/model_formsets/tests.py\", line 2156, in test_edit_only_editable_pk\n    with self.assertRaises(CustomPrimaryKey.DoesNotExist):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: DoesNotExist not raised\n\n----------------------------------------------------------------------\nRan 74 tests in 0.660s\n\nFAILED (failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch. Forged POST data can no longer delete objects outside a model formset's queryset, or create objects through a formset that should only edit existing ones, when the primary key can be set from the form. With the fix, the `model_formsets.tests` suite passes. So do the other formset and admin suites I ran as a check: `model_formsets_regress`, `inline_formsets`, `admin_inlines`, `admin_views` and `generic_relations`.\n\n- **The fix (`django/forms/models.py`):** this branch had the same check as upstream, just a few lines earlier in the file, so the change went in unchanged. `save_existing_objects()` now also skips any instance with `obj._state.adding` set, meaning one that wasn't loaded from the queryset.\n- **Tests (`tests/model_formsets/tests.py`):** I added the three new tests unchanged. I ran them before applying the fix and all three failed, so they do catch the vulnerability.\n- **Release notes:** I added the CVE-2026-87975 entry to `docs/releases/5.2.18.txt` and `docs/releases/6.0.9.txt`, just before \"Bugfixes\". I left out the `6.1.2.txt` part of the upstream commit because that file doesn't exist on this branch.\n\nNothing is committed, as you asked.\n\nRESULT: SUCCESS\n",
+          "seconds": 89.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-b83ab92bc5/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.664s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 106.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-b83ab92bc5/gitent/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.941s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d8f121695",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "s/6.1.2.txt left in tree.\nAuto-merging tests/utils_tests/test_http.py\nerror: could not apply 7ff7fcc050... Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d8f121695/git/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.......................................F.........\n======================================================================\nFAIL: test_rfc2231_wrong_title (utils_tests.test_http.ParseHeaderParameterTests.test_rfc2231_wrong_title)\nTest wrongly formatted RFC 2231 headers (missing double single quotes).\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d8f121695/git/score/tests/utils_tests/test_http.py\", line 523, in test_rfc2231_wrong_title\n    self.assertEqual(parsed[1][\"title\"], expected_title)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"'This%20is%20%2A%2A%2Afun%2A%2A%2A\" != \"'This is ***fun***\"\n- 'This%20is%20%2A%2A%2Afun%2A%2A%2A\n+ 'This is ***fun***\n\n\n----------------------------------------------------------------------\nRan 49 tests in 0.022s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "or the new decoding and added `test_many_separators_in_quoted_value` from the upstream commit.\n- **Release notes:** I added the CVE-2026-84429 section to `docs/releases/6.0.9.txt` and `docs/releases/5.2.18.txt`. The 6.1.2 notes don't exist on this branch. I left both files' opening \"fixes one \u2026 low, three \u2026 moderate\" sentence as it was, as upstream did.\n\n**Where this branch differs from upstream:**\n- **Fast path:** upstream's commit assumes headers without `;` already skip the parser, but that check doesn't exist here. I added it so common headers like plain `Accept` values stay fast, as the commit intends. It returns the same results as before.\n- **Unknown charsets:** upstream rejects them with a `ValueError`, a fix (#36991) that was never backported here. On this branch an unknown charset raised `LookupError`. I kept that behaviour by calling `codecs.lookup()` on the charset before decoding, rather than bringing in the newer `ValueError`. Without that check the new parser would quietly fall back to ASCII and accept the value. I added `test_rfc2231_unknown_encoding` to cover it.\n\n**Other test runs:**\n- `requests_tests`, `httpwrappers` and `file_uploads` together: 241 tests, 1 failure. The failure is `file_uploads\u2026test_readonly_root`, which expects a permission error that never happens because the tests run as root. It doesn't touch header parsing.\n- I couldn't run black or flake8 (black isn't installed), so I formatted the changes by hand to match upstream.\n\nRESULT: SUCCESS\n",
+          "seconds": 82.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.009s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_4935da0e passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 136.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d8f121695/gitent/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.010s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d32ee80ae",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": " docs/releases/6.1.2.txt left in tree.\nAuto-merging tests/i18n/tests.py\nerror: could not apply c88b304cc2... Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "--\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d32ee80ae/git/score/tests/i18n/tests.py\", line 1759, in test_get_supported_language_variant_strict_long_lang_code_not_cached\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n======================================================================\nERROR: test_get_supported_language_variant_truncated_cache_key (i18n.tests.MiscTests.test_get_supported_language_variant_truncated_cache_key)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d32ee80ae/git/score/tests/i18n/tests.py\", line 1778, in test_get_supported_language_variant_truncated_cache_key\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n----------------------------------------------------------------------\nRan 98 tests in 0.549s\n\nFAILED (errors=2, skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix to this branch, and the `i18n.tests` suite passes (98 tests, 1 skipped), including both new tests.\n\nThe code here was almost identical to where the commit was written, so I applied the change as it is upstream:\n\n- **The fix** (`django/utils/translation/trans_real.py`): the cache now sits on a new internal function, `_get_supported_language_variant()`. The public `get_supported_language_variant()` has no cache: it rejects or shortens codes over 500 characters first, then calls the cached function. The settings-change cache reset now clears the new function's cache instead.\n- **Tests** (`tests/i18n/tests.py`): I added the two new tests from the commit. One checks that over-long codes in strict mode never reach the cache. The other checks that shortened codes share a single cache entry.\n- **Release notes:** I added the CVE-2026-77050 section to `docs/releases/6.0.9.txt` and `docs/releases/5.2.18.txt`. I left out the commit's `6.1.2.txt` entry because that file doesn't exist on this 6.0.x branch.\n\nNothing else in the code clears the old cache by name. I also ran the full `i18n` suite and the translation system checks together, and they passed. Nothing is committed, as you asked.\n\nRESULT: SUCCESS\n",
+          "seconds": 38.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.522s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 91.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-3d32ee80ae/gitent/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.574s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8590dfdb41",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "/test_filter.py\nCONFLICT (content): Merge conflict in tests/composite_pk/test_filter.py\nerror: could not apply 50eef95591... Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8590dfdb41/git/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x.....Killed\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported commit 50eef95591 to this branch. The 107 tests in `composite_pk.test_filter` and `foreign_object.test_tuple_lookups` pass, with 2 skipped and 3 expected failures. Two of those expected failures are the new tests; the third was already in the suite.\n\nThe code here matched the original commit closely, so no real adaptation was needed:\n- **`django/db/models/fields/tuple_lookups.py`:** `get_lhs_str()` used to loop over the left-hand side to build the error message, and doing that on an `F()` expression hung forever. It now only loops when the left-hand side is actually iterable. Otherwise it uses the expression's `.name`, or its `repr()` if there is no name.\n- **`docs/releases/6.1.2.txt`:** added the release note for ticket 37291 and updated the summary sentence to mention \"one infinite loop in 5.2\".\n- **Tests:** added `test_filter_by_pk_in_rhs_f_object_lhs` to `tests/composite_pk/test_filter.py`, and `test_tuple_in_subquery_lhs_f_pk` and `test_tuple_lookups_f_invalid_rhs` to `tests/foreign_object/test_tuple_lookups.py`.\n\nAs in the original commit, two of the new tests are marked `expectedFailure`. Those queries no longer hang, but they still raise a `ValueError`, which is the separate issue tracked as ticket 37383.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 59.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.213s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_9e19ddf3 passes on the target even without the change",
+            "non_discriminating:req_206d0e08 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 338.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.1.x-8590dfdb41/gitent/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.220s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-0910af6046",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "/requests_tests/tests.py\nCONFLICT (content): Merge conflict in tests/requests_tests/tests.py\nerror: could not apply 7e9885f99c... Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-0910af6046/git/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n...........................................F........................\n======================================================================\nFAIL: test_multipart_file_upload_base64_whitespace_heavy (requests_tests.tests.RequestsTests.test_multipart_file_upload_base64_whitespace_heavy)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-0910af6046/git/score/tests/requests_tests/tests.py\", line 971, in test_multipart_file_upload_base64_whitespace_heavy\n    self.assertEqual(reads, [1, 1024, 1, 1024, 65536, 1, 1024, 1])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [1, 1024, 1, 1024, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,[13918 chars]4, 1] != [1, 1024, 1, 1024, 65536, 1, 1024, 1]\n\nFirst differing element 4:\n1\n65536\n\nFirst list contains 4650 additional elements.\nFirst extra element 8:\n1\n\nDiff is 27997 characters long. Set self.maxDiff to None to see it.\n\n----------------------------------------------------------------------\nRan 68 tests in 0.039s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "ango/http/multipartparser.py`:** the base64 alignment loop now reads `self._chunk_size` bytes at a time instead of 1\u20133. It collects the stripped pieces in a list and joins them once at the end. The code here matched the commit's starting point, so the patch went in without changes.\n- **`tests/requests_tests/tests.py`:** added `test_multipart_file_upload_base64_whitespace_heavy`. Adapting it meant one small change: this branch imports `MAX_TOTAL_HEADER_SIZE, MultiPartParserError` on one line and never imported `MultiPartParser`. I rewrote that import as a block that adds `LazyStream`, and added `from unittest import mock`.\n- **Release notes:** added the CVE-2026-33033 entry to `docs/releases/4.2.30.txt`, `5.2.13.txt` and `6.0.4.txt`. In `6.0.4.txt` it sits just before the \"Bugfixes\" heading, as in the original commit.\n\nI did not see the new test fail against the old code. The quick check I tried, temporarily putting the old parser back with `git stash`, was blocked by the permission prompt and I didn't retry it.\n\nI also ran `file_uploads` alongside `requests_tests`: 153 tests, one failure, `file_uploads.tests.DirectoryCreationTests.test_readonly_root`. That test expects a write to a read-only folder to be refused. This sandbox appears to run as root, which isn't refused, so I believe the failure comes from the environment rather than this change. I haven't confirmed it by running the test as a normal user.\n\nNothing was committed, and git history is unchanged.\n\nRESULT: SUCCESS\n",
+          "seconds": 47.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.024s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 98.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-0910af6046/gitent/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.023s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-ad8f9e19e0",
+      "kind": "clean_differs",
+      "description": "[6.0.x] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging tests/asgi/tests.py\nAuto-merging tests/requests_tests/tests.py\n[main 14064d9585] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.\n Author: Jacob Walls <jacobtylerwalls@gmail.com>\n Date: Tue Mar 24 15:53:27 2026 -0400\n 5 files changed, 114 insertions(+), 5 deletions(-)\n",
+          "seconds": 0.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-ad8f9e19e0/git/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 9.129s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2026-5766 fix to this branch. The required test command (`asgi.tests requests_tests.tests`) passes: 110 tests, OK.\n\nThe code here matched upstream closely, so the commit went in almost unchanged:\n- **`django/core/files/uploadhandler.py`:** `MemoryFileUploadHandler.handle_raw_input` now checks the real body size by seeking to the end of the stream, instead of trusting the `Content-Length` header. If the stream can't seek, it falls back to the header value, which is safe on WSGI because `LimitedStream` enforces it. The handler only activates if the length is known and within `FILE_UPLOAD_MAX_MEMORY_SIZE`.\n- **Release notes:** I added the CVE section to `docs/releases/5.2.14.txt` and `docs/releases/6.0.5.txt` (in 6.0.5, before \"Bugfixes\").\n- **Tests:**\n  - `tests/asgi/tests.py`: the existing test class is renamed to `MaxMemorySizeASGITests`, with the new test for a request that understates its `Content-Length`.\n  - `tests/requests_tests/tests.py`: new `MemoryFileUploadHandlerTests`.\n\nI also ran the `file_uploads` suite as an extra check. One test there fails, `DirectoryCreationTests.test_readonly_root`, but only because this sandbox runs as root, so the expected permission error never happens. It has nothing to do with this change.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 74.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 9.179s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [
+            "non_discriminating:req_0206d354 passes on the target even without the change",
+            "non_discriminating:req_c224231a passes on the target even without the change",
+            "non_discriminating:req_5c573bf7 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 85.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-ad8f9e19e0/gitent/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 9.107s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-4b86ba51e4",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "text.py\nCONFLICT (content): Merge conflict in django/utils/text.py\nerror: could not apply a33540b3e2... Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-4b86ba51e4/git/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n............F........\n======================================================================\nFAIL: test_truncate_chars_html_with_misnested_tags (utils_tests.test_text.TestUtilsText.test_truncate_chars_html_with_misnested_tags)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-4b86ba51e4/git/score/tests/utils_tests/test_text.py\", line 210, in test_truncate_chars_html_with_misnested_tags\n    self.assertEqual(\n    ~~~~~~~~~~~~~~~~^\n        truncator.chars(2, html=True, truncate=\"\"),\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"<a><b><c></b>XX</c></b></a>\",\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nAssertionError: '<a><b><c></b>XX</c></a>' != '<a><b><c></b>XX</c></b></a>'\n- <a><b><c></b>XX</c></a>\n+ <a><b><c></b>XX</c></b></a>\n?                      ++++\n\n\n----------------------------------------------------------------------\nRan 21 tests in 0.038s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the CVE-2026-1285 fix to this branch. All 21 tests in `utils_tests.test_text` pass, including the new one, and so do the 454 template filter tests that cover `truncatechars_html` and `truncatewords_html`.\n\n- **The fix, in `django/utils/text.py`:** when the HTML parser in `Truncator` reaches a closing tag, it now drops a tag from its list of open tags only if it matches the most recently opened tag. It no longer scans the whole list for the old `deque.remove()` call, which is what made the time grow quadratically on input with many unmatched closing tags.\n- **One adaptation:** on this branch the parser builds its output as a string (`self.output += ...`) rather than a list, so I left that line as it was and changed only the tag-tracking logic.\n- **Test:** I added `test_truncate_chars_html_with_misnested_tags` to `tests/utils_tests/test_text.py`, unchanged from the original commit.\n- **Release notes:** I added the CVE section to `docs/releases/4.2.28.txt` and `5.2.11.txt` at the end, and to `6.0.2.txt` just before \"Bugfixes\", matching where the original commit put them.\n\nNothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 54.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.035s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 78.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-4b86ba51e4/gitent/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.024s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-ff27883ca0",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "leases/6.1.2.txt left in tree.\nAuto-merging tests/model_formsets/tests.py\nerror: could not apply 83cbd21be5... Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.3,
+          "hidden_pass": false,
+          "hidden_output": "======================================\nFAIL: test_deletion_not_allowed_outside_formset_queryset_editable_pk (model_formsets.tests.DeletionTests.test_deletion_not_allowed_outside_formset_queryset_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-ff27883ca0/git/score/tests/model_formsets/tests.py\", line 203, in test_deletion_not_allowed_outside_formset_queryset_editable_pk\n    self.assertIs(CustomPrimaryKey.objects.filter(pk=obj.pk).exists(), True)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_edit_only_editable_pk (model_formsets.tests.ModelFormsetTest.test_edit_only_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-ff27883ca0/git/score/tests/model_formsets/tests.py\", line 2152, in test_edit_only_editable_pk\n    with self.assertRaises(CustomPrimaryKey.DoesNotExist):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: DoesNotExist not raised\n\n----------------------------------------------------------------------\nRan 74 tests in 0.860s\n\nFAILED (failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch, and all 1319 tests pass across the model formset, inline formset, admin inline, generic relations and forms test suites. I didn't check that the three new tests fail without the fix; they come straight from the upstream commit.\n\nThe code here matched the upstream code closely, so the change carried over almost unchanged:\n\n- **The fix** (`django/forms/models.py`): `save_existing_objects()` now also skips any instance where `obj._state.adding` is true, so forms that didn't come from the queryset can no longer delete or save rows. I also updated the comment above it.\n- **Release notes** (`docs/releases/5.2.18.txt`): added the CVE-2026-87975 section just before \"Bugfixes\". The upstream commit also edits the 6.0.9 and 6.1.2 notes, but those files don't exist on this branch, so I skipped them. The `model-formsets-edit-only` link the note points to exists here.\n- **Tests** (`tests/model_formsets/tests.py`): added `test_deletion_not_allowed_outside_formset_queryset` and `test_deletion_not_allowed_outside_formset_queryset_editable_pk` to `DeletionTests`, and `test_edit_only_editable_pk` to `ModelFormsetTest`.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 66.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-ff27883ca0/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.678s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 97.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-ff27883ca0/gitent/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.824s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-972dbdd4f7",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "nt): Merge conflict in django/core/handlers/asgi.py\nAuto-merging tests/asgi/tests.py\nerror: could not apply eb22e1d6d6... Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "26-11-02T21-51-57Z-real-claude-code/stable-6.0.x-972dbdd4f7/git/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..............F...........\n======================================================================\nFAIL: test_meta_not_modified_with_repeat_headers (asgi.tests.ASGITest.test_meta_not_modified_with_repeat_headers)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 376, in __call__\n    return call_result.result()\n           ~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 453, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 402, in __get_result\n    raise self._exception\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 416, in main_wrap\n    result = await awaitable\n             ^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-972dbdd4f7/git/score/tests/asgi/tests.py\", line 281, in test_meta_not_modified_with_repeat_headers\n    self.assertLessEqual(setitem_count, 100)\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\nAssertionError: 200005 not less than or equal to 100\n\n----------------------------------------------------------------------\nRan 26 tests in 17.504s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2025-14550 fix to this 6.0.x branch. The `asgi.tests` suite passes (26 tests), and so do the `handlers` and `requests_tests` suites. I did not check that the new test fails against the old code.\n\n- **Fix (`django/core/handlers/asgi.py`):** `ASGIRequest` now gathers repeated headers into lists and joins each one once at the end. Before, it rebuilt the string every time a duplicate arrived, which is what made the slowdown possible. Cookies are still joined with `\"; \"` and other headers with `\",\"`, so `META` ends up with the same values as before.\n- **Tests (`tests/asgi/tests.py`):** I renamed `test_create_request_error` to `test_request_too_big_request_error`. I also added `test_meta_not_modified_with_repeat_headers`, which sends 200,000 copies of one header and checks that `META` is written to no more than 100 times.\n- **Release notes:** I added the CVE section to `docs/releases/4.2.28.txt`, `5.2.11.txt` and `6.0.2.txt`. In `6.0.2.txt` it goes before the \"Bugfixes\" section, as in the original commit.\n\nThe upstream commit applied without real changes; the only differences on this branch were the surrounding lines. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 38.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 9.056s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\"",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 2,
+          "warnings": [
+            "non_discriminating:req_a33442b7 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 180.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-6.0.x-972dbdd4f7/gitent/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 9.003s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-02a69e3791",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": " docs/releases/6.1.2.txt left in tree.\nAuto-merging tests/i18n/tests.py\nerror: could not apply c88b304cc2... Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "--\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-02a69e3791/git/score/tests/i18n/tests.py\", line 1735, in test_get_supported_language_variant_strict_long_lang_code_not_cached\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n======================================================================\nERROR: test_get_supported_language_variant_truncated_cache_key (i18n.tests.MiscTests.test_get_supported_language_variant_truncated_cache_key)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-02a69e3791/git/score/tests/i18n/tests.py\", line 1754, in test_get_supported_language_variant_truncated_cache_key\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n----------------------------------------------------------------------\nRan 97 tests in 0.514s\n\nFAILED (errors=2, skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported c88b304cc2 to this branch. Long language codes are now cut down or rejected before they're used as cache keys. The requested `i18n.tests` run passes (97 tests, 1 skipped), and so does a wider run of 388 tests covering `i18n`, the translation system check, the i18n view tests and the middleware tests.\n\nThe code here was almost identical to where the commit was written, so little adapting was needed:\n- **`django/utils/translation/trans_real.py`**: the lookup logic moved into a new cached function, `_get_supported_language_variant()`. The public `get_supported_language_variant()` is no longer cached. It checks the length first: codes of 500 characters or fewer go straight to the cached function. Longer codes are cut back to the last `-` before the limit when `strict` is off, and rejected otherwise. When `LANGUAGES` or `LANGUAGE_CODE` changes, `reset_cache()` now clears the new function's cache.\n- **`docs/releases/5.2.18.txt`**: added the CVE-2026-77050 note before \"Bugfixes\". The commit also edited the 6.0.9 and 6.1.2 release notes; those files don't exist on this branch, so I skipped them.\n- **`tests/i18n/tests.py`**: added the commit's two new tests, which check that over-long strict codes never reach the cache and that truncated codes share a single cache entry.\n\nNothing else in the codebase referred to the old cache, so no other changes were needed. Nothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 40.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.386s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 105.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-02a69e3791/gitent/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.538s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-6ecd66e09a",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "\nCONFLICT (content): Merge conflict in tests/utils_tests/test_http.py\nerror: could not apply 7ff7fcc050... Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "score/django/utils/http.py\", line 356, in parse_header_parameters\n    value = unquote(value, encoding=encoding)\n  File \"/usr/local/lib/python3.13/urllib/parse.py\", line 714, in unquote\n    return ''.join(_generate_unquoted_parts(string, encoding, errors))\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/urllib/parse.py\", line 690, in _generate_unquoted_parts\n    yield _unquote_impl(ascii_match[1]).decode(encoding, errors)\n          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\nLookupError: unknown encoding: NOTACODEC\n\n======================================================================\nFAIL: test_rfc2231_wrong_title (utils_tests.test_http.ParseHeaderParameterTests.test_rfc2231_wrong_title)\nTest wrongly formatted RFC 2231 headers (missing double single quotes).\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-6ecd66e09a/git/score/tests/utils_tests/test_http.py\", line 512, in test_rfc2231_wrong_title\n    self.assertEqual(parsed[1][\"title\"], expected_title)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"'This%20is%20%2A%2A%2Afun%2A%2A%2A\" != \"'This is ***fun***\"\n- 'This%20is%20%2A%2A%2Afun%2A%2A%2A\n+ 'This is ***fun***\n\n\n----------------------------------------------------------------------\nRan 48 tests in 0.026s\n\nFAILED (failures=1, errors=3)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "nd added `test_many_separators_in_quoted_value`, as in the upstream commit.\n- **`docs/releases/5.2.18.txt`**: I added the CVE section. Only 5.2.18 exists on this branch, so the 6.0.9 and 6.1.2 notes don't apply.\n\n**Where this branch differed from upstream**\n- `parse_header_parameters()` here has no `max_length` parameter and no `MAX_HEADER_LENGTH`. I kept the signature as `parse_header_parameters(line)`.\n- There was no fast path for headers without `;`, so I added the upstream one. Its output is the same as the old code's for those inputs.\n- Before, an unknown RFC 2231 charset made `unquote` raise `LookupError`. It now raises `ValueError(\"Invalid encoding ...\")`, as upstream does. Values with a malformed encoding can't raise `UnicodeDecodeError` any more, because the stdlib replaces bad bytes instead.\n- I took out the release-note sentence about \"the per-call length limit\", since this branch has no such limit.\n\n**Wider checks**\nI also ran `requests_tests`, `file_uploads`, `httpwrappers`, `test_client` and `admin_scripts` StartProject: 429 tests, with one failure. That failure is `file_uploads...test_readonly_root`, which expects a `PermissionError` when writing to a read-only folder. This environment runs as root, which ignores folder permissions, so the error never comes, and that test doesn't use the header parser. I tried re-running it without my changes to confirm, but that command was blocked. I couldn't run flake8 or black because neither is installed.\n\nRESULT: SUCCESS\n",
+          "seconds": 106.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.015s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_ba217714 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 161.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-6ecd66e09a/gitent/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.011s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-c72a5dbb64",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "_language().) of docs/releases/6.0.8.txt left in tree.\nAuto-merging tests/i18n/tests.py\nerror: could not apply 27137e655e... Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-c72a5dbb64/git/score/django'\nFound 1 test(s).\nSystem check identified no issues (0 silenced).\nE\n======================================================================\nERROR: tests (unittest.loader._FailedTest.tests)\n----------------------------------------------------------------------\nImportError: Failed to import test module: tests\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-c72a5dbb64/git/score/tests/i18n/tests.py\", line 62, in <module>\n    from django.utils.translation.trans_real import (\n    ...<2 lines>...\n    )\nImportError: cannot import name 'translation_catalog_exists' from 'django.utils.translation.trans_real' (/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-c72a5dbb64/git/score/django/utils/translation/trans_real.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix to 5.2.x, and the i18n tests pass.\n\n**What changed:**\n- **`django/utils/translation/trans_real.py`:** `check_for_language()` now rejects `None` and any code longer than 500 characters before anything is cached. The cached lookup moved to a new function, `translation_catalog_exists()`, which keeps the 1000-entry limit. `reset_cache` now clears the new cache, and the comment on `LANGUAGE_CODE_MAX_LENGTH` is updated.\n- **`django/test/signals.py`:** `language_changed` now clears `translation_catalog_exists`'s cache.\n- **Docs:** I added the length-limit note to `docs/ref/utils.txt` and appended the CVE-2026-15337 section to `docs/releases/5.2.17.txt`. This branch has no 6.0 release notes, so that part of the commit was left out.\n- **Tests:** I added `test_check_for_language_lang_code_max_length` to `tests/i18n/tests.py` and updated its import.\n\nNo other code here clears the old `check_for_language` cache, so nothing else needed changing.\n\n**Tests:** The given command failed as-is because Python couldn't find the `django` module, and setting `PYTHONPATH` was blocked here. I ran the same runner through Python with the repo root added to the import path instead. `i18n` plus `view_tests.tests.test_i18n` ran 272 tests, all OK (90 skipped), and the new test passes.\n\nRESULT: SUCCESS\n",
+          "seconds": 60.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.528s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 85.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-c72a5dbb64/gitent/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.396s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-d5d60ed032",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "ccepted in DomainNameValidator.) of docs/releases/6.0.7.txt left in tree.\nerror: could not apply 3a720d0d8b... Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.3,
+          "hidden_pass": false,
+          "hidden_output": "go installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-d5d60ed032/git/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssssFF.........\n======================================================================\nFAIL: test_validators (validators.tests.TestValidators.test_validators) [DomainNameValidator] (value='example.com\\n')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-d5d60ed032/git/score/tests/validators/tests.py\", line 723, in test_validators\n    with self.assertRaises(expected):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^\nAssertionError: ValidationError not raised\n\n======================================================================\nFAIL: test_validators (validators.tests.TestValidators.test_validators) [DomainNameValidator] (value='example.com\\n')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-d5d60ed032/git/score/tests/validators/tests.py\", line 723, in test_validators\n    with self.assertRaises(expected):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^\nAssertionError: ValidationError not raised\n\n----------------------------------------------------------------------\nRan 15 tests in 0.095s\n\nFAILED (failures=2, skipped=5)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch, and the validators test suite passes: 15 tests, OK. The 5 skipped tests are image-validator checks that need Pillow, which isn't installed here.\n\n- **`django/core/validators.py`:** `DomainNameValidator.__init__` now builds its pattern from parts and ends it with `\\Z` instead of `$`. In Python, `$` also matches just before a trailing newline, which is how `\"example.com\\n\"` got through; `\\Z` only matches at the true end. This covers both the default mode and `accept_idna=False`. The code here matched the commit's starting point, so it applied without changes.\n- **`tests/validators/tests.py`:** added the four new cases, `\"example.com\\n\"` and `\"example.com\\r\\n\"` for each mode, all expecting `ValidationError`.\n- **`docs/releases/5.2.16.txt`:** appended the CVE-2026-53878 section. The file already says \"three security issues\", which is right with this one added, so I left the intro alone. I didn't add the commit's `6.0.7.txt` notes, since that release doesn't belong to this branch.\n\nI didn't run the unpatched code against the new tests to watch them fail first.\n\nRESULT: SUCCESS\n",
+          "seconds": 32.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.096s\n\nOK (skipped=5)\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 80.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-d5d60ed032/gitent/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.095s\n\nOK (skipped=5)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-b9adb81339",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "ses/6.0.8.txt left in tree.\nAuto-merging tests/admin_utils/tests.py\nerror: could not apply 47511a2102... Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "sts.test_url_display_for_field_invalid_url) (value='javascript:alert(1)')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-b9adb81339/git/score/tests/admin_utils/tests.py\", line 218, in test_url_display_for_field_invalid_url\n    self.assertNotIn(\"<a\", display_value)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '<a' unexpectedly found in '<a href=\"javascript:alert(1)\">javascript:alert(1)</a>'\n\n======================================================================\nFAIL: test_url_display_for_field_invalid_url (admin_utils.tests.UtilsTests.test_url_display_for_field_invalid_url) (value='data:text/html,<script>alert(1)</script>')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-b9adb81339/git/score/tests/admin_utils/tests.py\", line 218, in test_url_display_for_field_invalid_url\n    self.assertNotIn(\"<a\", display_value)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '<a' unexpectedly found in '<a href=\"data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;\">data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;</a>'\n\n----------------------------------------------------------------------\nRan 30 tests in 0.039s\n\nFAILED (failures=2)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2026-15920 fix to this 5.2.x branch, and the tests pass.\n\n**What changed:**\n- **`django/contrib/admin/utils.py`**: before `display_for_field()` renders a `URLField` value as a link, it now checks the value with `URLValidator`. If the check fails, the value is shown as plain text via `display_for_value()`. The upstream code applied almost unchanged; the only difference is that the imports sit at slightly different lines here.\n- **`tests/admin_utils/tests.py`**: added `test_url_display_for_field_invalid_url`, which checks that `javascript:` and `data:` values come out as plain text, not links.\n- **`docs/releases/5.2.17.txt`**: added the CVE-2026-15920 section. I left out the upstream change to `6.0.8.txt` because that file doesn't exist on this branch.\n\n**Tests:** the suggested command (`python tests/runtests.py ...`) fails here because Django isn't installed in the environment's Python. Setting `PYTHONPATH` needed approval, so instead I ran `runtests.py` through `runpy` with the repo root added to `sys.path`. That ran `admin_utils.tests`, `admin_views` and `admin_changelist`: 601 tests passed, 56 skipped.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 94.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-b9adb81339/baseline/score/django'\nFound 30 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..............................\n----------------------------------------------------------------------\nRan 30 tests in 0.070s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 87.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-b9adb81339/gitent/score/django'\nFound 30 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..............................\n----------------------------------------------------------------------\nRan 30 tests in 0.078s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-721685aa77",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "s/releases/6.0.7.txt left in tree.\nAuto-merging tests/cache/tests.py\nerror: could not apply 6e365f8d01... Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "---------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-721685aa77/git/score/tests/cache/tests.py\", line 2863, in test_refreshed_cookie_not_cached\n    self.assertIsNone(cache_middleware.process_request(request))\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: <HttpResponse status_code=200, \"text/html; charset=utf-8\"> is not None\n\n======================================================================\nFAIL: test_sensitive_cookie_not_cached (cache.tests.CacheMiddlewareTest.test_sensitive_cookie_not_cached) (headers={'HTTP_COOKIE': 'unrelated=value'})\nResponses that set a new cookie not present in the request are not\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-721685aa77/git/score/tests/cache/tests.py\", line 2841, in test_sensitive_cookie_not_cached\n    self.assertIsNone(cache_middleware.process_request(request))\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: <HttpResponse status_code=200, \"text/html; charset=utf-8\"> is not None\n\n----------------------------------------------------------------------\nRan 583 tests in 58.477s\n\nFAILED (failures=2, skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this 5.2.x branch, and the cache test suite passes (`OK`, 184 skipped).\n\n**Changes:**\n- **`django/middleware/cache.py`:** `UpdateCacheMiddleware` now refuses to cache any response that both sets a cookie and varies on `Cookie`. It no longer matters which cookies the incoming request carried.\n- **`tests/cache/tests.py`:** `test_sensitive_cookie_not_cached` now runs twice: once with no cookies and once with an unrelated cookie. I also added the new `test_refreshed_cookie_not_cached`. The imports these tests need were already in the file.\n- **`docs/releases/5.2.16.txt`:** added the CVE-2026-48588 section.\n\nThe original commit also edited `docs/releases/6.0.7.txt`. I left that out because 6.0.x release notes don't belong on this branch. The rest of the change went in exactly as in the original commit; only the line numbers in the test file differed.\n\nRESULT: SUCCESS\n",
+          "seconds": 94.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-721685aa77/baseline/score/django'\nFound 583 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss......................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 583 tests in 58.118s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 145.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-721685aa77/gitent/score/django'\nFound 583 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss......................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 583 tests in 58.292s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-9b62b0af71",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": " of docs/releases/6.0.6.txt left in tree.\nAuto-merging tests/cache/tests.py\nerror: could not apply 42aa0b3364... Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "===================================================\nFAIL: test_has_vary_header (cache.tests.PrefixedCacheUtils.test_has_vary_header) (header_value='Cookie, * ', header_query='*')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-9b62b0af71/git/score/tests/cache/tests.py\", line 2233, in test_has_vary_header\n    self.assertIs(has_vary_header(response, header_query), has_match)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_has_vary_header (cache.tests.PrefixedCacheUtils.test_has_vary_header) (header_value=' Cookie', header_query='Cookie')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-9b62b0af71/git/score/tests/cache/tests.py\", line 2233, in test_has_vary_header\n    self.assertIs(has_vary_header(response, header_query), has_match)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n----------------------------------------------------------------------\nRan 582 tests in 58.104s\n\nFAILED (failures=10, skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix for CVE-2026-48587 to this branch. The `cache.tests` suite passes: 582 tests, OK, 184 skipped. I didn't check that the new tests fail without the fix.\n\nThe code here matched the development branch closely, so the upstream patch applied with almost no changes:\n\n- **The fix (`django/utils/cache.py`):** `has_vary_header()` now strips spaces from both the `Vary` header values and the header being looked up. A padded `Vary: *` (for example `\" * \"`) is now recognised as the wildcard, so the cache middleware no longer stores those responses.\n- **Release notes (`docs/releases/5.2.15.txt`):** I added the CVE section. The upstream commit also edited `6.0.6.txt`, which doesn't exist on this branch, so I left that part out.\n- **Tests (`tests/cache/tests.py`):**\n  - I added the new `test_has_vary_header` test.\n  - I added a new view that sets `\" * \"` through `patch_vary_headers` and included it in `test_vary_asterisk_not_cached`.\n  - The existing asterisk view's header is now `\"Cookie, * , Pony\"`.\n  - As upstream did, the test file now imports `cc_delim_re` from Django instead of defining its own, and the unused `import re` is gone.\n\nOne thing you may want to check: the 5.2.15 notes say \"five security issues\" but only listed four before this change. With this one added there are five, so I left the count as it is.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 100.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 58.114s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 197.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T21-51-57Z-real-claude-code/stable-5.2.x-9b62b0af71/gitent/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 58.231s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    }
+  ]
+}

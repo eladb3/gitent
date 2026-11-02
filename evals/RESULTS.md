@@ -14,7 +14,61 @@ Raw data: `evals/results/run*.json` · Harness: `evals/run.py`, scenarios: `eval
 *false success* is an arm reporting success on a result that fails the hidden
 tests.
 
-## Summary
+## Real backports (Django), the main evidence
+
+The benchmark is `evals/real_backports.py`, with 24 cases in `evals/real/django_cases.json`. Each case was
+mined from Django's stable branches using the `Backport of <sha> from main` convention:
+
+* **X** is the original fix on `main`. Every arm is asked to move it.
+* **target** is the parent of the human backport.
+* **Hidden tests** are the *human backport's* test changes.
+
+A case is kept only if those tests fail on the target and pass on the human
+backport. Each arm works in a clone that holds only `main` (the target) and
+`source` (X), so the human backport is unreachable.
+
+The 24 cases split into 19 conflicts under `git cherry-pick`, 1 that applies
+cleanly but differs from the human backport, and 4 identical controls. They
+were picked from 970 candidates; 442 were rejected (size, multiple parents,
+non-discriminating tests, or an environment issue).
+
+| | plain git | Claude Code alone | Gitent + Claude Code |
+|---|---|---|---|
+| conflict cases (19) | 0/19 | 19/19 | 19/19 |
+| all 24 | 5/24 | 24/24 | 24/24 |
+| false successes | 0 | 0 | 0 |
+| wall time (sum) | ~5 s | 1538 s | 2897 s (1.9×) |
+| agent invocations | 0 | 24 | 20 (0 on the 5 cases git already solves) |
+
+**Fault injection on the same real cases** uses the "stale port" agent: it
+restores X's files verbatim on the old branch, then claims success.
+
+| | correct per hidden tests | false successes | results left with a red visible suite or deleted tests, but reported success |
+|---|---|---|---|
+| baseline | 15/24 | **9** | 6 (all accepted) |
+| Gitent | 11/24 | **0** | 0 (all 6 rejected: 5 failing visible tests, 1 deleted test) |
+
+The hidden-test scorer overlays the human's test files. It therefore accepts
+6 stale results whose own test suite is red, and Gitent's rejections of those
+are correct.
+
+**Bugs this real-code run found in Gitent.** The `target_preserved` guard
+flagged a "definition" named `does`. A Python docstring, `struct does not
+contain…`, matched the Rust `struct` pattern. Definition detection is now
+per-language by file extension (`diff::defs_in_line_for`) and ignores non-code
+files.
+
+**Verdict on criterion F4** ("does Gitent make a capable agent more correct?"):
+**No, not on this benchmark.** Claude Code alone solved all 19 real conflicting
+backports. Gitent's measurable value over the agent is:
+
+1. **Zero false successes under faulty agents**, against 9 for the agent's own report.
+2. **No agent call at all** where git's result validates (5/24).
+3. **Recorded provenance and requirements.**
+
+It costs about 1.9× the wall time.
+
+## Summary (synthetic scenarios)
 
 | | plain git | agent alone (baseline) | Gitent + same agent |
 |---|---|---|---|

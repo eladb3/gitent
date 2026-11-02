@@ -1,0 +1,754 @@
+{
+  "meta": {
+    "started": "2026-11-02T22-49-45Z",
+    "agent": "stale",
+    "llm": null,
+    "arms": [
+      "baseline",
+      "gitent"
+    ],
+    "source": "django real backports",
+    "agent_command": "stale"
+  },
+  "results": [
+    {
+      "id": "stable-6.1.x-0931d3c352",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.3,
+          "hidden_pass": false,
+          "hidden_output": "serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/aggregates.py\", line 17, in <module>\n    from django.db.models.functions import Coalesce\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/__init__.py\", line 28, in <module>\n    from .json import JSONArray, JSONObject\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/json.py\", line 4, in <module>\n    from django.db.models.fields.json import JSONField\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/fields/json.py\", line 17, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 11.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-0931d3c352/gitent/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.206s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8485c6ac38",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.411s\n\nOK (skipped=125)\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 16.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-8485c6ac38/gitent/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.675s\n\nOK (skipped=125)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cce6c57ed3",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.722s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 26.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cce6c57ed3/gitent/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.835s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-a92be5c4e2",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.4,
+          "hidden_pass": false,
+          "hidden_output": "1-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/fields/__init__.py\", line 18, in <module>\n    from django.db.models.query_utils import DeferredAttribute, RegisterLookupMixin\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/query_utils.py\", line 21, in <module>\n    from django.utils.text import trim_value\nImportError: cannot import name 'trim_value' from 'django.utils.text' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/utils/text.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [
+            "non_discriminating:req_c2f51493 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 30.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-a92be5c4e2/gitent/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.077s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cabad83ed1",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "ome/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/http/response.py\", line 19, in <module>\n    from django.core.serializers.json import DjangoJSONEncoder\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/__init__.py\", line 54, in <module>\n    from django.db.models.manager import Manager\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/manager.py\", line 7, in <module>\n    from django.db.models.query import QuerySet\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/query.py\", line 49, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\nImportError: cannot import name 'RemovedInDjango71Warning' from 'django.utils.deprecation' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/utils/deprecation.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout d992705f9eb56199dc474b77af16474e5ce3d2ab -- django/db/models/query.py docs/internals/deprecation.txt docs/ref/models/instances.txt docs/releases/6.1.1.txt docs/releases/6.1.txt tests/basic/models.py tests/basic/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout d992705f9eb56199dc474b77af16474e5ce3d2ab -- django/db/models/query.py docs/internals/deprecation.txt docs/ref/models/instances.txt docs/releases/6.1.1.txt docs/releases/6.1.txt tests/basic/models.py tests/basic/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "p.response import (\n    ...<16 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/http/response.py\", line 19, in <module>\n    from django.core.serializers.json import DjangoJSONEncoder\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/core/serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/db/models/__init__.py\", line 54, in <module>\n    from django.db.models.manager import Manager\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/db/models/manager.py\", line 7, in <module>\n    from django.db.models.query import QuerySet\n  File \"/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/db/models/query.py\", line 49, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\nImportError: cannot import name 'RemovedInDjango71Warning' from 'django.utils.deprecation' (/tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db/django/utils/deprecation.py)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-345213e78285/op_20261102225057_f586db (remove with `gitent abort op_20261102225057_f586db`).",
+          "seconds": 28.5,
+          "hidden_pass": false,
+          "hidden_output": "d = FromDbOldSignatureRelated.objects.select_related(\"old\").get(\n        pk=related.pk\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/gitent/score/django/db/models/query.py\", line 679, in get\n    num = len(clone)\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/gitent/score/django/db/models/query.py\", line 416, in __len__\n    self._fetch_all()\n    ~~~~~~~~~~~~~~~^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/gitent/score/django/db/models/query.py\", line 2239, in _fetch_all\n    self._result_cache = list(self._iterable_class(self))\n                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/gitent/score/django/db/models/query.py\", line 141, in __iter__\n    rel_populator.populate(row, obj)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-cabad83ed1/gitent/score/django/db/models/query.py\", line 3021, in populate\n    obj = self.model_cls.from_db(\n        self.db,\n    ...<2 lines>...\n        fetch_mode=self.fetch_mode,\n    )\nTypeError: FromDbOldSignature.from_db() got an unexpected keyword argument 'fetch_mode'\n\n----------------------------------------------------------------------\nRan 83 tests in 0.209s\n\nFAILED (errors=4, skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-bc529fb8a6",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1312, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/__init__.py\", line 1, in <module>\n    from django.contrib.admin.decorators import action, display, register\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/decorators.py\", line 1, in <module>\n    from django.contrib.admin.options import ActionLocation\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/options.py\", line 80, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 2e48636c54910e435eb31e1b7d8a8089c84233ad -- django/contrib/admin/options.py tests/admin_views/test_actions.py tests/modeladmin/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 2e48636c54910e435eb31e1b7d8a8089c84233ad -- django/contrib/admin/options.py tests/admin_views/test_actions.py tests/modeladmin/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1312, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/tmp/gitent-worktrees/repo-a3339727c700/op_20261102225113_a648c6/django/contrib/admin/__init__.py\", line 1, in <module>\n    from django.contrib.admin.decorators import action, display, register\n  File \"/tmp/gitent-worktrees/repo-a3339727c700/op_20261102225113_a648c6/django/contrib/admin/decorators.py\", line 1, in <module>\n    from django.contrib.admin.options import ActionLocation\n  File \"/tmp/gitent-worktrees/repo-a3339727c700/op_20261102225113_a648c6/django/contrib/admin/options.py\", line 80, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-a3339727c700/op_20261102225113_a648c6 (remove with `gitent abort op_20261102225113_a648c6`).",
+          "seconds": 16.6,
+          "hidden_pass": false,
+          "hidden_output": "                            ^^\n\n\n======================================================================\nFAIL: test_get_list_select_related_returns_true_deprecated (modeladmin.tests.ModelAdminTests.test_get_list_select_related_returns_true_deprecated)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/gitent/score/tests/modeladmin/tests.py\", line 1080, in test_get_list_select_related_returns_true_deprecated\n    self.assertEqual(warning.filename, __file__)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '/hom[63 chars]-6.1.x-bc529fb8a6/gitent/score/django/contrib/admin/options.py' != '/hom[63 chars]-6.1.x-bc529fb8a6/gitent/score/tests/modeladmin/tests.py'\n- /home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/gitent/score/django/contrib/admin/options.py\n?                                                                                                    ^^^^^^^^^^^^^^      -- ^^^\n+ /home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-bc529fb8a6/gitent/score/tests/modeladmin/tests.py\n?                                                                                                   ++++++++ ^^       ^^^\n\n\n----------------------------------------------------------------------\nRan 92 tests in 2.055s\n\nFAILED (failures=2)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-969450ebcc",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 1.243s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 082b3df4067c3899dd4d57e8c2eca5baea9d07bb -- django/contrib/admin/templatetags/admin_list.py docs/releases/6.1.1.txt tests/admin_changelist/models.py tests/admin_changelist/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_88892a93 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 21.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-969450ebcc/gitent/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 1.119s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-3143a7e7a7",
+      "kind": "conflict",
+      "description": "[6.1.x] Refs #37187 -- Implemented warn_about_implementation() deprecation utility.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "Traceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/tests/runtests.py\", line 24, in <module>\n    from django.conf import settings\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/conf/__init__.py\", line 17, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/utils/deprecation.py\", line 8, in <module>\n    from django.middleware import MiddlewareMixin as _MiddlewareMixin\nImportError: cannot import name 'MiddlewareMixin' from 'django.middleware' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/middleware/__init__.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 260d136920acf27dbd3cae9bc80eba2a43b44bba -- django/utils/deprecation.py tests/deprecation/test_warn_about_implementation.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 260d136920acf27dbd3cae9bc80eba2a43b44bba -- django/utils/deprecation.py tests/deprecation/test_warn_about_implementation.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": " tests/runtests.py --parallel=1 --noinput deprecation -k test_subclass_method` failed | Traceback (most recent call last): |   File \"/tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f/tests/runtests.py\", line 24, in <module> |     from django.conf import settings\n- check `tests` failed: `python tests/runtests.py --parallel=1 --noinput deprecation` FAILED in 98 ms\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f/tests/runtests.py\", line 24, in <module>\n    from django.conf import settings\n  File \"/tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f/django/conf/__init__.py\", line 17, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f/django/utils/deprecation.py\", line 8, in <module>\n    from django.middleware import MiddlewareMixin as _MiddlewareMixin\nImportError: cannot import name 'MiddlewareMixin' from 'django.middleware' (/tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f/django/middleware/__init__.py)\n\n- check `target_preserved` failed: removes definition(s) the target still has: MiddlewareMixin, RemovedInNextVersionWarning, django_file_prefixes (the change being moved does not remove them)\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-bc59190a0e3c/op_20261102225149_35597f (remove with `gitent abort op_20261102225149_35597f`).",
+          "seconds": 19.8,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/gitent/score/django'\nFound 1 test(s).\nSystem check identified no issues (0 silenced).\nE\n======================================================================\nERROR: test_warn_about_implementation (unittest.loader._FailedTest.test_warn_about_implementation)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_warn_about_implementation\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/gitent/score/tests/deprecation/test_warn_about_implementation.py\", line 7, in <module>\n    from django.utils.deprecation import warn_about_implementation\nImportError: cannot import name 'warn_about_implementation' from 'django.utils.deprecation' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-3143a7e7a7/gitent/score/django/utils/deprecation.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d8f121695",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.009s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 7ff7fcc0508864a4bc39693128ace38b1e95a890 -- django/utils/http.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/utils_tests/test_http.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 14.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-3d8f121695/gitent/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.009s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-b83ab92bc5",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "-6.0.x-b83ab92bc5/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/utils.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 83cbd21be57483e6b3eb6e4688a561c841aff75e -- django/forms/models.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/model_formsets/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 83cbd21be57483e6b3eb6e4688a561c841aff75e -- django/forms/models.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/model_formsets/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "t-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5/django/db/models/utils.py)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-2adaf8a8561b/op_20261102225157_692dd5 (remove with `gitent abort op_20261102225157_692dd5`).",
+          "seconds": 18.0,
+          "hidden_pass": false,
+          "hidden_output": "============================================\nFAIL: test_deletion_not_allowed_outside_formset_queryset_editable_pk (model_formsets.tests.DeletionTests.test_deletion_not_allowed_outside_formset_queryset_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/gitent/score/tests/model_formsets/tests.py\", line 203, in test_deletion_not_allowed_outside_formset_queryset_editable_pk\n    self.assertIs(CustomPrimaryKey.objects.filter(pk=obj.pk).exists(), True)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_edit_only_editable_pk (model_formsets.tests.ModelFormsetTest.test_edit_only_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-b83ab92bc5/gitent/score/tests/model_formsets/tests.py\", line 2156, in test_edit_only_editable_pk\n    with self.assertRaises(CustomPrimaryKey.DoesNotExist):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: DoesNotExist not raised\n\n----------------------------------------------------------------------\nRan 74 tests in 0.670s\n\nFAILED (failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d32ee80ae",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.585s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc -- django/utils/translation/trans_real.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc -- django/utils/translation/trans_real.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "rejected: validation failed after 2 agent attempt(s):\n- check `tests` failed: `python tests/runtests.py --parallel=1 --noinput i18n.tests` FAILED in 1734 ms\nTesting against Django installed in '/tmp/gitent-worktrees/repo-75ca48ba91fa/op_20261102225236_1f13f4/django'\nFound 99 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..............F.......................................................s............................\n======================================================================\nFAIL: test_basque_date_formats (i18n.tests.FormattingTests.test_basque_date_formats)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-75ca48ba91fa/op_20261102225236_1f13f4/tests/i18n/tests.py\", line 1189, in test_basque_date_formats\n    self.assertEqual(date_format(self.d), \"2009(e)ko abe.k 31\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009ko abe. 31a' != '2009(e)ko abe.k 31'\n- 2009ko abe. 31a\n?               -\n+ 2009(e)ko abe.k 31\n?     +++       +\n\n\n----------------------------------------------------------------------\nRan 99 tests in 0.353s\n\nFAILED (failures=1, skipped=1)\nDestroying test database for alias 'default'...\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-75ca48ba91fa/op_20261102225236_1f13f4 (remove with `gitent abort op_20261102225236_1f13f4`).",
+          "seconds": 22.5,
+          "hidden_pass": false,
+          "hidden_output": "--------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-3d32ee80ae/gitent/score/tests/i18n/tests.py\", line 1759, in test_get_supported_language_variant_strict_long_lang_code_not_cached\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n======================================================================\nERROR: test_get_supported_language_variant_truncated_cache_key (i18n.tests.MiscTests.test_get_supported_language_variant_truncated_cache_key)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-3d32ee80ae/gitent/score/tests/i18n/tests.py\", line 1778, in test_get_supported_language_variant_truncated_cache_key\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n----------------------------------------------------------------------\nRan 98 tests in 0.643s\n\nFAILED (errors=2, skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-0910af6046",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.025s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 7e9885f99cee771b51692fadc5592bdbf19641aa -- django/http/multipartparser.py docs/releases/4.2.30.txt docs/releases/5.2.13.txt docs/releases/6.0.4.txt tests/requests_tests/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 7e9885f99cee771b51692fadc5592bdbf19641aa -- django/http/multipartparser.py docs/releases/4.2.30.txt docs/releases/5.2.13.txt docs/releases/6.0.4.txt tests/requests_tests/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "ultipart_parser_class)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-86df1887ba16/op_20261102225243_603044/tests/requests_tests/tests.py\", line 1219, in test_custom_multipart_parser_class\n    self.assertEqual(request.POST.get(\"custom_parser_used\"), \"yes\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != 'yes'\n\n======================================================================\nFAIL: test_multipart_parser_class_immutable_after_parse (requests_tests.tests.RequestsTests.test_multipart_parser_class_immutable_after_parse)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-86df1887ba16/op_20261102225243_603044/tests/requests_tests/tests.py\", line 1250, in test_multipart_parser_class_immutable_after_parse\n    with self.assertRaisesMessage(RuntimeError, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 148, in __exit__\n    next(self.gen)\n    ~~~~^^^^^^^^^^\nAssertionError: RuntimeError not raised\n\n----------------------------------------------------------------------\nRan 70 tests in 0.020s\n\nFAILED (failures=2)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-86df1887ba16/op_20261102225243_603044 (remove with `gitent abort op_20261102225243_603044`).",
+          "seconds": 18.3,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-0910af6046/gitent/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n...........................................F........................\n======================================================================\nFAIL: test_multipart_file_upload_base64_whitespace_heavy (requests_tests.tests.RequestsTests.test_multipart_file_upload_base64_whitespace_heavy)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-0910af6046/gitent/score/tests/requests_tests/tests.py\", line 971, in test_multipart_file_upload_base64_whitespace_heavy\n    self.assertEqual(reads, [1, 1024, 1, 1024, 65536, 1, 1024, 1])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [1, 1024, 1, 1024, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,[13918 chars]4, 1] != [1, 1024, 1, 1024, 65536, 1, 1024, 1]\n\nFirst differing element 4:\n1\n65536\n\nFirst list contains 4650 additional elements.\nFirst extra element 8:\n1\n\nDiff is 27997 characters long. Set self.maxDiff to None to see it.\n\n----------------------------------------------------------------------\nRan 68 tests in 0.038s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-ad8f9e19e0",
+      "kind": "clean_differs",
+      "description": "[6.0.x] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 8.998s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [
+            "non_discriminating:req_a0fdd3c2 passes on the target even without the change",
+            "non_discriminating:req_8c6cb8df passes on the target even without the change",
+            "non_discriminating:req_7a7b7267 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 31.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-ad8f9e19e0/gitent/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 9.098s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-4b86ba51e4",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.016s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout a33540b3e20b5d759aa8b2e4b9ca0e8edd285344 -- django/utils/text.py docs/releases/4.2.28.txt docs/releases/5.2.11.txt docs/releases/6.0.2.txt tests/utils_tests/test_text.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 17.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-4b86ba51e4/gitent/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.024s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-ff27883ca0",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "83ca0/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/aggregates.py\", line 6, in <module>\n    from django.db.models.expressions import Case, ColPairs, Func, Star, Value, When\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/utils.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 83cbd21be57483e6b3eb6e4688a561c841aff75e -- django/forms/models.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/model_formsets/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 83cbd21be57483e6b3eb6e4688a561c841aff75e -- django/forms/models.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/model_formsets/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "repo-84384ff48d70/op_20261102225358_681cec/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/db/models/aggregates.py\", line 6, in <module>\n    from django.db.models.expressions import Case, ColPairs, Func, Star, Value, When\n  File \"/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec/django/db/models/utils.py)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-84384ff48d70/op_20261102225358_681cec (remove with `gitent abort op_20261102225358_681cec`).",
+          "seconds": 19.7,
+          "hidden_pass": false,
+          "hidden_output": "============================================\nFAIL: test_deletion_not_allowed_outside_formset_queryset_editable_pk (model_formsets.tests.DeletionTests.test_deletion_not_allowed_outside_formset_queryset_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/gitent/score/tests/model_formsets/tests.py\", line 203, in test_deletion_not_allowed_outside_formset_queryset_editable_pk\n    self.assertIs(CustomPrimaryKey.objects.filter(pk=obj.pk).exists(), True)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_edit_only_editable_pk (model_formsets.tests.ModelFormsetTest.test_edit_only_editable_pk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-ff27883ca0/gitent/score/tests/model_formsets/tests.py\", line 2152, in test_edit_only_editable_pk\n    with self.assertRaises(CustomPrimaryKey.DoesNotExist):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: DoesNotExist not raised\n\n----------------------------------------------------------------------\nRan 74 tests in 1.149s\n\nFAILED (failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-6ecd66e09a",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-6ecd66e09a/baseline/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.009s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 7ff7fcc0508864a4bc39693128ace38b1e95a890 -- django/utils/http.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/utils_tests/test_http.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 18.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-6ecd66e09a/gitent/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.011s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-972dbdd4f7",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 9.090s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout eb22e1d6d643360e952609ef562c139a100ea4eb -- django/core/handlers/asgi.py docs/releases/4.2.28.txt docs/releases/5.2.11.txt docs/releases/6.0.2.txt tests/asgi/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout eb22e1d6d643360e952609ef562c139a100ea4eb -- django/core/handlers/asgi.py docs/releases/4.2.28.txt docs/releases/5.2.11.txt docs/releases/6.0.2.txt tests/asgi/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "rejected: validation failed after 2 agent attempt(s):\n- check `existing_tests_preserved` failed: pre-existing tests were removed or renamed: test_create_request_error\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-d61b983fd0ed/op_20261102225338_416cfc (remove with `gitent abort op_20261102225338_416cfc`).",
+          "seconds": 39.8,
+          "hidden_pass": false,
+          "hidden_output": "uns/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-972dbdd4f7/gitent/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..............F...........\n======================================================================\nFAIL: test_meta_not_modified_with_repeat_headers (asgi.tests.ASGITest.test_meta_not_modified_with_repeat_headers)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 376, in __call__\n    return call_result.result()\n           ~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 453, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 402, in __get_result\n    raise self._exception\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 416, in main_wrap\n    result = await awaitable\n             ^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.0.x-972dbdd4f7/gitent/score/tests/asgi/tests.py\", line 281, in test_meta_not_modified_with_repeat_headers\n    self.assertLessEqual(setitem_count, 100)\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\nAssertionError: 200005 not less than or equal to 100\n\n----------------------------------------------------------------------\nRan 26 tests in 28.446s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8590dfdb41",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.257s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 50eef95591b1e5d8c47b2e8c96066cb0c516753a -- django/db/models/fields/tuple_lookups.py docs/releases/6.1.2.txt tests/composite_pk/test_filter.py tests/foreign_object/test_tuple_lookups.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_ef3b63bb passes on the target even without the change",
+            "non_discriminating:req_84f2d775 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 245.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-6.1.x-8590dfdb41/gitent/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.348s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-b9adb81339",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "strap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/__init__.py\", line 2, in <module>\n    from django.contrib.admin.filters import (\n    ...<10 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/filters.py\", line 12, in <module>\n    from django.contrib.admin.options import IncorrectLookupParameters\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/options.py\", line 14, in <module>\n    from django.contrib.admin import helpers, widgets\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/helpers.py\", line 4, in <module>\n    from django.contrib.admin.utils import (\n    ...<6 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/utils.py\", line 9, in <module>\n    from django.contrib.auth.templatetags.auth import render_password_as_hash\nModuleNotFoundError: No module named 'django.contrib.auth.templatetags'\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 47511a21026cdd721d8fbf8571cc079bc38bb46d -- django/contrib/admin/utils.py docs/releases/5.2.17.txt docs/releases/6.0.8.txt tests/admin_utils/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 47511a21026cdd721d8fbf8571cc079bc38bb46d -- django/contrib/admin/utils.py docs/releases/5.2.17.txt docs/releases/6.0.8.txt tests/admin_utils/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": " 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e/django/contrib/admin/__init__.py\", line 2, in <module>\n    from django.contrib.admin.filters import (\n    ...<10 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e/django/contrib/admin/filters.py\", line 12, in <module>\n    from django.contrib.admin.options import IncorrectLookupParameters\n  File \"/tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e/django/contrib/admin/options.py\", line 14, in <module>\n    from django.contrib.admin import helpers, widgets\n  File \"/tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e/django/contrib/admin/helpers.py\", line 4, in <module>\n    from django.contrib.admin.utils import (\n    ...<6 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e/django/contrib/admin/utils.py\", line 9, in <module>\n    from django.contrib.auth.templatetags.auth import render_password_as_hash\nModuleNotFoundError: No module named 'django.contrib.auth.templatetags'\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-159e9ddf9bb3/op_20261102225500_b2719e (remove with `gitent abort op_20261102225500_b2719e`).",
+          "seconds": 18.0,
+          "hidden_pass": false,
+          "hidden_output": "tilsTests.test_url_display_for_field_invalid_url) (value='javascript:alert(1)')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/gitent/score/tests/admin_utils/tests.py\", line 218, in test_url_display_for_field_invalid_url\n    self.assertNotIn(\"<a\", display_value)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '<a' unexpectedly found in '<a href=\"javascript:alert(1)\">javascript:alert(1)</a>'\n\n======================================================================\nFAIL: test_url_display_for_field_invalid_url (admin_utils.tests.UtilsTests.test_url_display_for_field_invalid_url) (value='data:text/html,<script>alert(1)</script>')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-b9adb81339/gitent/score/tests/admin_utils/tests.py\", line 218, in test_url_display_for_field_invalid_url\n    self.assertNotIn(\"<a\", display_value)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '<a' unexpectedly found in '<a href=\"data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;\">data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;</a>'\n\n----------------------------------------------------------------------\nRan 30 tests in 0.047s\n\nFAILED (failures=2)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-02a69e3791",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.435s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc -- django/utils/translation/trans_real.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout c88b304cc2d90fc37d3bd1f5f3829706fa6c13bc -- django/utils/translation/trans_real.py docs/releases/5.2.18.txt docs/releases/6.0.9.txt docs/releases/6.1.2.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "9_091570/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '31 d\u00e9cembre 2009, 20\\xa0h\\xa050' != '31 d\u00e9cembre 2009, 20\\xa008\\xa050'\n- 31 d\u00e9cembre 2009, 20\u00a0h\u00a050\n?                     \u00a0^\n+ 31 d\u00e9cembre 2009, 20\u00a008\u00a050\n?                     \u00a0^^\n\n\n======================================================================\nFAIL: test_uncommon_locale_formats (i18n.tests.FormattingTests.test_uncommon_locale_formats) (locale='fr-ca', expected='2009-12-31 20\\xa0h\\xa050')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-0a7140fb8202/op_20261102225459_091570/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009-12-31 20\\xa0h\\xa050' != '2009-12-31 20\\xa008\\xa050'\n- 2009-12-31 20\u00a0h\u00a050\n?              \u00a0^\n+ 2009-12-31 20\u00a008\u00a050\n?              \u00a0^^\n\n\n----------------------------------------------------------------------\nRan 99 tests in 0.374s\n\nFAILED (failures=4, skipped=1)\nDestroying test database for alias 'default'...\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-0a7140fb8202/op_20261102225459_091570 (remove with `gitent abort op_20261102225459_091570`).",
+          "seconds": 23.0,
+          "hidden_pass": false,
+          "hidden_output": "--------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-02a69e3791/gitent/score/tests/i18n/tests.py\", line 1735, in test_get_supported_language_variant_strict_long_lang_code_not_cached\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n======================================================================\nERROR: test_get_supported_language_variant_truncated_cache_key (i18n.tests.MiscTests.test_get_supported_language_variant_truncated_cache_key)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-02a69e3791/gitent/score/tests/i18n/tests.py\", line 1754, in test_get_supported_language_variant_truncated_cache_key\n    g_cached = trans_real._get_supported_language_variant\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'django.utils.translation.trans_real' has no attribute '_get_supported_language_variant'. Did you mean: 'get_supported_language_variant'?\n\n----------------------------------------------------------------------\nRan 97 tests in 0.482s\n\nFAILED (errors=2, skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-d5d60ed032",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.096s\n\nOK (skipped=5)\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 3a720d0d8bf2529253b98968f10ca73daf6d693c -- django/core/validators.py docs/releases/5.2.16.txt docs/releases/6.0.7.txt tests/validators/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 9.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-d5d60ed032/gitent/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.091s\n\nOK (skipped=5)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-c72a5dbb64",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.428s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 27137e655e442e81095f1f8f77ff3870d9fdf169 -- django/test/signals.py django/utils/translation/trans_real.py docs/ref/utils.txt docs/releases/5.2.17.txt docs/releases/6.0.8.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 27137e655e442e81095f1f8f77ff3870d9fdf169 -- django/test/signals.py django/utils/translation/trans_real.py docs/ref/utils.txt docs/releases/5.2.17.txt docs/releases/6.0.8.txt tests/i18n/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "5_a451a7/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '31 d\u00e9cembre 2009, 20\\xa0h\\xa050' != '31 d\u00e9cembre 2009, 20\\xa008\\xa050'\n- 31 d\u00e9cembre 2009, 20\u00a0h\u00a050\n?                     \u00a0^\n+ 31 d\u00e9cembre 2009, 20\u00a008\u00a050\n?                     \u00a0^^\n\n\n======================================================================\nFAIL: test_uncommon_locale_formats (i18n.tests.FormattingTests.test_uncommon_locale_formats) (locale='fr-ca', expected='2009-12-31 20\\xa0h\\xa050')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-3b369d1505fc/op_20261102225515_a451a7/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009-12-31 20\\xa0h\\xa050' != '2009-12-31 20\\xa008\\xa050'\n- 2009-12-31 20\u00a0h\u00a050\n?              \u00a0^\n+ 2009-12-31 20\u00a008\u00a050\n?              \u00a0^^\n\n\n----------------------------------------------------------------------\nRan 97 tests in 0.563s\n\nFAILED (failures=4, skipped=1)\nDestroying test database for alias 'default'...\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-3b369d1505fc/op_20261102225515_a451a7 (remove with `gitent abort op_20261102225515_a451a7`).",
+          "seconds": 20.2,
+          "hidden_pass": false,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-c72a5dbb64/gitent/score/django'\nFound 1 test(s).\nSystem check identified no issues (0 silenced).\nE\n======================================================================\nERROR: tests (unittest.loader._FailedTest.tests)\n----------------------------------------------------------------------\nImportError: Failed to import test module: tests\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-c72a5dbb64/gitent/score/tests/i18n/tests.py\", line 62, in <module>\n    from django.utils.translation.trans_real import (\n    ...<2 lines>...\n    )\nImportError: cannot import name 'translation_catalog_exists' from 'django.utils.translation.trans_real' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-c72a5dbb64/gitent/score/django/utils/translation/trans_real.py)\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-721685aa77",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": ">\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/__init__.py\", line 22, in <module>\n    from django.contrib.admin.sites import AdminSite, site\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/sites.py\", line 22, in <module>\n    from django.views.decorators.cache import never_cache\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/views/decorators/cache.py\", line 5, in <module>\n    from django.middleware.cache import CacheMiddleware\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/middleware/cache.py\", line 61, in <module>\n    from django.utils.http import parse_http_date_safe, split_directive_names\nImportError: cannot import name 'split_directive_names' from 'django.utils.http' (/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/utils/http.py)\n",
+          "false_success": true
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 6e365f8d01f2ba0bbd90968d76a42600fb8bc4b1 -- django/middleware/cache.py docs/releases/5.2.16.txt docs/releases/6.0.7.txt tests/cache/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 6e365f8d01f2ba0bbd90968d76a42600fb8bc4b1 -- django/middleware/cache.py docs/releases/5.2.16.txt docs/releases/6.0.7.txt tests/cache/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": ", in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186/django/contrib/admin/__init__.py\", line 22, in <module>\n    from django.contrib.admin.sites import AdminSite, site\n  File \"/tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186/django/contrib/admin/sites.py\", line 22, in <module>\n    from django.views.decorators.cache import never_cache\n  File \"/tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186/django/views/decorators/cache.py\", line 5, in <module>\n    from django.middleware.cache import CacheMiddleware\n  File \"/tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186/django/middleware/cache.py\", line 61, in <module>\n    from django.utils.http import parse_http_date_safe, split_directive_names\nImportError: cannot import name 'split_directive_names' from 'django.utils.http' (/tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186/django/utils/http.py)\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-146011404804/op_20261102225546_8b3186 (remove with `gitent abort op_20261102225546_8b3186`).",
+          "seconds": 17.4,
+          "hidden_pass": false,
+          "hidden_output": "---------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/gitent/score/tests/cache/tests.py\", line 2863, in test_refreshed_cookie_not_cached\n    self.assertIsNone(cache_middleware.process_request(request))\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: <HttpResponse status_code=200, \"text/html; charset=utf-8\"> is not None\n\n======================================================================\nFAIL: test_sensitive_cookie_not_cached (cache.tests.CacheMiddlewareTest.test_sensitive_cookie_not_cached) (headers={'HTTP_COOKIE': 'unrelated=value'})\nResponses that set a new cookie not present in the request are not\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-721685aa77/gitent/score/tests/cache/tests.py\", line 2841, in test_sensitive_cookie_not_cached\n    self.assertIsNone(cache_middleware.process_request(request))\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: <HttpResponse status_code=200, \"text/html; charset=utf-8\"> is not None\n\n----------------------------------------------------------------------\nRan 583 tests in 58.070s\n\nFAILED (failures=2, skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-9b62b0af71",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 57.947s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": false,
+          "state": "failed",
+          "attempts": [
+            "git",
+            "command:cat > /dev/null; git checkout 42aa0b3364d312e7c6472258d8b0e9c0277fbf22 -- django/utils/cache.py docs/releases/5.2.15.txt docs/releases/6.0.6.txt tests/cache/tests.py && git reset -q; echo 'RESULT: SUCCESS'",
+            "command:cat > /dev/null; git checkout 42aa0b3364d312e7c6472258d8b0e9c0277fbf22 -- django/utils/cache.py docs/releases/5.2.15.txt docs/releases/6.0.6.txt tests/cache/tests.py && git reset -q; echo 'RESULT: SUCCESS'"
+          ],
+          "agent_calls": 2,
+          "warnings": [],
+          "detail": "------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 376, in __call__\n    return call_result.result()\n           ~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 453, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/concurrent/futures/_base.py\", line 402, in __get_result\n    raise self._exception\n  File \"/home/user/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 416, in main_wrap\n    result = await awaitable\n             ^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-2a07252b2b5b/op_20261102225647_b245e4/tests/cache/tests.py\", line 1220, in test_has_key_async_uses_specialized_implementation\n    mocked.assert_called_once()\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/unittest/mock.py\", line 958, in assert_called_once\n    raise AssertionError(msg)\nAssertionError: Expected 'has_key' to have been called once. Called 0 times.\n\n----------------------------------------------------------------------\nRan 647 tests in 58.212s\n\nFAILED (failures=10, skipped=209)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n\n\nThe branch was not changed. The worktree is kept for inspection at /tmp/gitent-worktrees/repo-2a07252b2b5b/op_20261102225647_b245e4 (remove with `gitent abort op_20261102225647_b245e4`).",
+          "seconds": 134.9,
+          "hidden_pass": false,
+          "hidden_output": "=========================================================\nFAIL: test_has_vary_header (cache.tests.PrefixedCacheUtils.test_has_vary_header) (header_value='Cookie, * ', header_query='*')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-9b62b0af71/gitent/score/tests/cache/tests.py\", line 2233, in test_has_vary_header\n    self.assertIs(has_vary_header(response, header_query), has_match)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n======================================================================\nFAIL: test_has_vary_header (cache.tests.PrefixedCacheUtils.test_has_vary_header) (header_value=' Cookie', header_query='Cookie')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T22-49-45Z-real-stale/stable-5.2.x-9b62b0af71/gitent/score/tests/cache/tests.py\", line 2233, in test_has_vary_header\n    self.assertIs(has_vary_header(response, header_query), has_match)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not True\n\n----------------------------------------------------------------------\nRan 582 tests in 58.115s\n\nFAILED (failures=10, skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        }
+      }
+    }
+  ]
+}

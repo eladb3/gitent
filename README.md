@@ -70,17 +70,18 @@ Experimental MVP. Implemented end-to-end: `init`, `commit`, `check`, `diff`,
 `status`, `continue`, `abort`, `mcp`, `serve`, `schema`.
 [docs/SUCCESS_CRITERIA.md](docs/SUCCESS_CRITERIA.md) lists what is verified.
 
-Eval ([evals/RESULTS.md](evals/RESULTS.md)), on 9 diverged-history scenarios
-scored by hidden tests:
+Eval ([evals/RESULTS.md](evals/RESULTS.md)) on **24 real Django backports**
+(the human backport's tests are the hidden oracle) and 9 synthetic scenarios:
 
 | | plain git | Claude Code alone | Gitent + Claude Code |
 |---|---|---|---|
-| correct | 1/9 (plus 1 silently wrong) | 9/9 | 9/9 |
-| false successes with a faulty agent | — | 8 | **0** |
+| real backports correct (19 are git conflicts) | 5/24 | 24/24 | 24/24 |
+| false successes with a faulty agent (real / synthetic) | — | 9 / 8 | **0 / 0** |
 
-Gitent fixes what Git cannot, and it never reports success on wrong work. On
-these scenarios it **ties** a capable agent on correctness rather than beating
-it, at roughly 2.4× the wall time.
+Gitent does what Git cannot. With a capable agent it **ties** on correctness
+(it does not beat it), at roughly 2× the wall time. Its distinct value is that
+it never reports success on wrong or broken work, and that every result carries
+provenance and requirements.
 
 ## Build
 

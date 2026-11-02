@@ -87,7 +87,7 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | F1 | An eval suite of ≥ 5 scenarios (rename/move, signature change, clean-but-wrong, merge, revert-after-refactor), each with **hidden** acceptance tests the agents never see. | ✅ 9 scenarios in `evals/cases.py` (+ parity control), validated by `--agent offline` |
 | F2 | A runner executes three arms on each scenario — `git` (plain git op), `baseline` (same coding agent, given the diff + message, no Gitent), `gitent` — and scores each against the hidden tests. | ✅ `evals/run.py` (also: fault-injection agent `--agent stale`) |
 | F3 | Gitent ≥ baseline ≥ git on scenario pass rate, and Gitent never reports success on a result that fails hidden tests (no false "success"). | 📊 met in `evals/RESULTS.md` run 7: git 1/9, baseline 9/9, gitent 9/9, 0 false successes; fault injection: baseline 8 false successes, gitent 0. **Gitent ties a capable agent; it does not (yet) beat it.** |
-| F4 | Scenarios hard enough that a capable agent alone fails some, to test whether Gitent improves correctness (not just safety). | ⏳ |
+| F4 | Scenarios hard enough that a capable agent alone fails some, to test whether Gitent improves correctness (not just safety). | 📊 tested on 24 real Django backports (19 git conflicts): agent alone 24/24, gitent 24/24. **Not demonstrated**: no case where Gitent made a capable agent more correct. Fault injection on the same cases: baseline 9 false successes, gitent 0. |
 
 The eval measures real agent behaviour and is therefore not part of `cargo
 test` (it costs money and is non-deterministic). Results are committed with the
