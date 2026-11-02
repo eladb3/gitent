@@ -34,7 +34,36 @@ fn test_patterns() -> &'static [Regex] {
     })
 }
 
-/// Definitions (name, kind) found on a single line of code.
+/// Which definition patterns apply to a file (indices into `def_patterns`).
+/// Unknown extensions use all patterns.
+fn patterns_for(path: &str) -> &'static [usize] {
+    let ext = path
+        .rsplit_once('.')
+        .map(|(_, e)| e.to_ascii_lowercase())
+        .unwrap_or_default();
+    match ext.as_str() {
+        "py" | "pyi" => &[0, 1],
+        "rs" => &[2, 3],
+        "js" | "jsx" | "ts" | "tsx" | "mjs" | "cjs" => &[1, 4, 5],
+        "go" => &[6],
+        _ => &[0, 1, 2, 3, 4, 5, 6],
+    }
+}
+
+/// Definitions on a line of the given file, using only that language's patterns
+/// (a Python docstring saying "struct does not…" is not a Rust struct).
+pub fn defs_in_line_for(path: &str, line: &str) -> Option<(String, &'static str)> {
+    let pats = def_patterns();
+    for &i in patterns_for(path) {
+        let (re, kind) = &pats[i];
+        if let Some(c) = re.captures(line) {
+            return Some((c[1].to_string(), kind));
+        }
+    }
+    None
+}
+
+/// Definitions (name, kind) found on a single line of code (any language).
 pub fn defs_in_line(line: &str) -> Option<(String, &'static str)> {
     for (re, kind) in def_patterns() {
         if let Some(c) = re.captures(line) {
@@ -114,7 +143,7 @@ pub fn symbols_from_patch(patch: &str) -> Vec<Symbol> {
         {
             enclosing = None;
         }
-        let def = defs_in_line(text);
+        let def = defs_in_line_for(file, text);
         if let Some((name, kind)) = &def {
             enclosing = Some((file.to_string(), name.clone(), kind));
         }
@@ -245,7 +274,9 @@ pub fn locate(root: &Path, names: &[String], limit: usize) -> Vec<Location> {
         for (i, line) in text.lines().enumerate() {
             for (n, re) in &res {
                 if re.is_match(line) {
-                    let is_def = defs_in_line(line).map(|(d, _)| &d == n).unwrap_or(false);
+                    let is_def = defs_in_line_for(&rel.to_string_lossy(), line)
+                        .map(|(d, _)| &d == n)
+                        .unwrap_or(false);
                     out.push(Location {
                         symbol: n.clone(),
                         file: rel.to_string_lossy().to_string(),
@@ -309,6 +340,30 @@ diff --git a/tests/test_users.py b/tests/test_users.py
             vec!["test_cache_hit".to_string()]
         );
         assert!(tests_removed_in_patch(PATCH).is_empty());
+    }
+
+    #[test]
+    fn defs_are_language_specific() {
+        assert!(defs_in_line_for(
+            "tests/i18n/tests.py",
+            "        struct does not contain the 'name' key."
+        )
+        .is_none());
+        assert_eq!(
+            defs_in_line_for("a.py", "class Foo(Base):").unwrap().0,
+            "Foo"
+        );
+        assert!(defs_in_line_for("a.rs", "def nope():").is_none());
+        assert_eq!(
+            defs_in_line_for("a.rs", "pub struct Repo {").unwrap().0,
+            "Repo"
+        );
+        assert_eq!(
+            defs_in_line_for("a.ts", "export function go() {")
+                .unwrap()
+                .0,
+            "go"
+        );
     }
 
     #[test]

@@ -243,6 +243,8 @@ def run_case(case, args):
         work.mkdir(parents=True)
         make_repo(Path(args.mirror), case, repo, args.gitent, args.python)
         agent = base.AGENTS.get(args.agent, args.agent)
+        if args.agent == "stale":  # fault injection (see evals/run.py)
+            agent = base.stale_agent({"operation": {"op": "cherry-pick", "rev": "source"}}, repo)
         t0 = time.time()
         try:
             if arm == "git":

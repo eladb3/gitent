@@ -34,15 +34,30 @@ pub fn paths(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
     out
 }
 
-/// Names of non-test definitions (functions, classes, types) in a tree.
+const CODE_EXT: &[&str] = &[
+    "py", "rs", "js", "jsx", "ts", "tsx", "mjs", "cjs", "go", "rb", "java", "kt", "scala", "swift",
+    "c", "h", "cc", "cpp", "hpp", "cs", "php",
+];
+
+/// Only source files can define things; prose ("a class does not…") must not count.
+pub fn is_code(path: &str) -> bool {
+    path.rsplit_once('.')
+        .map(|(_, ext)| CODE_EXT.contains(&ext.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+/// Names of non-test definitions (functions, classes, types) in a tree's source files.
 pub fn defs(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    walk(repo, tree, |_, content| {
+    walk(repo, tree, |path, content| {
+        if !is_code(path) {
+            return;
+        }
         if content.len() > 1_000_000 || content.contains(&0) {
             return;
         }
         for line in String::from_utf8_lossy(content).lines() {
-            if let Some((name, _)) = diff::defs_in_line(line) {
+            if let Some((name, _)) = diff::defs_in_line_for(path, line) {
                 if !name.starts_with("test") && !name.starts_with("Test") {
                     out.insert(name);
                 }
@@ -161,5 +176,17 @@ fn ok(detail: &str) -> CheckResult {
         name: "target_preserved".into(),
         passed: true,
         detail: detail.into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn only_code_files_define_things() {
+        assert!(super::is_code("django/db/models/query.py"));
+        assert!(super::is_code("src/App.TSX"));
+        assert!(!super::is_code("docs/ref/models.txt"));
+        assert!(!super::is_code("README.md"));
+        assert!(!super::is_code("Makefile"));
     }
 }
