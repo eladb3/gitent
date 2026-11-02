@@ -67,6 +67,37 @@ enum Cmd {
         /// Analyze only; do not commit
         #[arg(long)]
         dry_run: bool,
+        /// A requirement this change satisfies (repeatable). Follow it with --test or --check to make it executable.
+        #[arg(long, action = clap::ArgAction::Append)]
+        require: Vec<String>,
+        /// Test name that checks the preceding --require
+        #[arg(long, action = clap::ArgAction::Append)]
+        test: Vec<String>,
+        /// Shell command (exit 0 = pass) that checks the preceding --require
+        #[arg(long, action = clap::ArgAction::Append)]
+        check: Vec<String>,
+        /// Retire a live requirement: --retire <req_id> "<reason>"
+        #[arg(long, num_args = 2, value_names = ["REQ_ID", "REASON"], action = clap::ArgAction::Append)]
+        retire: Vec<String>,
+        /// Reject the commit if it breaks any live requirement
+        #[arg(long)]
+        check_ledger: bool,
+        /// Skip proving requirements (fail-before / pass-after)
+        #[arg(long)]
+        no_prove: bool,
+        /// Allow this requirement to fail after the change (repeatable)
+        #[arg(long, action = clap::ArgAction::Append)]
+        allow_failing: Vec<String>,
+    },
+    /// Run all live requirements (the ledger) on the working tree or a revision
+    Check {
+        rev: Option<String>,
+        /// Only requirements of this intention
+        #[arg(long)]
+        intent: Option<String>,
+        /// Also evaluate judged requirements with the LLM
+        #[arg(long)]
+        judge: bool,
     },
     /// Semantic diff: analyze uncommitted changes, or list intentions between revisions
     Diff {
@@ -145,7 +176,17 @@ struct OpFlags {
 }
 
 fn main() {
-    let cli = Cli::parse();
+    use clap::{CommandFactory, FromArgMatches};
+    let matches = Cli::command().get_matches();
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => e.exit(),
+    };
+    REQ_DRAFTS.with(|r| {
+        if let Some(m) = matches.subcommand_matches("commit") {
+            *r.borrow_mut() = requirement_drafts(m);
+        }
+    });
     let json_out = cli.json;
     match run(cli) {
         Ok((v, code)) => {
@@ -215,7 +256,22 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             staged,
             require_llm,
             dry_run,
+            retire,
+            check_ledger,
+            no_prove,
+            allow_failing,
+            ..
         } => {
+            args["requirements"] = REQ_DRAFTS.with(|r| json!(*r.borrow()));
+            args["retires"] = json!(retire
+                .chunks(2)
+                .map(|c| json!({"id": c[0], "reason": c.get(1).cloned().unwrap_or_default()}))
+                .collect::<Vec<_>>());
+            args["check_ledger"] = json!(check_ledger);
+            if *no_prove {
+                args["prove"] = json!("off");
+            }
+            args["allow_failing"] = json!(allow_failing);
             if let Some(m) = message {
                 args["message"] = json!(m);
             }
@@ -284,6 +340,16 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             ("abort", render_op)
         }
         Cmd::Status => ("status", render_status),
+        Cmd::Check { rev, intent, judge } => {
+            if let Some(r) = rev {
+                args["rev"] = json!(r);
+            }
+            if let Some(i) = intent {
+                args["intent"] = json!(i);
+            }
+            args["judge"] = json!(judge);
+            ("check", render_check)
+        }
         Cmd::Ops => ("ops", render_ops),
         Cmd::Annotate { rev, limit } => {
             if let Some(r) = rev {
@@ -329,7 +395,9 @@ fn init(path: &std::path::Path, agent: Option<&str>, local: bool, force: bool) -
         );
     }
     if cfg.validation.test_command.is_empty() {
-        cfg.validation.test_command = detect_test_command(&repo.workdir);
+        let (cmd, sel) = detect_test_command(&repo.workdir);
+        cfg.validation.test_command = cmd;
+        cfg.validation.test_selector = sel;
     }
     std::fs::create_dir_all(target.parent().unwrap())?;
     let header = format!(
@@ -345,20 +413,25 @@ fn init(path: &std::path::Path, agent: Option<&str>, local: bool, force: bool) -
     )
 }
 
-fn detect_test_command(dir: &std::path::Path) -> String {
+/// (test_command, test_selector) defaults for common project layouts.
+fn detect_test_command(dir: &std::path::Path) -> (String, String) {
+    let p = |a: &str, b: &str| (a.to_string(), b.to_string());
     if dir.join("Cargo.toml").exists() {
-        "cargo test".into()
+        p("cargo test", "cargo test {test}")
     } else if dir.join("package.json").exists() {
-        "npm test --silent".into()
+        p("npm test --silent", "npx jest -t \"{test}\"")
     } else if dir.join("go.mod").exists() {
-        "go test ./...".into()
+        p("go test ./...", "go test ./... -run '^{test}$'")
     } else if dir.join("pyproject.toml").exists()
         || dir.join("setup.py").exists()
         || dir.join("tests").is_dir()
     {
-        "python3 -m unittest discover -q".into()
+        p(
+            "python3 -m unittest discover -q",
+            "python3 -m unittest discover -q -k {test}",
+        )
     } else {
-        String::new()
+        p("", "")
     }
 }
 
@@ -381,16 +454,31 @@ fn render_record(r: &Value) {
     if !s(r, "behavior").is_empty() {
         println!("behavior {}", s(r, "behavior"));
     }
-    for (label, key) in [
-        ("must", "acceptance"),
-        ("keep", "constraints"),
-        ("tests", "tests"),
-    ] {
-        if let Some(a) = r.get(key).and_then(|a| a.as_array()) {
-            for x in a {
-                println!("{label:<8} {}", x.as_str().unwrap_or(""));
+    for q in r["requirements"].as_array().into_iter().flatten() {
+        let how = match s(q, "kind") {
+            "test" => format!("test {}", s(q, "test")),
+            "command" => format!("`{}`", s(&q["check"], "run")),
+            _ => "judged".to_string(),
+        };
+        let proof = match q.get("proof") {
+            Some(p) if p.is_object() => {
+                format!("  [before: {}, after: {}]", s(p, "before"), s(p, "after"))
             }
-        }
+            _ => String::new(),
+        };
+        let label = if s(q, "category") == "constraint" {
+            "keep"
+        } else {
+            "require"
+        };
+        println!(
+            "{label:<8} {} {} ({how}){proof}",
+            s(q, "id"),
+            s(q, "statement")
+        );
+    }
+    for q in r["retires"].as_array().into_iter().flatten() {
+        println!("retires  {} — {}", s(q, "id"), s(q, "reason"));
     }
     if let Some(sym) = r["affected"]["symbols"].as_array() {
         let names: Vec<String> = sym
@@ -429,7 +517,77 @@ fn render_record(r: &Value) {
     }
 }
 
+thread_local! {
+    static REQ_DRAFTS: std::cell::RefCell<Vec<Value>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Pair each --test/--check with the closest preceding --require (by argument position).
+fn requirement_drafts(m: &clap::ArgMatches) -> Vec<Value> {
+    let idx = |id: &str| -> Vec<(usize, String)> {
+        match (m.indices_of(id), m.get_many::<String>(id)) {
+            (Some(i), Some(v)) => i.zip(v.cloned()).collect(),
+            _ => vec![],
+        }
+    };
+    let reqs = idx("require");
+    let mut drafts: Vec<Value> = reqs
+        .iter()
+        .map(|(_, st)| json!({"statement": st}))
+        .collect();
+    for (key, items) in [("test", idx("test")), ("check", idx("check"))] {
+        for (pos, val) in items {
+            let owner = reqs.iter().rposition(|(i, _)| *i < pos);
+            let payload = if key == "test" {
+                json!(val)
+            } else {
+                json!({"run": val, "expect_exit": 0, "timeout_secs": 120})
+            };
+            match owner {
+                Some(o) if drafts[o].get(key).is_none() => drafts[o][key] = payload,
+                _ => {
+                    let mut d = json!({"statement": ""});
+                    d[key] = payload;
+                    drafts.push(d);
+                }
+            }
+        }
+    }
+    drafts
+}
+
+fn render_check(v: &Value) {
+    for r in v["results"].as_array().into_iter().flatten() {
+        let mark = match s(r, "status") {
+            "pass" => "✓",
+            "fail" => "✗",
+            "uncertain" => "?",
+            _ => "-",
+        };
+        println!(
+            "{mark} {} \"{}\" — from \"{}\" ({})",
+            s(r, "id"),
+            s(r, "statement"),
+            s(r, "intent_title"),
+            short(s(r, "introduced_by"))
+        );
+        if s(r, "status") == "fail" {
+            for l in s(r, "detail").lines().take(6) {
+                println!("      {l}");
+            }
+        }
+    }
+    let c = &v["counts"];
+    println!(
+        "{} passed, {} failed, {} skipped, {} uncertain",
+        c["pass"], c["fail"], c["skipped"], c["uncertain"]
+    );
+}
+
 fn render_commit(v: &Value) {
+    if let Some(e) = v.get("error").and_then(|e| e.as_str()) {
+        println!("✗ {e}");
+        return;
+    }
     match v["commit"].as_str() {
         Some(c) => println!("[{}] {}", short(c), s(&v["record"], "title")),
         None => println!("(dry run — not committed)"),

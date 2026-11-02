@@ -2,7 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const SCHEMA: &str = "gitent/semantic-change@1";
+pub const SCHEMA: &str = "gitent/semantic-change@2";
+pub const SCHEMA_V1: &str = "gitent/semantic-change@1";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -123,9 +124,17 @@ pub struct SemanticChange {
     #[serde(default)]
     pub changes: Vec<SubChange>,
     pub affected: Affected,
+    /// Checkable statements this change must satisfy (ADR 0008).
     #[serde(default)]
+    pub requirements: Vec<Requirement>,
+    /// Requirements this change deliberately ends.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub retires: Vec<Retirement>,
+    /// `@1` only: read and migrated into `requirements` by [`SemanticChange::migrate`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constraints: Vec<String>,
-    #[serde(default)]
+    /// `@1` only: read and migrated into `requirements`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub acceptance: Vec<String>,
     #[serde(default)]
     pub tests: Vec<String>,
@@ -150,7 +159,169 @@ pub struct IntentDraft {
     pub constraints: Vec<String>,
     pub acceptance: Vec<String>,
     pub dependencies: Vec<String>,
+    pub requirements: Vec<RequirementDraft>,
     pub confidence: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ReqKind {
+    Test,
+    Command,
+    #[default]
+    Judged,
+}
+
+impl ReqKind {
+    pub fn executable(self) -> bool {
+        !matches!(self, ReqKind::Judged)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CheckSpec {
+    pub run: String,
+    #[serde(default)]
+    pub expect_exit: i32,
+    #[serde(default = "default_check_timeout")]
+    pub timeout_secs: u64,
+}
+
+fn default_check_timeout() -> u64 {
+    120
+}
+
+/// Evidence gathered when a requirement was proven (ADR 0008 §4).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct Proof {
+    /// pass | fail | skipped
+    pub before: String,
+    pub after: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub commit: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct Requirement {
+    pub id: String,
+    pub statement: String,
+    /// behavior | constraint
+    #[serde(default = "behavior")]
+    pub category: String,
+    pub kind: ReqKind,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub test: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub check: Option<CheckSpec>,
+    /// auto | author | llm | migrated
+    pub origin: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proof: Option<Proof>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rebound_from: Option<String>,
+}
+
+fn behavior() -> String {
+    "behavior".into()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct Retirement {
+    pub id: String,
+    pub reason: String,
+}
+
+/// Requirement input (author flags, intent drafts, LLM proposals).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(default)]
+pub struct RequirementDraft {
+    pub statement: String,
+    pub category: String,
+    /// test | command | judged (inferred from `test`/`check` when empty)
+    pub kind: String,
+    pub test: String,
+    pub check: Option<CheckSpec>,
+}
+
+impl SemanticChange {
+    /// Upgrade an `@1` record in memory (ADR 0008 consequences).
+    pub fn migrate(mut self) -> SemanticChange {
+        if self.schema == SCHEMA_V1 {
+            let mut n = 0;
+            let mut id = |s: &str| {
+                n += 1;
+                format!(
+                    "req_{}",
+                    &crate::analyze::short_hash(&[&self.intent_id, s, &n.to_string()])
+                )
+            };
+            let mut reqs = vec![];
+            for t in &self.tests {
+                reqs.push(Requirement {
+                    id: id(t),
+                    statement: humanize_test(t),
+                    category: "behavior".into(),
+                    kind: ReqKind::Test,
+                    test: t.clone(),
+                    origin: "migrated".into(),
+                    ..Default::default()
+                });
+            }
+            for a in &self.acceptance {
+                reqs.push(Requirement {
+                    id: id(a),
+                    statement: a.clone(),
+                    category: "behavior".into(),
+                    kind: ReqKind::Judged,
+                    origin: "migrated".into(),
+                    ..Default::default()
+                });
+            }
+            for c in &self.constraints {
+                reqs.push(Requirement {
+                    id: id(c),
+                    statement: c.clone(),
+                    category: "constraint".into(),
+                    kind: ReqKind::Judged,
+                    origin: "migrated".into(),
+                    ..Default::default()
+                });
+            }
+            self.requirements = reqs;
+            self.acceptance.clear();
+            self.constraints.clear();
+            self.schema = SCHEMA.into();
+        }
+        self
+    }
+
+    pub fn statements(&self, category: &str) -> Vec<String> {
+        self.requirements
+            .iter()
+            .filter(|r| r.category == category)
+            .map(|r| r.statement.clone())
+            .collect()
+    }
+}
+
+/// `test_cache_hit` → "cache hit"; `TestCacheHit` → "cache hit".
+pub fn humanize_test(t: &str) -> String {
+    let t = t
+        .strip_prefix("test_")
+        .or_else(|| t.strip_prefix("Test"))
+        .unwrap_or(t);
+    let mut out = String::new();
+    for (i, ch) in t.chars().enumerate() {
+        if ch == '_' {
+            out.push(' ');
+        } else if ch.is_uppercase() && i > 0 {
+            out.push(' ');
+            out.extend(ch.to_lowercase());
+        } else {
+            out.extend(ch.to_lowercase());
+        }
+    }
+    out.trim().to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -194,8 +365,8 @@ pub fn json_schema() -> serde_json::Value {
             "affected": {"type":"object","properties":{
                 "files":{"type":"array","items":{"type":"string"}},
                 "symbols":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"kind":{"type":"string"},"file":{"type":"string"},"verified":{"type":"boolean"}}}}}},
-            "constraints": {"type":"array","items":{"type":"string"}},
-            "acceptance": {"type":"array","items":{"type":"string"}},
+            "requirements": {"type":"array","items":{"$ref":"#/$defs/requirement"}},
+            "retires": {"type":"array","items":{"type":"object","required":["id","reason"],"properties":{"id":{"type":"string"},"reason":{"type":"string"}}}},
             "tests": {"type":"array","items":{"type":"string"},"description":"Test identifiers introduced or modified by the change"},
             "dependencies": {"type":"array","items":{"type":"string"}},
             "realization": {"type":"object","properties":{"commit":{"type":"string"},"parents":{"type":"array","items":{"type":"string"}},"tree":{"type":"string"}}},
@@ -214,6 +385,16 @@ pub fn json_schema() -> serde_json::Value {
         },
         "$defs": {
             "source": {"type":"object","properties":{"commit":{"type":"string"},"intent_id":{"type":"string"}}},
+            "requirement": {"type":"object","required":["id","statement","kind","origin"],"properties":{
+                "id":{"type":"string","pattern":"^req_[0-9a-f]{8}$"},
+                "statement":{"type":"string"},
+                "category":{"enum":["behavior","constraint"]},
+                "kind":{"enum":["test","command","judged"]},
+                "test":{"type":"string"},
+                "check":{"type":"object","properties":{"run":{"type":"string"},"expect_exit":{"type":"integer"},"timeout_secs":{"type":"integer"}}},
+                "origin":{"enum":["auto","author","llm","migrated"]},
+                "proof":{"type":"object","properties":{"before":{"enum":["pass","fail","skipped"]},"after":{"enum":["pass","fail","skipped"]},"commit":{"type":"string"}}},
+                "rebound_from":{"type":"string"}}},
             "validation": {"type":"object","properties":{"passed":{"type":"boolean"},
                 "checks":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"passed":{"type":"boolean"},"detail":{"type":"string"}}}},
                 "warnings":{"type":"array","items":{"type":"string"}}}},
@@ -223,6 +404,7 @@ pub fn json_schema() -> serde_json::Value {
                 "properties":{"title":{"type":"string"},"kind":{"type":"string"},"intent":{"type":"string"},"behavior":{"type":"string"},
                     "changes":{"type":"array"},"symbols":{"type":"array"},"constraints":{"type":"array","items":{"type":"string"}},
                     "acceptance":{"type":"array","items":{"type":"string"}},"dependencies":{"type":"array","items":{"type":"string"}},
+                    "requirements":{"type":"array","items":{"type":"object","properties":{"statement":{"type":"string"},"category":{"type":"string"},"kind":{"type":"string"},"test":{"type":"string"},"check":{"type":"object"}}}},
                     "confidence":{"type":"number"}}}
         }
     })
@@ -243,6 +425,30 @@ mod tests {
         let d: IntentDraft = serde_json::from_str(r#"{"title":"x","intent":"y"}"#).unwrap();
         assert_eq!(d.title, "x");
         assert!(d.symbols.is_empty());
+    }
+
+    #[test]
+    fn migrates_v1_records() {
+        let v1 = serde_json::json!({
+            "schema": SCHEMA_V1, "intent_id": "int_000000000001", "kind": "feature", "title": "t", "intent": "i",
+            "behavior": "b", "affected": {"files": [], "symbols": []}, "constraints": ["keep sig"],
+            "acceptance": ["is cached"], "tests": ["test_cache_hit"], "realization": {"commit": "", "parents": [], "tree": ""},
+            "provenance": {"operation": "commit", "analysis": {"method": "llm"}, "created_at": ""}, "confidence": 0.5
+        });
+        let r: SemanticChange = serde_json::from_value(v1).unwrap();
+        let r = r.migrate();
+        assert_eq!(r.schema, SCHEMA);
+        assert_eq!(r.requirements.len(), 3);
+        assert_eq!(r.requirements[0].kind, ReqKind::Test);
+        assert_eq!(r.requirements[0].statement, "cache hit");
+        assert_eq!(r.requirements[2].category, "constraint");
+        assert!(r.acceptance.is_empty() && r.constraints.is_empty());
+    }
+
+    #[test]
+    fn humanizes_test_names() {
+        assert_eq!(humanize_test("test_cache_hit"), "cache hit");
+        assert_eq!(humanize_test("TestCacheHit"), "cache hit");
     }
 
     #[test]

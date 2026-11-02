@@ -60,6 +60,8 @@ impl Default for ExecutorConfig {
 #[serde(default)]
 pub struct ValidationConfig {
     pub test_command: String,
+    /// Runs one test by name; `{test}` is replaced (e.g. `python3 -m pytest -q -k {test}`).
+    pub test_selector: String,
     pub timeout_secs: u64,
     pub max_attempts: u32,
     /// Run the LLM verifier when a provider is configured.
@@ -72,6 +74,7 @@ impl Default for ValidationConfig {
     fn default() -> Self {
         ValidationConfig {
             test_command: String::new(),
+            test_selector: String::new(),
             timeout_secs: 600,
             max_attempts: 2,
             verifier: true,
@@ -87,6 +90,26 @@ pub struct Config {
     pub llm: LlmConfig,
     pub executor: ExecutorConfig,
     pub validation: ValidationConfig,
+    pub requirements: RequirementsConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct RequirementsConfig {
+    /// warn | require | off
+    pub prove: String,
+    pub check_ledger_on_commit: bool,
+    pub judge_in_operations: bool,
+}
+
+impl Default for RequirementsConfig {
+    fn default() -> Self {
+        RequirementsConfig {
+            prove: "warn".into(),
+            check_ledger_on_commit: false,
+            judge_in_operations: true,
+        }
+    }
 }
 
 impl Config {
@@ -130,6 +153,9 @@ impl Config {
         }
         if let Some(v) = env("GITENT_TEST_COMMAND") {
             self.validation.test_command = v;
+        }
+        if let Some(v) = env("GITENT_TEST_SELECTOR") {
+            self.validation.test_selector = v;
         }
     }
 

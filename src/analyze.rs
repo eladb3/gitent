@@ -25,12 +25,14 @@ Respond with ONE JSON object and nothing else:
   "behavior": "the observable behaviour after the change, precise enough to test (inputs, outputs, edge cases)",
   "changes": [{"summary": "atomic sub-change", "files": ["path"], "symbols": ["name"]}],
   "symbols": [{"name": "identifier", "kind": "function|class|type|variable|module", "file": "path"}],
-  "constraints": ["what must be preserved, e.g. public signatures, error types, performance bounds"],
-  "acceptance": ["behavioural statements that must be true once the intention is realised"],
+  "requirements": [{"statement": "one testable sentence that must hold after the change", "category": "behavior|constraint",
+                    "test": "name of a test function in the diff that checks it, or empty"}],
   "dependencies": ["preconditions in the code base this change relies on"],
   "confidence": 0.0-1.0
 }
-Only mention files and symbols that appear in the diff. Describe behaviour, not line edits."#;
+Only mention files, symbols and tests that appear in the diff. Describe behaviour, not line edits.
+Requirements should be specific and checkable; use "constraint" for things that must stay unchanged.
+Link each requirement to the test in the diff that checks it when there is one."#;
 
 pub fn analyzer_prompt(message: &str, d: &DiffInfo) -> String {
     let files: Vec<String> = d
@@ -137,6 +139,16 @@ fn normalize_draft(mut v: serde_json::Value) -> serde_json::Value {
                 .collect();
             o.insert("symbols".into(), Value::Array(fixed));
         }
+        if let Some(Value::Array(reqs)) = o.get("requirements").cloned() {
+            let fixed: Vec<Value> = reqs
+                .into_iter()
+                .map(|r| match r {
+                    Value::String(st) => serde_json::json!({"statement": st}),
+                    other => other,
+                })
+                .collect();
+            o.insert("requirements".into(), Value::Array(fixed));
+        }
         if let Some(c) = o
             .get("confidence")
             .and_then(|c| c.as_str())
@@ -221,6 +233,17 @@ fn summarize_files(d: &DiffInfo) -> String {
 /// Combine a draft with deterministic facts from the diff into a record.
 /// `realization` and most of `provenance` are filled in by the caller.
 pub fn build_record(a: Analysis, d: &DiffInfo, operation: &str) -> SemanticChange {
+    build_record_with(a, d, operation, &[], &[])
+}
+
+/// Like [`build_record`], with author-supplied requirements and retirements.
+pub fn build_record_with(
+    a: Analysis,
+    d: &DiffInfo,
+    operation: &str,
+    author_reqs: &[RequirementDraft],
+    retires: &[Retirement],
+) -> SemanticChange {
     let Analysis { draft, mut info } = a;
     let files: Vec<String> = d.files.iter().map(|f| f.path.clone()).collect();
     let mut symbols = diff::symbols_from_patch(&d.patch);
@@ -248,7 +271,7 @@ pub fn build_record(a: Analysis, d: &DiffInfo, operation: &str) -> SemanticChang
         });
     }
     let mut changes = vec![];
-    for c in draft.changes {
+    for c in draft.changes.clone() {
         let (known, unknown): (Vec<String>, Vec<String>) =
             c.files.into_iter().partition(|f| files.contains(f));
         for u in unknown {
@@ -272,6 +295,20 @@ pub fn build_record(a: Analysis, d: &DiffInfo, operation: &str) -> SemanticChang
     }
     let kind = ChangeKind::parse_lenient(&draft.kind);
     let intent_id = make_intent_id(&[&draft.title, &draft.intent, &draft.behavior, &d.patch]);
+    let draft_origin = if info.method == "llm" {
+        "llm"
+    } else {
+        "author"
+    };
+    let requirements = crate::requirements::collect(
+        &intent_id,
+        d,
+        &symbols,
+        author_reqs,
+        &draft,
+        draft_origin,
+        &mut info.warnings,
+    );
     SemanticChange {
         schema: SCHEMA.into(),
         intent_id,
@@ -281,8 +318,10 @@ pub fn build_record(a: Analysis, d: &DiffInfo, operation: &str) -> SemanticChang
         behavior: draft.behavior.trim().to_string(),
         changes,
         affected: Affected { files, symbols },
-        constraints: draft.constraints,
-        acceptance: draft.acceptance,
+        requirements,
+        retires: retires.to_vec(),
+        constraints: vec![],
+        acceptance: vec![],
         tests: diff::tests_added_in_patch(&d.patch),
         dependencies: draft.dependencies,
         realization: Realization::default(),
@@ -294,6 +333,13 @@ pub fn build_record(a: Analysis, d: &DiffInfo, operation: &str) -> SemanticChang
         },
         confidence,
     }
+}
+
+/// 8 hex chars of a content hash (deterministic).
+pub fn short_hash(parts: &[&str]) -> String {
+    let buf = parts.join("\u{0}");
+    let oid = git2::Oid::hash_object(git2::ObjectType::Blob, buf.as_bytes()).expect("hash");
+    oid.to_string()[..8].to_string()
 }
 
 pub fn make_intent_id(parts: &[&str]) -> String {

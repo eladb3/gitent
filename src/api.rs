@@ -92,10 +92,45 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
                     staged_only: arg_bool(args, "staged_only"),
                     require_llm: arg_bool(args, "require_llm"),
                     dry_run: arg_bool(args, "dry_run"),
+                    requirements: match args.get("requirements") {
+                        Some(v) if !v.is_null() => serde_json::from_value(v.clone())
+                            .map_err(|e| anyhow!("invalid `requirements`: {e}"))?,
+                        _ => vec![],
+                    },
+                    retires: match args.get("retires") {
+                        Some(v) if !v.is_null() => serde_json::from_value(v.clone())
+                            .map_err(|e| anyhow!("invalid `retires`: {e}"))?,
+                        _ => vec![],
+                    },
+                    check_ledger: arg_bool(args, "check_ledger"),
+                    prove: arg_str(args, "prove"),
+                    allow_failing: args
+                        .get("allow_failing")
+                        .and_then(|v| v.as_array())
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|x| x.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default(),
                 },
             )?;
-            Ok(json!({"commit": r.commit, "record": r.record}))
+            let mut v = json!({"commit": r.commit, "record": r.record});
+            if !r.ledger_results.is_empty() {
+                v["ledger"] = json!(r.ledger_results);
+            }
+            if let Some(why) = r.rejected {
+                v["state"] = json!("failed");
+                v["error"] = json!(format!("commit rejected (nothing was changed):\n{why}"));
+            }
+            Ok(v)
         }
+        "check" => check(
+            &s,
+            arg_str(args, "rev").as_deref(),
+            arg_str(args, "intent").as_deref(),
+            arg_bool(args, "judge"),
+        ),
         "cherry_pick" => {
             let mut revs: Vec<String> = args
                 .get("commits")
@@ -192,6 +227,10 @@ pub fn log_entry(s: &Session, oid: git2::Oid) -> Result<Value> {
         if let Some(val) = &r.provenance.validation {
             v["validated"] = json!(val.passed);
         }
+        v["requirements"] = json!(r.requirements.len());
+        if !r.retires.is_empty() {
+            v["retires"] = json!(r.retires);
+        }
     }
     Ok(v)
 }
@@ -271,6 +310,64 @@ fn annotate(s: &Session, rev: Option<&str>, limit: usize) -> Result<Value> {
     Ok(json!({"annotated": done}))
 }
 
+fn check(s: &Session, rev: Option<&str>, intent: Option<&str>, judge: bool) -> Result<Value> {
+    use crate::requirements::{self, Runner, TempTree};
+    let tip = match rev {
+        Some(r) => s.repo.resolve(r)?,
+        None => match s.repo.head_commit()? {
+            Some(c) => c.id(),
+            None => return Ok(json!({"passed": true, "results": []})),
+        },
+    };
+    let mut live = requirements::ledger(&s.repo, tip)?;
+    if let Some(i) = intent {
+        live.retain(|l| l.intent_id == i);
+    }
+    let _tmp;
+    let dir = match rev {
+        Some(_) => {
+            _tmp = TempTree::new(&s.repo, tip, "check")?;
+            _tmp.path.clone()
+        }
+        None => s.repo.workdir.clone(),
+    };
+    let mut results = Runner::new(&dir, &s.cfg).run_all(&live);
+    if judge {
+        if let Some(p) = s.provider() {
+            for (r, l) in results.iter_mut().zip(live.iter()) {
+                if l.req.kind == crate::model::ReqKind::Judged {
+                    let files = store::get(&s.repo, git2::Oid::from_str(&l.commit)?)
+                        .map(|rec| rec.affected.files)
+                        .unwrap_or_default();
+                    let (st, detail) = requirements::judge(
+                        p,
+                        &l.req.statement,
+                        &dir,
+                        &files,
+                        s.cfg.validation.verifier_threshold,
+                    );
+                    r.status = st;
+                    r.detail = detail;
+                }
+            }
+        }
+    }
+    let failed = results.iter().filter(|r| r.status == "fail").count();
+    Ok(json!({
+        "rev": tip.to_string(),
+        "working_tree": rev.is_none(),
+        "passed": failed == 0,
+        "state": if failed == 0 { "succeeded" } else { "failed" },
+        "counts": {
+            "pass": results.iter().filter(|r| r.status == "pass").count(),
+            "fail": failed,
+            "skipped": results.iter().filter(|r| r.status == "skipped").count(),
+            "uncertain": results.iter().filter(|r| r.status == "uncertain").count(),
+        },
+        "results": results,
+    }))
+}
+
 /// Tool definitions (MCP `tools/list`, HTTP `GET /v1/tools`).
 pub fn tool_defs() -> Vec<Value> {
     let exec_props = json!({
@@ -294,7 +391,12 @@ pub fn tool_defs() -> Vec<Value> {
         json!({"name": "gitent_diff", "description": "Without args: analyze uncommitted changes into an intention (no commit). With from/to: list intentions between revisions.", "inputSchema": obj(json!({"from": {"type": "string"}, "to": {"type": "string"}}), &[])}),
         json!({"name": "gitent_commit", "description": "Commit all changes (or staged only) with a semantic record. Pass `intent` (see gitent_schema $defs.intent_draft) when you know why you made the change; Gitent checks it against the diff.", "inputSchema": obj(json!({
             "message": {"type": "string"}, "intent": {"type": "object"}, "staged_only": {"type": "boolean"},
-            "require_llm": {"type": "boolean"}, "dry_run": {"type": "boolean"}}), &[])}),
+            "require_llm": {"type": "boolean"}, "dry_run": {"type": "boolean"},
+            "requirements": {"type": "array", "description": "Requirements this change must satisfy: [{statement, category?: behavior|constraint, test?: test name, check?: {run, expect_exit}}]. Every test you add becomes one automatically.", "items": {"type": "object"}},
+            "retires": {"type": "array", "description": "Live requirements this change deliberately ends: [{id, reason}]", "items": {"type": "object"}},
+            "check_ledger": {"type": "boolean", "description": "Reject the commit if it breaks any live requirement"},
+            "prove": {"type": "string", "enum": ["warn", "require", "off"]}}), &[])}),
+        json!({"name": "gitent_check", "description": "Run all live requirements (the ledger) on the working tree or a revision; names the intention behind any failure.", "inputSchema": obj(json!({"rev": {"type": "string"}, "intent": {"type": "string"}, "judge": {"type": "boolean"}}), &[])}),
         json!({"name": "gitent_cherry_pick", "description": "Re-implement a commit's intention on the current branch. Tries git first, validates, falls back to an agent. With executor=host returns state=awaiting_host with a worktree and brief: edit there, then call gitent_continue.", "inputSchema": with(json!({"commit": {"type": "string"}, "commits": {"type": "array", "items": {"type": "string"}}}), &[])}),
         json!({"name": "gitent_merge", "description": "Merge a branch by composing intentions from both sides; checks compatibility, validates the result.", "inputSchema": with(json!({"branch": {"type": "string"}, "force": {"type": "boolean", "description": "Proceed even if intentions look incompatible"}}), &["branch"])}),
         json!({"name": "gitent_rebase", "description": "Replay the current branch's intentions onto another base.", "inputSchema": with(json!({"onto": {"type": "string"}}), &["onto"])}),
