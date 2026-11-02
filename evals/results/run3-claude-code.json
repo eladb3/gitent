@@ -1,0 +1,390 @@
+{
+  "meta": {
+    "started": "2026-11-02T17-49-04Z",
+    "agent": "claude-code",
+    "llm": "claude -p",
+    "arms": [
+      "git",
+      "baseline",
+      "gitent"
+    ],
+    "git": "git version 2.43.0",
+    "agent_version": "2.1.316 (Claude Code)"
+  },
+  "results": [
+    {
+      "id": "E0-parity-clean-pick",
+      "kind": "parity",
+      "description": "Control: the target only changed unrelated files. Git's cherry-pick is correct; Gitent must match it without any agent call.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "[main 7e915f3] feat: cache user lookups\n Author: Claude <noreply@anthropic.com>\n Date: Mon Nov 2 17:49:04 2026 +0000\n 2 files changed, 17 insertions(+), 1 deletion(-)\n create mode 100644 tests/test_cache.py\n",
+          "seconds": 0.1,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I applied commit 7713bce352 to `main`. It went on cleanly with no adaptation needed, and all 3 tests pass with `python3 -m unittest discover -q`.\n\n- **`app/users.py`:** `get_user` now keeps a module-level `_CACHE`, so each user is loaded from the database at most once per process. `display_name` uses the cache too, since it goes through `get_user`.\n- **`tests/test_cache.py`:** new file (not yet tracked by git). It checks that calling `get_user(42)` twice hits the database only once.\n\nThe cache is never cleared, so the new test only passes if user 42 hasn't been loaded earlier in the same test run. Nothing else loads that user today, but a future test that does would make it fail.\n\nNothing is committed, as you asked.\n\nRESULT: SUCCESS\n",
+          "seconds": 17.6,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git"
+          ],
+          "agent_calls": 0,
+          "warnings": [],
+          "detail": "",
+          "seconds": 21.7,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E1-pick-after-rename-move",
+      "kind": "recovery",
+      "description": "Cherry-pick caching onto a branch where get_user was renamed to fetch_user and moved to app/accounts.py (git: modify/delete conflict).",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "CONFLICT (modify/delete): app/users.py deleted in HEAD and modified in 6927b0e (feat: cache user lookups).  Version 6927b0e (feat: cache user lookups) of app/users.py left in tree.\nerror: could not apply 6927b0e... feat: cache user lookups\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_second_lookup_cached (tests.test_hidden.Hidden.test_second_lookup_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E1-pick-after-rename-move/git/score/tests/test_hidden.py\", line 11, in test_second_lookup_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 4 tests in 0.002s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I applied the caching change. Since that commit was written, `get_user` in `app/users.py` was renamed to `fetch_user` and moved to `app/accounts.py`, so I put the cache there instead.\n\n- **`app/accounts.py`:** I added a module-level `_CACHE`, so `fetch_user` now loads each user from the database at most once per process. The default `active=True` is still set, and it's applied before the record goes into the cache, so cached records include it too.\n- **`tests/test_cache.py`:** this is the commit's test, changed to import `fetch_user` from `app.accounts`.\n\nAll 4 tests pass, including the 3 that were already there. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 32.0,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 50.6,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E2-pick-after-signature-change",
+      "kind": "recovery",
+      "description": "Cherry-pick retry-on-5xx onto a branch where the get_json(url) function became a Client class with timeout/headers (git: content conflict).",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "Auto-merging app/http.py\nCONFLICT (content): Merge conflict in app/http.py\nerror: could not apply 4303d48... feat: retry GET requests on transient 5xx errors\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "--------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E2-pick-after-signature-change/git/score/tests/test_hidden.py\", line 13, in test_recovers_after_two_5xx\n    body = Client(\"http://h\", timeout=3).get_json(\"/p\", headers={\"a\": \"b\"})\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E2-pick-after-signature-change/git/score/app/http.py\", line 14, in get_json\n    raise IOError(f\"HTTP {resp['status']}\")\nOSError: HTTP 503\n\n======================================================================\nFAIL: test_three_attempts_then_error (tests.test_hidden.Hidden.test_three_attempts_then_error)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E2-pick-after-signature-change/git/score/tests/test_hidden.py\", line 22, in test_three_attempts_then_error\n    self.assertEqual(transport.CALLS[\"n\"] - b, 3)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 3\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (failures=1, errors=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I applied the retry change from 40fc0e0b8a, adapted to the current code, and all 4 tests pass.\n\nThe original commit added `retries` to a module-level `get_json(url)`. That function no longer exists: commit `fe1add4` replaced it with a `Client` class. So I moved the retry logic into `Client`:\n\n- **`app/http.py`**: `Client.__init__` now takes `retries=3`, and `Client.get_json(path, headers=None)` makes up to that many attempts in total. It retries only on 5xx responses and stops on anything below 500, so 4xx errors are not retried. Each attempt still uses the client's base URL, timeout and headers.\n- **`tests/test_retry.py`**: this is the commit's test file, rewritten to use `Client(\"http://x\").get_json(\"/a\")`. I added three checks:\n  - giving up makes exactly 3 calls;\n  - a 404 is tried only once;\n  - a `tearDown` puts the fake transport's error injection back, so these tests can't affect others.\n\nOne small difference from the original: I used `max(1, self.retries)`, so `retries=0` still makes one request. In the original, `retries=0` would have crashed with a `NameError`.\n\nRESULT: SUCCESS\n",
+          "seconds": 36.7,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [
+            "non_discriminating:req_82f57a91 passes on the target even without the change"
+          ],
+          "detail": "",
+          "seconds": 42.9,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E3-pick-clean-but-wrong",
+      "kind": "recovery",
+      "description": "Cherry-pick a '10% off orders over $100' discount onto a branch that switched all money to integer cents. Git applies cleanly but the threshold is now wrong.",
+      "arms": {
+        "git": {
+          "reported_success": true,
+          "detail": "Auto-merging app/pricing.py\n[main 75cbe67] feat: 10% discount on orders whose subtotal exceeds $100\n Author: Claude <noreply@anthropic.com>\n Date: Mon Nov 2 17:49:46 2026 +0000\n 2 files changed, 11 insertions(+), 1 deletion(-)\n create mode 100644 tests/test_discount.py\n",
+          "seconds": 0.1,
+          "visible_pass": false,
+          "hidden_pass": false,
+          "hidden_output": "============================\nFAIL: test_no_discount_at_exactly_100 (tests.test_hidden.Hidden.test_no_discount_at_exactly_100)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E3-pick-clean-but-wrong/git/score/tests/test_hidden.py\", line 13, in test_no_discount_at_exactly_100\n    self.assertEqual(total([(100, 1)]), 10500)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 9500.0 != 10500\n\n======================================================================\nFAIL: test_no_discount_small_order (tests.test_hidden.Hidden.test_no_discount_small_order)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E3-pick-clean-but-wrong/git/score/tests/test_hidden.py\", line 10, in test_no_discount_small_order\n    self.assertEqual(total([(1.5, 2)]), 800)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 770.0 != 800\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (failures=2)\n",
+          "false_success": true
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I added the 10% discount for orders over $100, and all 3 tests pass.\n\nThe original commit couldn't be copied as-is. Since it was written, commit `dda3cdc` changed all money amounts to whole cents, so the commit's `sub > 100` check would have applied the discount to any order over $1.\n\n- **`app/pricing.py`:** `total()` now gives 10% off when the subtotal is over 10000 cents ($100). The discounted amount is rounded to whole cents, with halves rounding up, so totals stay whole numbers. Shipping is not discounted.\n- **`tests/test_discount.py`:** I changed the expected total to cents: `total([(60, 2)]) == 11300` ($120 \u2212 10% + $5 shipping). I also added a test that an order of exactly $100 gets no discount (total 10500).\n\nThe existing pricing test still passes.\n\nRESULT: SUCCESS\n",
+          "seconds": 15.7,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 42.1,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E4-merge-both-intentions",
+      "kind": "recovery",
+      "description": "Merge a branch adding an optional punctuation argument into a branch that title-cases and trims names; both edit the same line.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "Auto-merging app/greet.py\nCONFLICT (content): Merge conflict in app/greet.py\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "==============================\nERROR: test_both (tests.test_hidden.Hidden.test_both)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E4-merge-both-intentions/git/score/tests/test_hidden.py\", line 7, in test_both\n    self.assertEqual(greet(\" ada lovelace \", \"!\"), \"Hello, Ada Lovelace!\")\n                     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: greet() takes 1 positional argument but 2 were given\n\n======================================================================\nERROR: test_punct_only (tests.test_hidden.Hidden.test_punct_only)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E4-merge-both-intentions/git/score/tests/test_hidden.py\", line 13, in test_punct_only\n    self.assertEqual(greet(\"Bob\", \"?\"), \"Hello, Bob?\")\n                     ~~~~~^^^^^^^^^^^^\nTypeError: greet() takes 1 positional argument but 2 were given\n\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nFAILED (errors=2)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I brought both branches' changes together by editing the files directly, without running `git merge` or committing. All 3 tests pass.\n\n- **`app/greet.py`**: `greet(name, punct=\"\")` now returns `\"Hello, \" + name.strip().title() + punct`. That keeps main's trimming and title-casing and adds `punct`'s optional punctuation argument.\n- **`tests/test_punct.py`**: copied unchanged from `punct`.\n\nBecause no merge was recorded, git still sees this as ordinary uncommitted edits on `main` (one modified file, one new file), not as a merge of `punct`.\n\nRESULT: SUCCESS\n",
+          "seconds": 16.8,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 46.2,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E5-revert-after-refactor",
+      "kind": "recovery",
+      "description": "Revert the caching feature after later commits moved the code and built fetch_many() on top of it (git: revert conflicts).",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "Version parent of f6439f9 (feat: cache user lookups) of app/users.py left in tree.\nCONFLICT (modify/delete): tests/test_cache.py deleted in parent of f6439f9 (feat: cache user lookups) and modified in HEAD.  Version HEAD of tests/test_cache.py left in tree.\nerror: could not revert f6439f9... feat: cache user lookups\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git revert --continue\".\nhint: You can instead skip this commit with \"git revert --skip\".\nhint: To abort and get back to the state before \"git revert\",\nhint: run \"git revert --abort\".\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_no_longer_cached (tests.test_hidden.Hidden.test_no_longer_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E5-revert-after-refactor/git/score/tests/test_hidden.py\", line 11, in test_no_longer_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 2)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I reverted the cache from fcff421. The code it changed has since been renamed and moved: `get_user` is now `fetch_user` in `app/accounts.py`, so I applied the revert there.\n\n- **`app/accounts.py`:** I removed `_CACHE` and the cache logic, so `fetch_user` calls `db.load_user` on every lookup again. The later change that defaults `active` to `True` is kept. `display_name` and `fetch_many` are unchanged.\n- **`tests/test_cache.py`:** deleted. The commit added this file, and it only tested the cache.\n\nThe 4 remaining tests pass. Nothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 20.4,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 45.1,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E6-rebase-stack-onto-refactor",
+      "kind": "recovery",
+      "description": "Rebase a 3-commit feature stack (cache, TTL expiry, hit/miss stats) onto a main that renamed get_user to fetch_user and moved it to app/accounts.py.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "CONFLICT (modify/delete): app/users.py deleted in HEAD and modified in 6d803cc (feat: cache user lookups).  Version 6d803cc (feat: cache user lookups) of app/users.py left in tree.\nRebasing (1/3)\nerror: could not apply 6d803cc... feat: cache user lookups\nhint: Resolve all conflicts manually, mark them as resolved with\nhint: \"git add/rm <conflicted_files>\", then run \"git rebase --continue\".\nhint: You can instead skip this commit: run \"git rebase --skip\".\nhint: To abort and get back to the state before \"git rebase\", run \"git rebase --abort\".\nCould not apply 6d803cc... feat: cache user lookups\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nERROR: test_hidden (unittest.loader._FailedTest.test_hidden)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_hidden\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.13/unittest/loader.py\", line 141, in loadTestsFromName\n    module = __import__(module_name)\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E6-rebase-stack-onto-refactor/git/score/tests/test_hidden.py\", line 3, in <module>\n    from app.accounts import fetch_user, display_name, cache_stats\nModuleNotFoundError: No module named 'app.accounts'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've applied all three commits on top of `main`, and all 6 tests pass.\n\nThe commits were written against `app/users.py` and `get_user(uid)`. Since then, `main` renamed the function to `fetch_user(user_id)` and moved it into `app/accounts.py`, so I put the changes there instead:\n\n- **Caching, 60-second expiry and hit/miss counts:** these now live in `fetch_user` in `app/accounts.py`, and `cache_stats()` is added there too. The cache, the 60-second limit and the counters are all in the same file.\n- **Kept from `main`:** `fetch_user` still sets `active` to `True` by default. That happens before a record is cached, so cached copies have it as well.\n- **Tests:** I added `tests/test_cache.py`, `tests/test_ttl.py` and `tests/test_stats.py`. They import `fetch_user` and `cache_stats` from `app.accounts` instead of `get_user` from `app.users`.\n\nI didn't recreate `app/users.py` or keep the old `get_user` name, so any code outside this repo that still imports them would break. Nothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 32.2,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\"",
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\"",
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 3,
+          "warnings": [],
+          "detail": "",
+          "seconds": 165.6,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E7-pick-into-target-invariant",
+      "kind": "recovery",
+      "description": "Cherry-pick caching onto a branch that (besides renaming) promises callers independent copies of user records. A naive cache returns the same dict and silently breaks that promise.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "CONFLICT (modify/delete): app/users.py deleted in HEAD and modified in 9e5c444 (feat: cache user lookups).  Version 9e5c444 (feat: cache user lookups) of app/users.py left in tree.\nerror: could not apply 9e5c444... feat: cache user lookups\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "======================================================================\nFAIL: test_cached (tests.test_hidden.Hidden.test_cached)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E7-pick-into-target-invariant/git/score/tests/test_hidden.py\", line 11, in test_cached\n    self.assertEqual(db.CALLS[\"n\"] - b, 1)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "I applied the caching change, adapted to how the branch looks now. All 6 tests pass, and nothing was committed.\n\nThe branch had moved on since that commit was written: `get_user` in `app/users.py` is now `fetch_user` in `app/accounts.py`. A later commit also promised that `fetch_user` returns independent copies, so callers can change what they get back without affecting anyone else. Applying the original diff as written would have broken that promise, because every caller would have received the same cached object.\n\n- **`app/accounts.py`:** `fetch_user` now loads each user from the database at most once per process and keeps the result in `_CACHE`. Each call returns a fresh copy of the cached record (with the `active` default filled in), so the cache itself never gets changed by a caller.\n- **`tests/test_cache.py`:** This is the original commit's `test_cache_hit`, switched to `fetch_user`. I added `test_cached_copies_are_independent`, which checks that changing one returned record doesn't affect what the next call returns.\n\nThe copy is shallow. That's fine for today's flat user records, but nested fields added later would be shared between callers.\n\nRESULT: SUCCESS\n",
+          "seconds": 19.9,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 52.3,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    },
+    {
+      "id": "E8-pick-multi-site-intent",
+      "kind": "recovery",
+      "description": "Cherry-pick 'audit every state-changing order operation' onto a branch that renamed cancel_order to void_order, moved refunds to app/refunds.py, and added ship_order.",
+      "arms": {
+        "git": {
+          "reported_success": false,
+          "detail": "Auto-merging app/orders.py\nCONFLICT (content): Merge conflict in app/orders.py\nerror: could not apply 1d5ee9a... feat: audit every state-changing order operation\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\n",
+          "seconds": 0.0,
+          "visible_pass": true,
+          "hidden_pass": false,
+          "hidden_output": "te_void_refund_audited)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E8-pick-multi-site-intent/git/score/tests/test_hidden.py\", line 17, in test_create_void_refund_audited\n    self.assertEqual(len(audit.EVENTS), 4)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 0 != 4\n\n======================================================================\nFAIL: test_ship_is_audited_too (tests.test_hidden.Hidden.test_ship_is_audited_too)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-02T17-49-04Z-claude-code/E8-pick-multi-site-intent/git/score/tests/test_hidden.py\", line 24, in test_ship_is_audited_too\n    self.assertEqual([i for _, i in audit.EVENTS], [3, 3])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [] != [3, 3]\n\nSecond list contains 2 additional elements.\nFirst extra element 0:\n3\n\n- []\n+ [3, 3]\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=2)\n",
+          "false_success": false
+        },
+        "baseline": {
+          "reported_success": true,
+          "detail": "The audit change is applied: every operation that changes an order's state now records an audit event, including the three that moved or appeared since the original commit. Both tests pass (`python3 -m unittest discover -q`), and nothing was committed.\n\nThe code changed after that commit was written: `cancel_order` was renamed `void_order`, refunds moved to `app/refunds.py`, and `ship_order` was added. So I applied the change like this:\n\n- **`app/orders.py`**: `create_order` records `\"created\"` and `void_order` records `\"cancelled\"`, both as in the original.\n- **`ship_order`**: the original commit didn't cover it because it didn't exist yet. It changes state, so I added `audit.record(\"shipped\", order_id)` to meet the rule that every state-changing operation is audited. `\"shipped\"` is my choice of event name.\n- **`app/refunds.py`**: `refund_order` now records `\"refunded\"`. Its `reason` parameter works as before.\n- **`tests/test_audit.py`** (new): it imports the new names and locations, and I added a create-then-ship case so the expected events end with `(\"created\", 3), (\"shipped\", 3)`.\n\nRESULT: SUCCESS\n",
+          "seconds": 38.4,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        },
+        "gitent": {
+          "reported_success": true,
+          "state": "succeeded",
+          "attempts": [
+            "git",
+            "command:claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+          ],
+          "agent_calls": 1,
+          "warnings": [],
+          "detail": "",
+          "seconds": 54.8,
+          "visible_pass": true,
+          "hidden_pass": true,
+          "hidden_output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n",
+          "false_success": false
+        }
+      }
+    }
+  ]
+}

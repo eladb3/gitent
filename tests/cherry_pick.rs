@@ -515,3 +515,54 @@ fn already_realised_change_is_skipped_not_failed() {
     let (code, _) = pick(&r, &docs, "cat > /dev/null", &["--max-attempts", "1"]);
     assert_eq!(code, 2);
 }
+
+#[test]
+fn stale_port_resurrecting_deleted_module_is_rejected() {
+    // ADR 0010: restoring the original files verbatim makes the original tests pass
+    // against a resurrected app/users.py; only the preservation guard catches it.
+    let r = TestRepo::users();
+    let feature = r.add_cache_feature();
+    r.rename_on_current();
+    let agent = r.script("stale.sh", &format!("cat > /dev/null; git checkout {feature} -- app/users.py tests/test_cache.py && git reset -q"));
+    let (code, v) = pick(&r, &feature, &agent, &["--max-attempts", "1", "--no-git"]);
+    assert_eq!(code, 2, "{v}");
+    let checks = v["steps"][0]["attempts"][0]["validation"]["checks"].to_string();
+    assert!(
+        checks.contains("target_preserved")
+            && checks.contains("recreates path")
+            && checks.contains("app/users.py"),
+        "{checks}"
+    );
+}
+
+#[test]
+fn dropping_target_definitions_is_rejected() {
+    let r = TestRepo::users();
+    let feature = r.add_cache_feature();
+    r.rename_on_current();
+    // Ports the cache correctly but deletes display_name, which the target still has
+    // (and whose test the agent also "adjusts" away).
+    let accounts = ACCOUNTS_CACHED_PY
+        .split("\n\ndef display_name")
+        .next()
+        .unwrap()
+        .to_string()
+        + "\n";
+    let tests = "import unittest\nfrom app.accounts import fetch_user\n\n\nclass UsersTest(unittest.TestCase):\n    def test_get_user(self):\n        self.assertEqual(fetch_user(1)[\"name\"], \"user1\")\n\n    def test_display_name(self):\n        self.assertTrue(True)\n\n    def test_active_default(self):\n        self.assertTrue(fetch_user(3)[\"active\"])\n";
+    let agent = r.script(
+        "dropper.sh",
+        &format!(
+            "cat > /dev/null\n{}{}{}",
+            heredoc("app/accounts.py", &accounts),
+            heredoc("tests/test_users.py", tests),
+            heredoc("tests/test_cache.py", TEST_CACHE_ACCOUNTS_PY)
+        ),
+    );
+    let (code, v) = pick(&r, &feature, &agent, &["--max-attempts", "1"]);
+    assert_eq!(code, 2, "{v}");
+    let checks = v["steps"][0]["attempts"][1]["validation"]["checks"].to_string();
+    assert!(
+        checks.contains("removes definition") && checks.contains("display_name"),
+        "{checks}"
+    );
+}

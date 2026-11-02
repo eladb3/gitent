@@ -13,3 +13,4 @@ Short, numbered, immutable once accepted (supersede instead of editing).
 | [0007](0007-testing-strategy.md) | Integration tests use real processes as stand-in agents; real-LLM evals are separate |
 | [0008](0008-requirements.md) | Requirements are first-class, checkable parts of a commit; ledger; proof at commit time (amends 0006) |
 | [0009](0009-worktrees-outside-git-dir.md) | Operation worktrees live outside `.git/` (found by the first live eval) |
+| [0010](0010-target-preservation-guards.md) | Results must not resurrect deleted paths or drop target definitions (found by fault injection) |

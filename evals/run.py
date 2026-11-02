@@ -34,7 +34,7 @@ from cases import CASES  # noqa: E402
 
 CLAUDE = ('claude -p --permission-mode acceptEdits --allowedTools '
           '"Bash(python3:*)" "Bash(git diff:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git show:*)" "Bash(ls:*)"')
-AGENTS = {"claude-code": CLAUDE}
+AGENTS = {"claude-code": CLAUDE, "claude-code-haiku": CLAUDE.replace("claude -p", "claude -p --model claude-haiku-5-5", 1)}
 CLEAN_ENV = {k: v for k, v in os.environ.items() if not k.startswith("GITENT_")}
 CLEAN_ENV.update(GIT_AUTHOR_NAME="Eval", GIT_AUTHOR_EMAIL="eval@example.com",
                  GIT_COMMITTER_NAME="Eval", GIT_COMMITTER_EMAIL="eval@example.com",
@@ -187,6 +187,28 @@ def reference_agent(case, out):
     return f"python3 {path}"
 
 
+def stale_agent(case, repo):
+    """Fault injection: restore the ORIGINAL change's files verbatim (resurrecting
+    old paths/names), then claim success. A classic mistake when code diverged."""
+    op, rev = case["operation"]["op"], case["operation"]["rev"]
+    git = lambda *a: sh(["git", *a], repo).stdout.strip()
+    if op == "revert":
+        sha = git("rev-parse", rev)
+        src, files = f"{sha}^", git("show", "--name-only", "--format=", sha).split()
+    elif op == "merge":
+        base = git("merge-base", "HEAD", rev)
+        src, files = git("rev-parse", rev), git("diff", "--name-only", base, rev).split()
+    elif op == "rebase":
+        br = case["operation"]["branch"]
+        base = git("merge-base", br, rev)
+        src, files = git("rev-parse", br), git("diff", "--name-only", base, br).split()
+    else:
+        sha = git("rev-parse", rev)
+        src, files = sha, git("show", "--name-only", "--format=", sha).split()
+    keep = [f for f in files if sh(["git", "cat-file", "-e", f"{src}:{f}"], repo).returncode == 0]
+    return f"cat > /dev/null; git checkout {src} -- {' '.join(keep)} && git reset -q; echo 'RESULT: SUCCESS'"
+
+
 def run_case(case, args, out):
     res = {"id": case["id"], "kind": case["kind"], "description": case["description"], "arms": {}}
     agent_cmd = reference_agent(case, out) if args.agent == "offline" else AGENTS.get(args.agent, args.agent)
@@ -194,6 +216,8 @@ def run_case(case, args, out):
         work = out / case["id"] / arm
         repo = work / "repo"
         build(case, repo, args.gitent)
+        if args.agent == "stale":
+            agent_cmd = stale_agent(case, repo)
         t0 = time.time()
         try:
             if arm == "git":
@@ -251,12 +275,13 @@ def main():
     args = ap.parse_args()
     args.arms = args.arms.split(",")
     started = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-    out = Path(args.out or (HERE / "runs" / f"{started}-{args.agent if args.agent in AGENTS or args.agent == 'offline' else 'custom'}"))
+    out = Path(args.out or (HERE / "runs" / f"{started}-{args.agent if args.agent in AGENTS or args.agent in ('offline', 'stale') else 'custom'}"))
     out.mkdir(parents=True, exist_ok=True)
     cases = [c for c in CASES if args.filter in c["id"]]
     meta = {"started": started, "agent": args.agent, "llm": args.llm, "arms": args.arms,
             "git": sh(["git", "--version"], ROOT).stdout.strip(),
-            "agent_version": sh("claude --version", ROOT).stdout.strip() if args.agent == "claude-code" else ""}
+            "agent_version": sh("claude --version", ROOT).stdout.strip() if args.agent.startswith("claude-code") else "",
+            "agent_command": AGENTS.get(args.agent, args.agent)}
     print(f"gitent eval: {len(cases)} case(s), arms={args.arms}, agent={args.agent}, out={out}", flush=True)
     with cf.ThreadPoolExecutor(max_workers=args.jobs) as ex:
         results = list(ex.map(lambda c: run_case(c, args, out), cases))

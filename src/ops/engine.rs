@@ -613,6 +613,16 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
         );
         report.passed = report.checks.iter().all(|c| c.passed);
     }
+    // The target's own structure must survive (ADR 0010).
+    match crate::preserve::check(&s.repo, &step.kind, tip, snap) {
+        Ok(c) => {
+            report.checks.push(c);
+            report.passed = report.checks.iter().all(|c| c.passed);
+        }
+        Err(e) => report
+            .warnings
+            .push(format!("target_preserved check skipped: {e:#}")),
+    }
     // Revert: the removed requirements should no longer hold.
     let retiring: Vec<_> = step
         .retiring
