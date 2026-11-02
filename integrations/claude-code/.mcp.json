@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "gitent": { "command": "gitent", "args": ["mcp"] }
+  }
+}

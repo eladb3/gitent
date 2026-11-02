@@ -252,7 +252,7 @@ impl SemanticChange {
                 n += 1;
                 format!(
                     "req_{}",
-                    &crate::analyze::short_hash(&[&self.intent_id, s, &n.to_string()])
+                    crate::analyze::short_hash(&[&self.intent_id, s, &n.to_string()])
                 )
             };
             let mut reqs = vec![];

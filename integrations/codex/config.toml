@@ -1,0 +1,4 @@
+# Append to ~/.codex/config.toml
+[mcp_servers.gitent]
+command = "gitent"
+args = ["mcp"]

@@ -63,8 +63,21 @@ pub fn resume(s: &Session, id: Option<&str>) -> Result<Operation> {
     Ok(op)
 }
 
+/// Abort an open operation, or clean up a failed one whose worktree was kept.
 pub fn abort(s: &Session, id: Option<&str>) -> Result<Operation> {
-    let mut op = s.pick_open_op(id)?;
+    let mut op = match id {
+        Some(i) => s.load_op(i)?,
+        None => s
+            .list_ops()?
+            .into_iter()
+            .rfind(|o| {
+                o.state.is_open() || (o.state == OpState::Failed && Path::new(&o.worktree).exists())
+            })
+            .ok_or_else(|| anyhow::anyhow!("no operation to abort"))?,
+    };
+    if op.state == OpState::Succeeded {
+        anyhow::bail!("operation {} already succeeded", op.id);
+    }
     s.repo.remove_worktree(Path::new(&op.worktree))?;
     op.state = OpState::Aborted;
     op.error = Some("aborted by user".into());
@@ -312,7 +325,10 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                          Fix it (or redo it) so the intention is realised correctly.\n\nValidation failures:\n{feedback}"
                     );
                 }
-                MergeOutcome::Conflicts(paths) => {
+                MergeOutcome::Conflicts(paths, partial) => {
+                    if let Some(t) = partial {
+                        Repo::reset_worktree(&wt, tip, Some(t))?;
+                    }
                     op.steps[i].attempts.push(Attempt {
                         n: 0,
                         by: "git".into(),
@@ -328,8 +344,9 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                         },
                     });
                     starting_point = format!(
-                        "A plain git {} CONFLICTS in: {}. The worktree is at the current tip of the branch (no conflict markers). \
-                         Re-implement the intention by understanding the current code.",
+                        "A plain git {} CONFLICTS in: {}. All NON-conflicting parts of the change are already applied in the worktree; \
+                         the conflicting files are exactly as in the current code (no conflict markers). \
+                         Re-implement the intention there by understanding the current code.",
                         op.kind,
                         paths.join(", ")
                     );
