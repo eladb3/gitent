@@ -435,7 +435,7 @@ pub struct TempTree<'r> {
 impl<'r> TempTree<'r> {
     pub fn new(repo: &'r Repo, commit: Oid, label: &str) -> Result<Self> {
         let path = repo
-            .gitent_dir()
+            .worktree_root("")
             .join("tmp")
             .join(format!("{label}-{}", crate::ops::new_op_id()));
         repo.add_worktree(&path, commit)?;
