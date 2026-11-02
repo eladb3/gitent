@@ -1,0 +1,28 @@
+[package]
+name = "gitent"
+version = "0.1.0"
+edition = "2021"
+description = "Agent-native version control: semantic intentions on top of Git"
+license = "MIT OR Apache-2.0"
+rust-version = "1.80"
+
+[[bin]]
+name = "gitent"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4", features = ["derive", "env"] }
+git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+tiny_http = "0.12"
+toml = "0.8"
+ureq = { version = "2.12", features = ["json", "native-certs"] }
+wait-timeout = "0.2"
+
+[dev-dependencies]
+tempfile = "3"

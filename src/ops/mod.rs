@@ -1,0 +1,282 @@
+//! Operations and the shared step engine (ADR 0003).
+
+pub mod brief;
+pub mod commit;
+pub mod engine;
+pub mod plan;
+
+use crate::config::Config;
+use crate::llm::Provider;
+use crate::model::ValidationReport;
+use crate::repo::Repo;
+use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+/// An opened repository with its configuration and LLM provider.
+pub struct Session {
+    pub repo: Repo,
+    pub cfg: Config,
+    pub provider: Option<Arc<dyn Provider>>,
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct Overrides {
+    pub executor: Option<String>,
+    pub executor_command: Option<String>,
+    pub provider: Option<String>,
+    pub test_command: Option<String>,
+    pub max_attempts: Option<u32>,
+}
+
+impl Session {
+    pub fn open(path: &Path, ov: &Overrides) -> Result<Session> {
+        let repo = Repo::discover(path)?;
+        let mut cfg = Config::load(&repo.workdir, &repo.git_dir)?;
+        if let Some(e) = &ov.executor {
+            cfg.executor.kind = e.clone();
+        }
+        if let Some(c) = &ov.executor_command {
+            cfg.executor.command = c.clone();
+        }
+        if let Some(p) = &ov.provider {
+            cfg.llm.provider = p.clone();
+        }
+        if let Some(t) = &ov.test_command {
+            cfg.validation.test_command = t.clone();
+        }
+        if let Some(m) = ov.max_attempts {
+            cfg.validation.max_attempts = m.max(1);
+        }
+        let provider = crate::llm::from_config(&cfg.llm, &repo.workdir)?;
+        Ok(Session {
+            repo,
+            cfg,
+            provider,
+        })
+    }
+
+    pub fn provider(&self) -> Option<&dyn Provider> {
+        self.provider.as_deref()
+    }
+
+    pub fn ops_dir(&self) -> PathBuf {
+        self.repo.gitent_dir().join("ops")
+    }
+
+    pub fn op_path(&self, id: &str) -> PathBuf {
+        self.ops_dir().join(format!("{id}.json"))
+    }
+
+    pub fn save_op(&self, op: &Operation) -> Result<()> {
+        std::fs::create_dir_all(self.ops_dir())?;
+        let tmp = self.ops_dir().join(format!("{}.json.tmp", op.id));
+        std::fs::write(&tmp, serde_json::to_string_pretty(op)?)?;
+        std::fs::rename(tmp, self.op_path(&op.id))?;
+        Ok(())
+    }
+
+    pub fn load_op(&self, id: &str) -> Result<Operation> {
+        let p = self.op_path(id);
+        let text =
+            std::fs::read_to_string(&p).with_context(|| format!("no such operation {id}"))?;
+        Ok(serde_json::from_str(&text)?)
+    }
+
+    pub fn list_ops(&self) -> Result<Vec<Operation>> {
+        let mut out = vec![];
+        if let Ok(rd) = std::fs::read_dir(self.ops_dir()) {
+            for e in rd.flatten() {
+                let p = e.path();
+                if p.extension().map(|x| x == "json").unwrap_or(false) {
+                    if let Ok(op) = serde_json::from_str::<Operation>(&std::fs::read_to_string(&p)?)
+                    {
+                        out.push(op);
+                    }
+                }
+            }
+        }
+        out.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        Ok(out)
+    }
+
+    /// The operation to continue/abort: explicit id, or the most recent open one.
+    pub fn pick_open_op(&self, id: Option<&str>) -> Result<Operation> {
+        if let Some(id) = id {
+            return self.load_op(id);
+        }
+        let open: Vec<Operation> = self
+            .list_ops()?
+            .into_iter()
+            .filter(|o| o.state.is_open())
+            .collect();
+        match open.last() {
+            Some(o) => Ok(o.clone()),
+            None => bail!("no operation in progress"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OpState {
+    Running,
+    AwaitingHost,
+    Succeeded,
+    Failed,
+    Aborted,
+}
+
+impl OpState {
+    pub fn is_open(self) -> bool {
+        matches!(self, OpState::Running | OpState::AwaitingHost)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StepKind {
+    Apply {
+        source: String,
+    },
+    Revert {
+        source: String,
+    },
+    Merge {
+        theirs: String,
+        theirs_name: String,
+        base: String,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Attempt {
+    pub n: u32,
+    /// "git" for the deterministic attempt, otherwise the executor name.
+    pub by: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exec: Option<crate::agent::ExecReport>,
+    pub validation: ValidationReport,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum StepStatus {
+    #[default]
+    Pending,
+    AwaitingHost,
+    Done,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Step {
+    pub kind: StepKind,
+    #[serde(default)]
+    pub status: StepStatus,
+    #[serde(default)]
+    pub attempts: Vec<Attempt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_commit: Option<String>,
+    /// Prepared context (persisted so host-mode `continue` can validate).
+    #[serde(default)]
+    pub tests_before: Vec<String>,
+    #[serde(default)]
+    pub required_tests: Vec<String>,
+    #[serde(default)]
+    pub removable_tests: Vec<String>,
+    #[serde(default)]
+    pub goal: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brief_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<serde_json::Value>,
+}
+
+impl Step {
+    pub fn new(kind: StepKind) -> Step {
+        Step {
+            kind,
+            status: StepStatus::Pending,
+            attempts: vec![],
+            result_commit: None,
+            tests_before: vec![],
+            required_tests: vec![],
+            removable_tests: vec![],
+            goal: String::new(),
+            brief_path: None,
+            compatibility: None,
+        }
+    }
+
+    pub fn agent_attempts(&self) -> u32 {
+        self.attempts.iter().filter(|a| a.by != "git").count() as u32
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Operation {
+    pub id: String,
+    /// cherry-pick | revert | merge | rebase
+    pub kind: String,
+    pub state: OpState,
+    pub branch_ref: String,
+    pub start_head: Option<String>,
+    /// Current tip of the worktree (advances as steps commit).
+    pub tip: String,
+    pub worktree: String,
+    pub executor: String,
+    pub steps: Vec<Step>,
+    pub current: usize,
+    #[serde(default)]
+    pub strict: bool,
+    #[serde(default)]
+    pub force: bool,
+    #[serde(default)]
+    pub use_git: bool,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_commit: Option<String>,
+    pub created_at: String,
+}
+
+impl Operation {
+    /// JSON for API consumers: everything except bulky agent logs.
+    pub fn summary(&self) -> serde_json::Value {
+        let mut v = serde_json::to_value(self).unwrap_or_default();
+        if let Some(steps) = v.get_mut("steps").and_then(|s| s.as_array_mut()) {
+            for s in steps {
+                if let Some(atts) = s.get_mut("attempts").and_then(|a| a.as_array_mut()) {
+                    for a in atts {
+                        if let Some(e) = a.get_mut("exec").and_then(|e| e.as_object_mut()) {
+                            e.remove("log");
+                        }
+                    }
+                }
+            }
+        }
+        if self.state == OpState::AwaitingHost {
+            if let Some(step) = self.steps.get(self.current) {
+                v["brief"] = serde_json::json!(step.brief_path);
+                v["next"] = serde_json::json!(format!(
+                    "Edit files in {} to satisfy the brief, then run `gitent continue {}` (or `gitent abort {}`).",
+                    self.worktree, self.id, self.id
+                ));
+            }
+        }
+        v
+    }
+}
+
+pub fn new_op_id() -> String {
+    let now = chrono::Utc::now();
+    let n = now.timestamp_nanos_opt().unwrap_or(0) ^ (std::process::id() as i64);
+    let h = git2::Oid::hash_object(git2::ObjectType::Blob, n.to_string().as_bytes())
+        .unwrap()
+        .to_string();
+    format!("op_{}_{}", now.format("%Y%m%d%H%M%S"), &h[..6])
+}
