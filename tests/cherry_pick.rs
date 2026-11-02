@@ -385,7 +385,11 @@ fn host_mode_roundtrip() {
     assert_eq!(v["state"], "awaiting_host");
     let wt = std::path::PathBuf::from(v["worktree"].as_str().unwrap());
     // ADR 0009: coding agents refuse to edit under .git/, so worktrees must live outside it.
-    assert!(!wt.starts_with(&r.path), "worktree must be outside the repository: {}", wt.display());
+    assert!(
+        !wt.starts_with(&r.path),
+        "worktree must be outside the repository: {}",
+        wt.display()
+    );
     assert!(!wt.to_string_lossy().contains("/.git/"), "{}", wt.display());
     let brief = std::fs::read_to_string(v["brief"].as_str().unwrap()).unwrap();
     let req_id = r.note(&feature)["requirements"][0]["id"]
@@ -479,4 +483,35 @@ fn builtin_agent_with_scripted_provider() {
             .any(|c| c["name"] == "verifier" && c["passed"] == true),
         "{checks:?}"
     );
+}
+
+#[test]
+fn already_realised_change_is_skipped_not_failed() {
+    let r = TestRepo::users();
+    let feature = r.add_cache_feature();
+    // main independently gained the same behaviour (and the same test name).
+    r.write("app/users.py", USERS_CACHED_PY);
+    r.write("tests/test_cache.py", TEST_CACHE_PY);
+    r.commit("cache too", &["--no-prove"]);
+    let before = r.head();
+    let (code, v) = pick(&r, &feature, "cat > /dev/null", &[]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(r.head(), before, "no empty commit created");
+    assert!(
+        v["warnings"].to_string().contains("already_satisfied"),
+        "{v}"
+    );
+
+    // Without an executable source requirement, "no change" is still a failure.
+    let r = TestRepo::users();
+    r.git(&["checkout", "-q", "-b", "docs"]);
+    r.write("README.md", "x\n");
+    r.commit("docs: readme", &[]);
+    let docs = r.head();
+    r.git(&["checkout", "-q", "main"]);
+    r.write("README.md", "x\n");
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-qm", "same readme"]);
+    let (code, _) = pick(&r, &docs, "cat > /dev/null", &["--max-attempts", "1"]);
+    assert_eq!(code, 2);
 }

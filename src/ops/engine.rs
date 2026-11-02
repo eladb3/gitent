@@ -641,6 +641,34 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
         });
         report.passed = report.checks.iter().all(|c| c.passed);
     }
+    // Already realised (e.g. a later rebase step whose change an earlier step
+    // already contains): nothing changed, but the source's executable
+    // requirements all hold. Treated like git's dropped empty commit.
+    if let StepKind::Apply { source } = &step.kind {
+        let src_exec = results
+            .iter()
+            .filter(|r| &r.introduced_by == source)
+            .count();
+        let only_empty = report
+            .checks
+            .iter()
+            .filter(|c| !c.passed)
+            .all(|c| c.name == "non_empty")
+            && report
+                .checks
+                .iter()
+                .any(|c| c.name == "non_empty" && !c.passed);
+        if only_empty && src_exec > 0 && failing.is_empty() {
+            for c in report.checks.iter_mut().filter(|c| c.name == "non_empty") {
+                c.passed = true;
+                c.detail = format!("no change needed: the intention is already realised ({src_exec} of its executable requirement(s) pass)");
+            }
+            report
+                .warnings
+                .push(format!("already_satisfied:{}", short(source)));
+            report.passed = report.checks.iter().all(|c| c.passed);
+        }
+    }
     Ok((snap, report))
 }
 
@@ -656,6 +684,15 @@ fn commit_step(
     let step = op.steps[i].clone();
     let validation = step.attempts.last().map(|a| a.validation.clone());
     let tip_tree = s.repo.git.find_commit(tip)?.tree()?;
+    if tip_tree.id() == tree && !matches!(step.kind, StepKind::Merge { .. }) {
+        // Nothing to commit: the step was already satisfied.
+        if let Some(v) = &validation {
+            op.warnings.extend(v.warnings.iter().cloned());
+        }
+        op.steps[i].status = StepStatus::Done;
+        op.steps[i].result_commit = Some(op.tip.clone());
+        return Ok(());
+    }
     let new_tree = s.repo.git.find_tree(tree)?;
     let d = s.repo.diff_trees(Some(&tip_tree), &new_tree)?;
     let mut parents = vec![tip];

@@ -151,3 +151,79 @@ CASES.append({
     "hidden": {"tests/test_hidden.py": 'import unittest\nfrom app import db\nfrom app.accounts import fetch_user, fetch_many, display_name\n\n\nclass Hidden(unittest.TestCase):\n    def test_no_longer_cached(self):\n        b = db.CALLS["n"]\n        fetch_user(7)\n        fetch_user(7)\n        self.assertEqual(db.CALLS["n"] - b, 2)\n\n    def test_fetch_many_still_works(self):\n        self.assertEqual([u["id"] for u in fetch_many([5, 4])], [5, 4])\n\n    def test_active_default_kept(self):\n        self.assertTrue(fetch_user(10)["active"])\n\n    def test_display(self):\n        self.assertEqual(display_name(11), "User11")\n'},
     "reference": {"app/accounts.py": ACCOUNTS + '\n\ndef fetch_many(user_ids):\n    """Fetch several users, preserving order."""\n    return [fetch_user(u) for u in user_ids]\n', "tests/test_cache.py": None},
 })
+
+# ---------------------------------------------------------------- E6 rebase a stack
+USERS_TTL = 'from app import db, clock\n\n_CACHE = {}\nTTL = 60\n\n\ndef get_user(uid):\n    """Return the user, cached for TTL seconds."""\n    hit = _CACHE.get(uid)\n    if hit is None or clock.now() - hit[1] >= TTL:\n        hit = (db.load_user(uid), clock.now())\n        _CACHE[uid] = hit\n    return hit[0]\n\n\ndef display_name(uid):\n    return get_user(uid)["name"].title()\n'
+USERS_STATS = USERS_TTL.replace('_CACHE = {}\nTTL = 60\n', '_CACHE = {}\nTTL = 60\nSTATS = {"hits": 0, "misses": 0}\n').replace(
+    '    if hit is None or clock.now() - hit[1] >= TTL:\n        hit = (db.load_user(uid), clock.now())\n        _CACHE[uid] = hit\n',
+    '    if hit is None or clock.now() - hit[1] >= TTL:\n        STATS["misses"] += 1\n        hit = (db.load_user(uid), clock.now())\n        _CACHE[uid] = hit\n    else:\n        STATS["hits"] += 1\n') + '\n\ndef cache_stats():\n    return dict(STATS)\n'
+CLOCK = 'T = {"now": 1000.0}\n\n\ndef now():\n    return T["now"]\n'
+TEST_TTL = 'import unittest\nfrom app import db, clock\nfrom app.users import get_user\n\n\nclass TtlTest(unittest.TestCase):\n    def test_entry_expires_after_ttl(self):\n        clock.T["now"] = 5000.0\n        b = db.CALLS["n"]\n        get_user(77)\n        clock.T["now"] += 61\n        get_user(77)\n        self.assertEqual(db.CALLS["n"] - b, 2)\n'
+TEST_STATS = 'import unittest\nfrom app.users import get_user, cache_stats\n\n\nclass StatsTest(unittest.TestCase):\n    def test_hits_and_misses_counted(self):\n        s0 = cache_stats()\n        get_user(901)\n        get_user(901)\n        s1 = cache_stats()\n        self.assertEqual(s1["misses"] - s0["misses"], 1)\n        self.assertEqual(s1["hits"] - s0["hits"], 1)\n'
+ACC = lambda src: src.replace("from app import db, clock", "from app import db, clock").replace("def get_user(uid):", "def fetch_user(user_id: int) -> dict:").replace("_CACHE.get(uid)", "_CACHE.get(user_id)").replace("db.load_user(uid)", "db.load_user(user_id)").replace("_CACHE[uid] = hit", "_CACHE[user_id] = hit").replace("def display_name(uid):\n    return get_user(uid)", "def display_name(user_id: int) -> str:\n    return fetch_user(user_id)")
+ACCOUNTS_STATS_REF = '"""Account lookups (formerly app/users.py)."""\nfrom app import db, clock\n\n_CACHE = {}\nTTL = 60\nSTATS = {"hits": 0, "misses": 0}\n\n\ndef fetch_user(user_id: int) -> dict:\n    """Return the user record, cached for TTL seconds."""\n    hit = _CACHE.get(user_id)\n    if hit is None or clock.now() - hit[1] >= TTL:\n        STATS["misses"] += 1\n        record = db.load_user(user_id)\n        record.setdefault("active", True)\n        hit = (record, clock.now())\n        _CACHE[user_id] = hit\n    else:\n        STATS["hits"] += 1\n    return hit[0]\n\n\ndef display_name(user_id: int) -> str:\n    return fetch_user(user_id)["name"].title()\n\n\ndef cache_stats():\n    return dict(STATS)\n'
+def _acc_tests(t):
+    return t.replace("from app.users import get_user, cache_stats", "from app.accounts import fetch_user, cache_stats").replace("from app.users import get_user", "from app.accounts import fetch_user").replace("get_user(", "fetch_user(")
+CASES.append({
+    "id": "E6-rebase-stack-onto-refactor",
+    "description": "Rebase a 3-commit feature stack (cache, TTL expiry, hit/miss stats) onto a main that renamed get_user to fetch_user and moved it to app/accounts.py.",
+    "kind": "recovery",
+    "base": dict(USERS_BASE, **{"app/clock.py": CLOCK}),
+    "history": [
+        {"branch": "feature", "from": "main", "message": "feat: cache user lookups", "files": {"app/users.py": USERS_CACHED, "tests/test_cache.py": TEST_CACHE}},
+        {"branch": "feature", "message": "feat: expire cached users after TTL (60s) using app.clock", "files": {"app/users.py": USERS_TTL, "tests/test_ttl.py": TEST_TTL}},
+        {"branch": "feature", "message": "feat: count cache hits and misses; expose cache_stats()", "files": {"app/users.py": USERS_STATS, "tests/test_stats.py": TEST_STATS}},
+        {"branch": "main", "message": "refactor: rename get_user to fetch_user and move to app/accounts.py",
+         "files": {"app/users.py": None, "app/accounts.py": ACCOUNTS, "tests/test_users.py": TEST_ACCOUNTS}},
+    ],
+    "operation": {"op": "rebase", "branch": "feature", "rev": "main"},
+    "hidden": {"tests/test_hidden.py": 'import unittest\nfrom app import db, clock\nfrom app.accounts import fetch_user, display_name, cache_stats\n\n\nclass Hidden(unittest.TestCase):\n    def test_cached_within_ttl(self):\n        clock.T["now"] = 10000.0\n        b = db.CALLS["n"]\n        fetch_user(501)\n        clock.T["now"] += 59\n        fetch_user(501)\n        self.assertEqual(db.CALLS["n"] - b, 1)\n\n    def test_expires_after_ttl(self):\n        clock.T["now"] = 20000.0\n        b = db.CALLS["n"]\n        fetch_user(502)\n        clock.T["now"] += 60\n        fetch_user(502)\n        self.assertEqual(db.CALLS["n"] - b, 2)\n\n    def test_stats(self):\n        s0 = cache_stats()\n        clock.T["now"] = 30000.0\n        fetch_user(503)\n        fetch_user(503)\n        fetch_user(503)\n        s1 = cache_stats()\n        self.assertEqual((s1["misses"] - s0["misses"], s1["hits"] - s0["hits"]), (1, 2))\n\n    def test_active_default_kept(self):\n        self.assertTrue(fetch_user(504)["active"])\n\n    def test_display(self):\n        self.assertEqual(display_name(505), "User505")\n'},
+    "reference": {"app/accounts.py": ACCOUNTS_STATS_REF, "tests/test_cache.py": TEST_CACHE_ACCOUNTS,
+                  "tests/test_ttl.py": _acc_tests(TEST_TTL), "tests/test_stats.py": _acc_tests(TEST_STATS)},
+})
+
+# ---------------------------------------------------------------- E7 target invariant trap
+ACCOUNTS_COPY = '"""Account lookups."""\nfrom app import db\n\n\ndef fetch_user(user_id: int) -> dict:\n    """Return a fresh copy of the user record: callers may mutate it freely."""\n    record = dict(db.load_user(user_id))\n    record.setdefault("active", True)\n    return record\n\n\ndef display_name(user_id: int) -> str:\n    return fetch_user(user_id)["name"].title()\n'
+TEST_COPY = TEST_ACCOUNTS + '\n    def test_callers_get_independent_copies(self):\n        a = fetch_user(4)\n        a["name"] = "mutated"\n        self.assertEqual(fetch_user(4)["name"], "user4")\n'
+CASES.append({
+    "id": "E7-pick-into-target-invariant",
+    "description": "Cherry-pick caching onto a branch that (besides renaming) promises callers independent copies of user records. A naive cache returns the same dict and silently breaks that promise.",
+    "kind": "recovery",
+    "base": USERS_BASE,
+    "history": [
+        {"branch": "feature", "from": "main", "message": "feat: cache user lookups\n\nLoad each user from the database at most once per process.",
+         "files": {"app/users.py": USERS_CACHED, "tests/test_cache.py": TEST_CACHE}},
+        {"branch": "main", "message": "refactor: rename get_user to fetch_user (app/accounts.py); fetch_user returns independent copies",
+         "files": {"app/users.py": None, "app/accounts.py": ACCOUNTS_COPY, "tests/test_users.py": TEST_COPY}},
+    ],
+    "operation": {"op": "cherry-pick", "rev": "feature"},
+    "hidden": {"tests/test_hidden.py": 'import unittest\nfrom app import db\nfrom app.accounts import fetch_user\n\n\nclass Hidden(unittest.TestCase):\n    def test_cached(self):\n        b = db.CALLS["n"]\n        fetch_user(61)\n        fetch_user(61)\n        self.assertEqual(db.CALLS["n"] - b, 1)\n\n    def test_mutation_does_not_leak_through_cache(self):\n        a = fetch_user(62)\n        a["name"] = "x"\n        a["active"] = False\n        b = fetch_user(62)\n        self.assertEqual((b["name"], b["active"]), ("user62", True))\n\n    def test_two_callers_independent(self):\n        self.assertIsNot(fetch_user(63), fetch_user(63))\n'},
+    "reference": {"app/accounts.py": '"""Account lookups."""\nfrom app import db\n\n_CACHE = {}\n\n\ndef fetch_user(user_id: int) -> dict:\n    """Return a fresh copy of the (cached) user record: callers may mutate it freely."""\n    if user_id not in _CACHE:\n        record = dict(db.load_user(user_id))\n        record.setdefault("active", True)\n        _CACHE[user_id] = record\n    return dict(_CACHE[user_id])\n\n\ndef display_name(user_id: int) -> str:\n    return fetch_user(user_id)["name"].title()\n',
+                  "tests/test_cache.py": TEST_CACHE_ACCOUNTS},
+})
+
+# ---------------------------------------------------------------- E8 multi-site intent
+AUDIT = 'EVENTS = []\n\n\ndef record(event, order_id):\n    EVENTS.append((event, order_id))\n'
+ORDERS = 'ORDERS = {}\n\n\ndef create_order(order_id, amount):\n    ORDERS[order_id] = {"amount": amount, "state": "open"}\n    return ORDERS[order_id]\n\n\ndef cancel_order(order_id):\n    ORDERS[order_id]["state"] = "cancelled"\n\n\ndef refund_order(order_id):\n    ORDERS[order_id]["state"] = "refunded"\n'
+ORDERS_AUDITED = 'from app import audit\n\nORDERS = {}\n\n\ndef create_order(order_id, amount):\n    ORDERS[order_id] = {"amount": amount, "state": "open"}\n    audit.record("created", order_id)\n    return ORDERS[order_id]\n\n\ndef cancel_order(order_id):\n    ORDERS[order_id]["state"] = "cancelled"\n    audit.record("cancelled", order_id)\n\n\ndef refund_order(order_id):\n    ORDERS[order_id]["state"] = "refunded"\n    audit.record("refunded", order_id)\n'
+TEST_AUDIT = 'import unittest\nfrom app import audit\nfrom app.orders import create_order, cancel_order, refund_order\n\n\nclass AuditTest(unittest.TestCase):\n    def test_every_transition_is_audited(self):\n        audit.EVENTS.clear()\n        create_order(1, 10)\n        cancel_order(1)\n        create_order(2, 20)\n        refund_order(2)\n        self.assertEqual(audit.EVENTS, [("created", 1), ("cancelled", 1), ("created", 2), ("refunded", 2)])\n'
+ORDERS_MAIN = 'ORDERS = {}\n\n\ndef create_order(order_id, amount):\n    ORDERS[order_id] = {"amount": amount, "state": "open"}\n    return ORDERS[order_id]\n\n\ndef void_order(order_id):\n    """Formerly cancel_order."""\n    ORDERS[order_id]["state"] = "cancelled"\n\n\ndef ship_order(order_id):\n    ORDERS[order_id]["state"] = "shipped"\n'
+REFUNDS_MAIN = 'from app.orders import ORDERS\n\n\ndef refund_order(order_id, reason=""):\n    ORDERS[order_id]["state"] = "refunded"\n    ORDERS[order_id]["refund_reason"] = reason\n'
+CASES.append({
+    "id": "E8-pick-multi-site-intent",
+    "description": "Cherry-pick 'audit every state-changing order operation' onto a branch that renamed cancel_order to void_order, moved refunds to app/refunds.py, and added ship_order.",
+    "kind": "recovery",
+    "base": {"app/__init__.py": "", "tests/__init__.py": "", ".gitignore": "__pycache__/\n", "app/audit.py": AUDIT, "app/orders.py": ORDERS,
+             "tests/test_orders.py": 'import unittest\nfrom app.orders import create_order\n\n\nclass OrdersTest(unittest.TestCase):\n    def test_create(self):\n        self.assertEqual(create_order(9, 5)["state"], "open")\n'},
+    "history": [
+        {"branch": "feature", "from": "main", "message": "feat: audit every state-changing order operation\n\nEvery operation that changes an order's state must call audit.record(<event>, order_id).",
+         "files": {"app/orders.py": ORDERS_AUDITED, "tests/test_audit.py": TEST_AUDIT}},
+        {"branch": "main", "message": "refactor: rename cancel_order to void_order, move refunds to app/refunds.py, add ship_order",
+         "files": {"app/orders.py": ORDERS_MAIN, "app/refunds.py": REFUNDS_MAIN}},
+    ],
+    "operation": {"op": "cherry-pick", "rev": "feature"},
+    "hidden": {"tests/test_hidden.py": 'import unittest\nfrom app import audit\nfrom app.orders import create_order, void_order, ship_order\nfrom app.refunds import refund_order\n\n\nclass Hidden(unittest.TestCase):\n    def setUp(self):\n        audit.EVENTS.clear()\n\n    def test_create_void_refund_audited(self):\n        create_order(1, 10)\n        void_order(1)\n        create_order(2, 20)\n        refund_order(2, reason="damaged")\n        names = [e for e, _ in audit.EVENTS]\n        self.assertEqual(len(audit.EVENTS), 4)\n        self.assertEqual([i for _, i in audit.EVENTS], [1, 1, 2, 2])\n        self.assertEqual(names[0], "created")\n\n    def test_ship_is_audited_too(self):\n        create_order(3, 30)\n        ship_order(3)\n        self.assertEqual([i for _, i in audit.EVENTS], [3, 3])\n\n    def test_refund_reason_kept(self):\n        from app.orders import ORDERS\n        create_order(4, 1)\n        refund_order(4, reason="late")\n        self.assertEqual(ORDERS[4]["refund_reason"], "late")\n'},
+    "reference": {"app/orders.py": 'from app import audit\n\nORDERS = {}\n\n\ndef create_order(order_id, amount):\n    ORDERS[order_id] = {"amount": amount, "state": "open"}\n    audit.record("created", order_id)\n    return ORDERS[order_id]\n\n\ndef void_order(order_id):\n    """Formerly cancel_order."""\n    ORDERS[order_id]["state"] = "cancelled"\n    audit.record("cancelled", order_id)\n\n\ndef ship_order(order_id):\n    ORDERS[order_id]["state"] = "shipped"\n    audit.record("shipped", order_id)\n',
+                  "app/refunds.py": 'from app import audit\nfrom app.orders import ORDERS\n\n\ndef refund_order(order_id, reason=""):\n    ORDERS[order_id]["state"] = "refunded"\n    ORDERS[order_id]["refund_reason"] = reason\n    audit.record("refunded", order_id)\n',
+                  "tests/test_audit.py": 'import unittest\nfrom app import audit\nfrom app.orders import create_order, void_order\nfrom app.refunds import refund_order\n\n\nclass AuditTest(unittest.TestCase):\n    def test_every_transition_is_audited(self):\n        audit.EVENTS.clear()\n        create_order(1, 10)\n        void_order(1)\n        create_order(2, 20)\n        refund_order(2)\n        self.assertEqual(audit.EVENTS, [("created", 1), ("cancelled", 1), ("created", 2), ("refunded", 2)])\n'},
+})

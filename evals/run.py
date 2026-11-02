@@ -84,7 +84,19 @@ def build(case, repo, gitent):
 def baseline_prompt(case, repo):
     op, rev = case["operation"]["op"], case["operation"]["rev"]
     tests = "python3 -m unittest discover -q"
-    if op == "merge":
+    if op == "rebase":
+        br = case["operation"]["branch"]
+        base = sh(["git", "merge-base", br, rev], repo).stdout.strip()
+        commits = sh(["git", "rev-list", "--reverse", f"{base}..{br}"], repo).stdout.split()
+        parts = []
+        for c in commits:
+            msg = sh(["git", "log", "-1", "--format=%B", c], repo).stdout
+            diff = sh(["git", "show", "--format=", c], repo).stdout
+            parts.append(f"Commit {c[:10]}:\n{msg}\n```diff\n{diff}```")
+        task = (f"Apply, in order, the {len(commits)} commits of branch `{br}` on top of the current branch (`{rev}`), "
+                f"which has changed since they were written; adapt as needed so ALL of their changes work on the current code.\n\n"
+                + "\n\n".join(parts))
+    elif op == "merge":
         base = sh(["git", "merge-base", "HEAD", rev], repo).stdout.strip()
         ours = sh(["git", "log", "--format=- %s%n%b", f"{base}..HEAD"], repo).stdout
         theirs = sh(["git", "log", "--format=- %s%n%b", f"{base}..{rev}"], repo).stdout
@@ -107,8 +119,10 @@ def baseline_prompt(case, repo):
 
 def git_arm(case, repo):
     op, rev = case["operation"]["op"], case["operation"]["rev"]
+    if op == "rebase":
+        sh(["git", "checkout", "-q", case["operation"]["branch"]], repo, check=True)
     cmd = {"cherry-pick": ["git", "cherry-pick", rev], "merge": ["git", "merge", "--no-edit", rev],
-           "revert": ["git", "revert", "--no-edit", rev]}[op]
+           "revert": ["git", "revert", "--no-edit", rev], "rebase": ["git", "rebase", rev]}[op]
     p = sh(cmd, repo)
     ok = p.returncode == 0
     if not ok:
@@ -130,6 +144,8 @@ def gitent_arm(case, repo, gitent, agent_cmd, llm_cmd, timeout):
     if llm_cmd:
         args += ["--provider", "command"]
         env["GITENT_LLM_COMMAND"] = llm_cmd
+    if op == "rebase":
+        sh(["git", "checkout", "-q", case["operation"]["branch"]], repo, check=True)
     p = sh(args + [op, rev], repo, env=env, timeout=timeout)
     try:
         v = json.loads(p.stdout)
