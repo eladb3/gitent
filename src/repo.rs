@@ -86,14 +86,27 @@ impl Repo {
     pub fn worktree_root(&self, configured: &str) -> PathBuf {
         if !configured.trim().is_empty() {
             let p = PathBuf::from(configured);
-            return if p.is_absolute() { p } else { self.workdir.join(p) };
+            return if p.is_absolute() {
+                p
+            } else {
+                self.workdir.join(p)
+            };
         }
-        let canon = self.git_dir.canonicalize().unwrap_or_else(|_| self.git_dir.clone());
+        let canon = self
+            .git_dir
+            .canonicalize()
+            .unwrap_or_else(|_| self.git_dir.clone());
         let id = Oid::hash_object(git2::ObjectType::Blob, canon.to_string_lossy().as_bytes())
             .map(|o| o.to_string()[..12].to_string())
             .unwrap_or_else(|_| "repo".into());
-        let name = self.workdir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        std::env::temp_dir().join("gitent-worktrees").join(format!("{name}-{id}"))
+        let name = self
+            .workdir
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        std::env::temp_dir()
+            .join("gitent-worktrees")
+            .join(format!("{name}-{id}"))
     }
 
     pub fn signature(&self) -> Signature<'static> {

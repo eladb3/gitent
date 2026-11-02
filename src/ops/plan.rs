@@ -22,7 +22,10 @@ fn base_op(
     let branch_ref = s.repo.head_ref_name()?;
     let head = s.repo.head_commit()?.map(|c| c.id().to_string());
     let id = new_op_id();
-    let worktree = s.repo.worktree_root(&s.cfg.executor.worktree_root).join(&id);
+    let worktree = s
+        .repo
+        .worktree_root(&s.cfg.executor.worktree_root)
+        .join(&id);
     Ok(Operation {
         id,
         kind: kind.into(),
