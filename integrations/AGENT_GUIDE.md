@@ -26,6 +26,14 @@ and when you **move work between diverged branches**.
   3. Call `gitent_continue`. On failure you get feedback and can try again; `gitent_abort` gives up.
 - Your branch is only updated after validation passes.
 
+## Verifying your own work (do this before you say "done")
+- After you backport, merge or revert anything by editing files yourself:
+  `gitent_verify {"source": "<commit you moved>", "working_tree": true}` (`--kind revert|merge` as needed).
+  It checks the change's requirements, the target's requirements and tests, and that you did not
+  resurrect deleted files, drop existing definitions or delete tests. Fix what it reports.
+- For a commit or PR branch: `gitent_verify {"source": "...", "result": "HEAD", "onto": "<target branch before your work>"}`.
+- Add `"record": true` on a verified commit to attach provenance and requirements to it.
+
 ## Checking
 - `gitent_check` runs every live requirement and names the intention behind any failure.
 - `gitent_log` / `gitent_show` explain why code exists and what it must keep doing.

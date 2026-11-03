@@ -89,6 +89,28 @@ enum Cmd {
         #[arg(long, action = clap::ArgAction::Append)]
         allow_failing: Vec<String>,
     },
+    /// Verify that an existing result correctly moves a change (any agent, bot or human made it)
+    Verify {
+        /// The change that was moved (commit or int_…); for --kind merge, the merged branch
+        source: String,
+        /// Commit to verify (default HEAD)
+        result: Option<String>,
+        /// The target before the change (default: first parent of the result)
+        #[arg(long)]
+        onto: Option<String>,
+        /// Verify uncommitted changes against HEAD (your files and index are not modified)
+        #[arg(long)]
+        working_tree: bool,
+        /// apply | revert | merge
+        #[arg(long, default_value = "apply")]
+        kind: String,
+        /// If verified, attach a semantic record (provenance + requirements) to the result
+        #[arg(long)]
+        record: bool,
+        /// Skip the LLM verifier even if configured
+        #[arg(long)]
+        no_llm: bool,
+    },
     /// Run all live requirements (the ledger) on the working tree or a revision
     Check {
         rev: Option<String>,
@@ -340,6 +362,28 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             ("abort", render_op)
         }
         Cmd::Status => ("status", render_status),
+        Cmd::Verify {
+            source,
+            result,
+            onto,
+            working_tree,
+            kind,
+            record,
+            no_llm,
+        } => {
+            args["source"] = json!(source);
+            if let Some(r) = result {
+                args["result"] = json!(r);
+            }
+            if let Some(o) = onto {
+                args["onto"] = json!(o);
+            }
+            args["working_tree"] = json!(working_tree);
+            args["kind"] = json!(kind);
+            args["record"] = json!(record);
+            args["no_llm"] = json!(no_llm);
+            ("verify", render_verify)
+        }
         Cmd::Check { rev, intent, judge } => {
             if let Some(r) = rev {
                 args["rev"] = json!(r);
@@ -553,6 +597,46 @@ fn requirement_drafts(m: &clap::ArgMatches) -> Vec<Value> {
         }
     }
     drafts
+}
+
+fn render_verify(v: &Value) {
+    let result = s(v, "result");
+    println!(
+        "{} {} of {} onto {} → {}",
+        if v["verified"] == true {
+            "✓ verified:"
+        } else {
+            "✗ rejected:"
+        },
+        s(v, "kind"),
+        short(s(v, "source")),
+        short(s(v, "base")),
+        if result == "working-tree" {
+            "working tree".to_string()
+        } else {
+            short(result)
+        }
+    );
+    for c in v["validation"]["checks"].as_array().into_iter().flatten() {
+        let mark = if c["passed"] == true { "✓" } else { "✗" };
+        let d = s(c, "detail");
+        let first = d
+            .lines()
+            .take(if c["passed"] == true { 1 } else { 8 })
+            .collect::<Vec<_>>()
+            .join("\n      ");
+        println!("  {mark} {:<26} {first}", s(c, "name"));
+    }
+    for w in v["validation"]["warnings"].as_array().into_iter().flatten() {
+        println!("  warning: {}", w.as_str().unwrap_or(""));
+    }
+    if v["recorded"] == true {
+        println!(
+            "recorded semantic record {} on {}",
+            s(&v["record"], "intent_id"),
+            short(result)
+        );
+    }
 }
 
 fn render_check(v: &Value) {

@@ -235,7 +235,7 @@ def run_case(case, args):
     res = {"id": cid, "kind": case["kind"], "description": case["subject"], "arms": {}}
     env_path = str(Path(args.python).parent) + os.pathsep + os.environ.get("PATH", "")
     base.CLEAN_ENV["PATH"] = env_path
-    for arm in args.arms:
+    for arm in [a for a in args.arms if a != "baseline+verify"]:
         work = Path(args.out) / cid / arm
         repo = work / "repo"
         if work.exists():
@@ -264,9 +264,19 @@ def run_case(case, args):
         except subprocess.TimeoutExpired:
             r = {"reported_success": False, "detail": "timeout"}
         r["seconds"] = round(time.time() - t0, 1)
+        gate = None
+        if arm == "baseline" and "baseline+verify" in args.arms:
+            gate = base.verify_gate({"operation": {"op": "cherry-pick", "rev": "source"}}, repo, args.gitent)
         r.update(score(case, repo, Path(args.mirror), args.python, work))
         r["false_success"] = r["reported_success"] and not r["hidden_pass"]
         res["arms"][arm] = r
+        if gate is not None:
+            g = dict(r)
+            g["verified"], g["verify_seconds"], g["detail"] = gate
+            g["reported_success"] = r["reported_success"] and gate[0]
+            g["seconds"] = round(r["seconds"] + gate[1], 1)
+            g["false_success"] = g["reported_success"] and not g["hidden_pass"]
+            res["arms"]["baseline+verify"] = g
         print(f"  {cid:<28} {case['kind']:<13} {arm:<9} hidden={'PASS' if r['hidden_pass'] else 'fail'} "
               f"reported={'success' if r['reported_success'] else 'failure'} ({r['seconds']}s)", flush=True)
         shutil.rmtree(repo, ignore_errors=True)
