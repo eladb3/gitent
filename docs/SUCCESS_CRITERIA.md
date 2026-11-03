@@ -75,7 +75,7 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | V5 | `--record` attaches a semantic record (operation `verify`, `derived_from`, validation) only when verified. | ✅ `tests/verify.rs::verify_record` |
 | V6 | Available over MCP (`gitent_verify`) and HTTP. | ✅ `tests/mcp.rs::mcp_stdio_end_to_end` |
 | V7 | Operations and verify share one validation code path (`validate_candidate`). | ✅ `ops::engine::validate_candidate` + `prepare_step` used by both; all operation tests green |
-| V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | ⏳ `evals/run.py --arms baseline,baseline+verify` |
+| V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | 📊 met for fault injection (real 9→0, synthetic 8→0) and reference solutions (0 false rejections). Live Claude Code on 24 real backports: 1 false success **not** caught (target-only behaviour absent from the source's requirements); 1 false rejection found and fixed. `evals/RESULTS.md` |
 
 ## E. Agent integration
 

@@ -14,6 +14,49 @@ Raw data: `evals/results/run*.json` · Harness: `evals/run.py`, scenarios: `eval
 *false success* is an arm reporting success on a result that fails the hidden
 tests.
 
+## `gitent verify` as a gate behind an agent (ADR 0011, criterion V8)
+
+Arm `baseline+verify`: the baseline agent works alone, exactly as in the
+`baseline` arm. Its uncommitted result is then checked with
+`gitent verify <source> --working-tree --kind …` before it would be
+accepted. There is no extra agent run and no LLM verifier.
+
+| | baseline (agent's own report) | baseline + `gitent verify` |
+|---|---|---|
+| **Live, Claude Code, 24 real Django backports** (run real5) | 23/24 correct, **1 false success** | 23 accepted · **1 false success** · 1 false rejection (bug, fixed, see below) |
+| **Fault injection, real** (stale port, run real6) | 9 false successes | **0 false successes**. 9 accepted, all correct. 6 rejected results pass the hidden tests but leave the visible suite red. |
+| **Fault injection, synthetic** (9 scenarios) | 8 false successes | **0** |
+| **Reference solutions, synthetic** (no wrong work) | 9/9 accepted | 9/9 accepted (0 false rejections) |
+| verify cost (real, live run) | — | 17.9 s average per backport, no agent tokens |
+
+**What the live run showed.**
+
+* **The first real agent mistake in any of our runs.** On
+  `stable-5.2.x-6ecd66e09a` (CVE-2026-84429), Claude Code's backport mishandles
+  invalid RFC 2231 encodings. **`gitent verify` accepted it.**
+  * The human backporter *added* a test for this 5.2-specific behaviour
+    (`test_rfc2231_invalid_encoding`), and the original fix on `main` has no
+    such test.
+  * Nothing recorded with the source change covers it, so no check against the
+    source's requirements can catch it.
+  * This is a real limit: Gitent enforces what is recorded. Behaviour that only
+    matters on the target branch has to be a requirement *of the target*, in
+    its ledger, to be protected.
+* **A false rejection that was a Gitent bug.** On `stable-6.0.x-972dbdd4f7`,
+  the original fix itself deletes `test_create_request_error`. The correct port
+  deletes it too, and `existing_tests_preserved` rejected it. Tests deleted by
+  the change being moved are now allowed to disappear
+  (`tests/verify.rs::tests_removed_by_the_source_change_may_disappear`).
+  Re-run: verified and accepted.
+* **Correction.** Earlier fault-injection write-ups counted this case as a
+  correct "deleted a test" rejection. It was this bug.
+
+**Conclusion.** Putting `gitent verify` behind any agent gives the same
+protection against broken and stale results as running the agent through
+Gitent. On real code that is 9 false successes reduced to 0. It needs no extra
+agent cost and takes about 18 s per check. It does **not** catch mistakes that
+nothing recorded describes.
+
 ## Real backports (Django), the main evidence
 
 The benchmark is `evals/real_backports.py`, with 24 cases in `evals/real/django_cases.json`. Each case was
@@ -46,7 +89,7 @@ restores X's files verbatim on the old branch, then claims success.
 | | correct per hidden tests | false successes | results left with a red visible suite or deleted tests, but reported success |
 |---|---|---|---|
 | baseline | 15/24 | **9** | 6 (all accepted) |
-| Gitent | 11/24 | **0** | 0 (all 6 rejected: 5 failing visible tests, 1 deleted test) |
+| Gitent | 12/24 (after the removed-test fix) | **0** | 0 (all rejected: failing visible tests) |
 
 The hidden-test scorer overlays the human's test files. It therefore accepts
 6 stale results whose own test suite is red, and Gitent's rejections of those

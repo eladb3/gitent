@@ -78,6 +78,7 @@ Eval ([evals/RESULTS.md](evals/RESULTS.md)) on **24 real Django backports**
 |---|---|---|---|
 | real backports correct (19 are git conflicts) | 5/24 | 24/24 | 24/24 |
 | false successes with a faulty agent (real / synthetic) | — | 9 / 8 | **0 / 0** |
+| …same, agent alone + `gitent verify` gate (no extra agent cost, ~18 s/check) | — | **0 / 0** | |
 
 Gitent does what Git cannot. With a capable agent it **ties** on correctness
 (it does not beat it), at roughly 2× the wall time. Its distinct value is that
