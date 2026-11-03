@@ -1,8 +1,33 @@
 # Vision
 
-Git records **what the code is**. Gitent also records **what each change is
-for** and **what it must keep doing**. It uses those records to move changes
-safely between versions of a code base that have drifted apart.
+**Gitent is the safety and audit layer for agent-driven changes to diverged code**:
+backports, fork syncs, merges and reverts.
+
+Coding agents are now good at moving a change onto code that has drifted. In
+our evals Claude Code alone got 24/24 real Django backports right, 19 of them
+cases where `git cherry-pick` conflicts. What they are not is *accountable*.
+
+* With a faulty agent, trusting the agent's own report let 9 broken real
+  backports through. Gitent let through none.
+* Nothing records *why* a change exists, what it must keep doing, or how a
+  given branch came to contain it.
+
+Gitent provides that.
+
+1. **Verify.** `gitent verify` checks any result, from any agent, bot or human,
+   before it lands. It checks the change's requirements and the target's own
+   requirements and tests. It also checks nothing was resurrected, deleted or
+   weakened. No agent call is needed. (ADR 0011)
+2. **Record.** Commits carry their intention and checkable requirements, with
+   proof that each check fails before the change and passes after it. A ledger
+   of what the code base has promised travels with the repository. (ADR 0008)
+3. **Operate**, optionally. `gitent cherry-pick / merge / rebase / revert`
+   tries Git first and uses Git's result whenever it validates (no agent at
+   all). Otherwise it drives any coding agent in an isolated worktree, with the
+   same validation, and only then moves the branch.
+
+What Gitent does **not** claim: making a capable agent more correct. We
+measured it, and the result was a tie (`evals/RESULTS.md`, criterion F4).
 
 ## Positioning: a Git companion, not a Git replacement
 
@@ -10,21 +35,14 @@ Gitent does not replace Git. Storage, branching, transport, hosting and review
 stay Git's job. A Gitent repository *is* a Git repository, and Gitent works on
 commits made with plain Git.
 
-Gitent is for the moments where Git's model breaks: a change must land on code
-that has **diverged** from where it was written, because functions were
-renamed, files moved, signatures changed or units changed. There, a textual
-patch conflicts or, worse, applies cleanly and is wrong. The change's *purpose*
-and its *requirements* are still perfectly applicable.
-
-Day to day you keep using Git. You reach for Gitent when moving work around:
-
 | Job | Today | With Gitent |
 |---|---|---|
-| **Backport a fix** to release branches that were refactored differently | manual re-implementation per branch | `gitent cherry-pick <fix>` on each branch; the fix's requirements prove it landed |
-| **Keep a fork or vendored copy in sync** with an upstream that refactors | patches rot on every rebase | `gitent rebase upstream/main` replays intentions, not patches |
-| **Merge many parallel agent branches** touching the same area | conflict markers, resolved by guesswork | `gitent merge` composes intentions; both sides' requirements must hold |
-| **Remove a feature after later refactors** | `git revert` conflicts | `gitent revert` removes the behaviour; the feature's requirements are retired |
-| **Know why code exists and what must stay true** | commit messages, maybe | `gitent show` / `gitent check`: intentions and live requirements, machine-readable |
+| **Backport a fix** to release branches (by an agent, a bot or a person) | review the diff and hope | `gitent verify <fix>` in CI on each backport PR; or `gitent cherry-pick <fix>` to produce it |
+| **Accept agent output** before committing | the agent says "done" | `gitent verify <source> --working-tree` |
+| **Keep a fork in sync** with a refactoring upstream | patches rot on every rebase | `gitent rebase upstream/main`, every step validated |
+| **Merge parallel agent branches** | conflict markers, resolved by guesswork | `gitent merge`: both sides' requirements must hold |
+| **Remove a feature after refactors** | `git revert` conflicts | `gitent revert`: the behaviour must be gone and later work intact |
+| **Know why code exists and what must stay true** | commit messages, maybe | `gitent show`, `gitent check`, `gitent log` |
 
 ## Commits as contracts
 

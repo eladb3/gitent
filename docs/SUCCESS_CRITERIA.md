@@ -64,6 +64,19 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | R9 | `--retire <id> "<reason>"` requires a reason, is shown in log/show; `--check-ledger` rejects a commit that breaks an unretired live requirement. | ✅ `tests/requirements.rs::retire_and_check_ledger` (also: editing a test bound to a live requirement is rejected under `--check-ledger`) |
 | R10 | `@1` records are read with the documented mapping (acceptance/constraints → judged, tests → test). | ✅ `model::tests::migrates_v1_records` |
 
+## V. Verify (ADR 0011)
+
+| ID | Criterion | Verified by |
+|----|-----------|-------------|
+| V1 | `gitent verify <source> [<result>]` validates an existing commit as a move of `<source>` onto `<result>^`, with the same checks as an operation step; exit 0 verified, 2 rejected. | ⏳ `tests/verify.rs::verify_good_and_bad_backports` |
+| V2 | `--onto <base>` verifies a multi-commit result as a whole. | ⏳ `tests/verify.rs::verify_multi_commit_result` |
+| V3 | `--working-tree` verifies uncommitted changes against `HEAD` without modifying the user's index or files. | ⏳ `tests/verify.rs::verify_working_tree_is_side_effect_free` |
+| V4 | `--kind revert` and `--kind merge` apply `revert_effective` and both-sides preservation. | ⏳ `tests/verify.rs::verify_revert_and_merge` |
+| V5 | `--record` attaches a semantic record (operation `verify`, `derived_from`, validation) only when verified. | ⏳ `tests/verify.rs::verify_record` |
+| V6 | Available over MCP (`gitent_verify`) and HTTP. | ⏳ `tests/mcp.rs` |
+| V7 | Operations and verify share one validation code path (`validate_candidate`). | ⏳ code review + all operation tests still green |
+| V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | ⏳ `evals/run.py --arms baseline,baseline+verify` |
+
 ## E. Agent integration
 
 | ID | Criterion | Verified by |
