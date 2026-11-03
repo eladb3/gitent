@@ -233,3 +233,22 @@ fn verify_record() {
     let (_, v) = r.gitent(&["verify", &feature, "--onto", "HEAD~2", "--record"]);
     assert_eq!(v["recorded"], false);
 }
+
+#[test]
+fn tests_removed_by_the_source_change_may_disappear() {
+    // Found on real Django backports: the original fix itself deleted a test;
+    // a correct port also deletes it and must not be rejected for that.
+    let r = TestRepo::users();
+    r.git(&["checkout", "-qb", "fix"]);
+    r.write("tests/test_users.py", &TEST_USERS_PY.replace("    def test_get_user(self):\n        self.assertEqual(get_user(1)[\"name\"], \"user1\")\n\n", ""));
+    r.write("tests/test_names.py", "import unittest\nfrom app.users import get_user\n\n\nclass N(unittest.TestCase):\n    def test_user_name_format(self):\n        self.assertEqual(get_user(1)[\"name\"], \"user1\")\n");
+    r.commit("test: move get_user test into test_names", &["--no-prove"]);
+    let fix = r.head();
+    r.git(&["checkout", "-q", "main"]);
+    r.write("README.md", "x\n");
+    commit_all(&r, "docs");
+    let (ok, out) = r.git_try(&["cherry-pick", &fix]);
+    assert!(ok, "{out}");
+    let (code, v) = r.gitent(&["verify", &fix]);
+    assert_eq!(code, 0, "{v}");
+}

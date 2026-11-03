@@ -1,0 +1,615 @@
+{
+  "meta": {
+    "started": "2026-11-03T04-30-27Z",
+    "agent": "claude-code",
+    "llm": null,
+    "arms": [
+      "baseline",
+      "baseline+verify"
+    ],
+    "source": "django real backports",
+    "agent_command": "claude -p --permission-mode acceptEdits --allowedTools \"Bash(python3:*)\" \"Bash(python:*)\" \"Bash(git diff:*)\" \"Bash(git status:*)\" \"Bash(git log:*)\" \"Bash(git show:*)\" \"Bash(ls:*)\""
+  },
+  "results": [
+    {
+      "id": "stable-6.1.x-0931d3c352",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix for ticket #37403 to this branch. The jsonfield test suite passes on SQLite: 129 tests, 9 skipped. The new test case runs on SQLite, since the test it belongs to is only skipped on databases with a native JSON field. I didn't check that the new case fails without the fix, and I made no commit.\n\nThe commit applied almost as-is. The only adaptation was where it goes: the target code in `django/db/models/fields/json.py` is at about line 411 here, and the release note goes in `docs/releases/6.1.3.txt`, which already exists.\n\n- **`django/db/models/fields/json.py`:** a `Value(None)` whose output field isn't a `JSONField` now skips the JSON encoding and wrapping step, since it compiles to a plain `NULL`. As in the original commit, the Oracle branch now uses the same `is_value` check instead of `hasattr(param, \"value\")`.\n- **`tests/model_fields/test_jsonfield.py`:** added `Value(None, output_field=CharField())` to `test_in_value_explicit_output_field`, expecting no results.\n- **`docs/releases/6.1.3.txt`:** added the bugfix note.\n\nRESULT: SUCCESS\n",
+          "seconds": 20.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-0931d3c352/baseline/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.165s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 31.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-0931d3c352/baseline/score/django'\nFound 129 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.......................s.s.sss.s............................s...........s.................................s......................\n----------------------------------------------------------------------\nRan 129 tests in 0.165s\n\nOK (skipped=9)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 10.5
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8485c6ac38",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix for #37463. The code on this branch matched what the commit was written against, so the patch went in without changes, and the forms test suite passes (274 tests, 125 skipped, no failures).\n\n- **`django/forms/boundfield.py`**: `label_tag()` / `legend_tag()` used to add the required class directly to the `attrs` dict passed in. Calling it twice with the same dict added `required` twice. It now works on a copy of `attrs`, so the caller's dict is left unchanged.\n- **`docs/releases/6.1.3.txt`**: added the bugfix note in the same place as upstream, before the `oracledb` entry.\n- **`tests/forms_tests/tests/test_forms.py`**: added `test_legend_has_required_css_class_multiple_render`, which calls `legend_tag()` twice with the same dict and checks the output is the same both times.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 21.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.297s\n\nOK (skipped=125)\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 33.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.297s\n\nOK (skipped=125)\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 11.3
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-a92be5c4e2",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix for #37436 to this 6.1.x branch. The code here matched the development branch exactly, so the commit applied without any changes. The `defer.tests` suite passes (51 tests, including the 5 new ones). A wider run over `defer`, `defer_regress`, `model_fields`, `prefetch_related` and `basic` also passed.\n\nWhat changed:\n- **`django/db/models/query_utils.py`**:\n  - When `FETCH_PEERS` loads a deferred field for a group of instances, it now skips any instance that already has a value for that field, either set locally or loaded with `refresh_from_db(fields=...)`. It also skips instances with no primary key.\n  - Rows deleted since the query ran are skipped instead of raising `KeyError`.\n  - If the instance you accessed was itself deleted, you now get `DoesNotExist`.\n- **`docs/releases/6.1.3.txt`**: added the bugfix entry.\n- **`tests/defer/tests.py`**: added the 5 new tests.\n\nI couldn't confirm the new tests fail without the fix: the command to temporarily undo the code change needed approval. I also couldn't run the linter because `flake8` isn't installed in this environment. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 35.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-a92be5c4e2/baseline/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.048s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 52.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-a92be5c4e2/baseline/score/django'\nFound 51 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n...................................................\n----------------------------------------------------------------------\nRan 51 tests in 0.048s\n\nOK\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 16.5
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cce6c57ed3",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the CVE-2026-87975 fix to this branch. All three new tests fail without the fix and pass with it, and the related test suites pass (215 tests OK, 17 skipped). Nothing is committed.\n\nThis branch's code matched the development branch closely, so the patch went in without real changes:\n\n- **`django/forms/models.py`**: `save_existing_objects()` now also skips any instance where `obj._state.adding` is true, not just ones with no primary key. That stops forged POST data from deleting rows outside the formset's queryset, or creating rows through an edit-only formset. I updated the comment above that check to match.\n- **Release notes**: added the CVE section before \"Bugfixes\" in `docs/releases/5.2.18.txt`, `6.0.9.txt` and `6.1.2.txt`, all of which already exist on this branch.\n- **`tests/model_formsets/tests.py`**: added the three tests from the commit:\n  - `test_deletion_not_allowed_outside_formset_queryset`\n  - `test_deletion_not_allowed_outside_formset_queryset_editable_pk`\n  - `test_edit_only_editable_pk`\n\nThe related suites were `model_formsets`, `model_formsets_regress`, `inline_formsets` and `admin_inlines`.\n\nRESULT: SUCCESS\n",
+          "seconds": 73.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.622s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 87.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.622s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 14.6
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8590dfdb41",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported commit 50eef95591 to this branch, and both test modules pass: 107 tests ran, 2 were skipped, and 3 were expected failures. The commit applied as written; the only adjustment was placing the new composite-pk test by name because the code around it differs on this branch.\n\n- **Fix** (`django/db/models/fields/tuple_lookups.py`): `get_lhs_str()` no longer tries to loop over the left-hand side when it's a single `F()` expression, which is what caused the hang. It now uses the expression's `name` if it has one, otherwise its `repr`. So something like `TupleIn(F(\"pk\"), 1)` now raises a normal `ValueError` instead of hanging.\n- **Tests**:\n  - `test_tuple_lookups_f_invalid_rhs` in `tests/foreign_object/test_tuple_lookups.py` checks the error message for all six tuple lookups.\n  - `test_tuple_in_subquery_lhs_f_pk` in the same file and `test_filter_by_pk_in_rhs_f_object_lhs` in `tests/composite_pk/test_filter.py` are marked as expected failures, as in the original commit. These queries no longer hang but still raise a `ValueError`, which upstream will fix separately under #37383.\n- **Release notes**: added the entry and updated the summary sentence in `docs/releases/6.1.2.txt`.\n\nThe two new expected-failure tests behave as intended. I didn't check which test is the third expected failure; it isn't one I added. I made no commits.\n\nRESULT: SUCCESS\n",
+          "seconds": 54.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.186s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 69.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.186s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 14.7
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cabad83ed1",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix to this branch: models whose `from_db()` override uses the old signature (no `fetch_mode` argument) no longer crash during query iteration. They now get a `RemovedInDjango70Warning` asking their authors to add the argument. Tests pass: `basic.tests` ran 83 tests OK, and the related ORM suites (queries, raw_query, select_related, defer, model_inheritance, known_related_objects, prefetch_related) ran 821 tests OK. I couldn't check formatting because neither black nor flake8 is installed here.\n\nWhat changed and how it differs from the original commit:\n- **`django/db/models/query.py`:** I added `_get_from_db()`, which checks once per query (not per row) whether the model's `from_db()` accepts `fetch_mode`. All three iteration paths now use it: `ModelIterable`, `RawModelIterable` and `RelatedPopulator`.\n- **Imports:** on this branch `django_file_prefixes` comes from `django.utils.deprecation`, not `django.utils.warnings`, so I imported it from there. That was the only real difference from the original commit.\n- **Docs:** I added the same entries to the deprecation timeline, the `from_db()` reference page, and the 6.1 and 6.1.1 release notes.\n- **Tests:** I added the `FromDbOldSignature`, `FromDbOldSignatureRelated` and `FromDbNewSignature` models and the `ModelFromDbTests` class to `tests/basic`.\n\nNothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 67.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-cabad83ed1/baseline/score/django'\nFound 83 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........................................s..............s.......................s...\n----------------------------------------------------------------------\nRan 83 tests in 0.191s\n\nOK (skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 85.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-cabad83ed1/baseline/score/django'\nFound 83 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........................................s..............s.......................s...\n----------------------------------------------------------------------\nRan 83 tests in 0.191s\n\nOK (skipped=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 18.0
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-969450ebcc",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported commit 082b3df406 to this branch, and the tests pass: the requested `admin_changelist.tests` suite, plus the full `admin_changelist`, `admin_views` and `admin_utils` suites as a wider check. The code here matched the original closely, so the patch went in almost unchanged.\n\n- **The fix** (`django/contrib/admin/templatetags/admin_list.py`): when a `list_display` entry follows a chain of relations with `__`, such as `parent__parent`, the changelist now shows the value at the end of the chain. Before, it read the field name from the row object itself, which gave the wrong object (a \"Child object\" instead of a \"Parent object\") or crashed.\n- **Release note**: added the #37270 entry to `docs/releases/6.1.1.txt`.\n- **Tests**: added a `genre` foreign key to the `Musician` test model, and added `test_list_display_second_degree_relation` and `test_list_display_related_field_uses_display_for_field` to `tests/admin_changelist/tests.py`.\n\nI didn't run the new tests against the old code to watch them fail first; the check needed `git stash`, which wasn't approved, so I skipped it. Nothing was committed and git history is unchanged.\n\nRESULT: SUCCESS\n",
+          "seconds": 66.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 0.925s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 82.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 0.925s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 15.6
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-3143a7e7a7",
+      "kind": "conflict",
+      "description": "[6.1.x] Refs #37187 -- Implemented warn_about_implementation() deprecation utility.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported `warn_about_implementation()` into `django/utils/deprecation.py` and added the new test file `tests/deprecation/test_warn_about_implementation.py`. The deprecation test suite passes: 80 tests ran, 1 skipped, which is an existing test rather than one of the new ones.\n\nOnly the surrounding import lines differed on this branch, so the function went in unchanged. Everything it relies on is already here: the `django_file_prefixes()` helper, and Python 3.13 supports the `skip_file_prefixes` argument the function uses. The test file is copied unchanged from commit 260d136920. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 18.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-3143a7e7a7/baseline/score/django'\nFound 18 test(s).\nSystem check identified no issues (0 silenced).\n..................\n----------------------------------------------------------------------\nRan 18 tests in 0.005s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 47.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-3143a7e7a7/baseline/score/django'\nFound 18 test(s).\nSystem check identified no issues (0 silenced).\n..................\n----------------------------------------------------------------------\nRan 18 tests in 0.005s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 28.6
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-bc529fb8a6",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported commit 2e48636c54 to `main`, and the two requested test modules now pass (92 tests). I couldn't check formatting: flake8 and black aren't installed in this environment.\n\n**`django/contrib/admin/options.py`**\n- The three `ModelAdmin` deprecation warnings now go through `warn_about_implementation()`, so they point at the subclass's own code instead of wsgiref. They cover:\n  - `get_list_select_related()` returning `True`\n  - overriding `get_actions()` without the `action_location` parameter\n  - overriding `get_action_choices()` without the `action_location` parameter\n- **Change from the upstream diff:** this branch's import line was different from upstream's. It also imports `django_file_prefixes`, which other warnings in the file still use. So I kept that import and turned the line into a parenthesized import that adds `warn_about_implementation`.\n\n**Tests**\n- `tests/admin_views/test_actions.py`: added the upstream checks that each warning's filename is `admin.py`, and removed the duplicate `filterwarnings` call.\n- `tests/modeladmin/tests.py`: added the upstream checks that the `list_select_related` warnings point at the test file.\n\nRESULT: SUCCESS\n",
+          "seconds": 52.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-bc529fb8a6/baseline/score/django'\nFound 92 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n............................................................................................\n----------------------------------------------------------------------\nRan 92 tests in 1.700s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 64.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.1.x-bc529fb8a6/baseline/score/django'\nFound 92 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n............................................................................................\n----------------------------------------------------------------------\nRan 92 tests in 1.700s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 11.7
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d32ee80ae",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch. The i18n tests pass: 98 run, 1 skipped, no failures. The translation system-check tests also pass.\n\n- **`django/utils/translation/trans_real.py`**: the language-variant lookup now lives in a cached private function, `_get_supported_language_variant()`. The public `get_supported_language_variant()` is no longer cached. It rejects or cuts down codes longer than 500 characters before calling the cached function, so long codes are never stored in the cache. `reset_cache` now clears the new function's cache. The code here was the same as where the upstream commit started, so the change applied without adaptation.\n- **`tests/i18n/tests.py`**: added the two new tests from the commit. One checks that over-length codes in strict mode never reach the cache. The other checks that long codes are stored only under their shortened key.\n- **Release notes**: added the CVE-2026-77050 entry to `docs/releases/6.0.9.txt` and `docs/releases/5.2.18.txt`. I left out `6.1.2.txt` because that file doesn't exist on this branch.\n\nRESULT: SUCCESS\n",
+          "seconds": 35.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.298s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 45.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.298s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 10.1
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d8f121695",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": " so none is raised. I didn't confirm that it also fails without my change. flake8 and black aren't installed here, so I couldn't run the lint and format checks.\n\n**What changed**\n- **`django/utils/http.py`:** removed the old `_parseparam()` helper, which was the quadratic part. Header parameters are now read with `Message.get_params()`, and RFC 2231 encoded values are decoded with `collapse_rfc2231_value()`. The now-unused `unquote` import is gone.\n- **`tests/utils_tests/test_http.py`:** I updated `test_rfc2231_wrong_title` for the new decoding behaviour (`\"'This is ***fun***\"`) and added `test_many_separators_in_quoted_value`.\n- **Release notes:** I added the CVE-2026-84429 section to `docs/releases/6.0.9.txt` and `5.2.18.txt`. `6.1.2.txt` doesn't exist on this branch, so I skipped it.\n\n**Where this branch differed from the original commit**\nThis branch was missing two earlier fixes that the commit builds on, so I brought them in as part of the backport:\n- **Fast path:** headers without a `;` skip the parser and return the lowercased, stripped value. This gives the same result as before.\n- **Unknown encodings:** an RFC 2231 value with an unknown encoding now raises `ValueError`. Before, it raised an uncaught `LookupError` from `unquote()`; without this check the new parser would silently accept it. I added `test_rfc2231_invalid_encoding` to cover this. It uses `assertRaisesRegex` because the test class is a plain `unittest.TestCase`.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 67.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.008s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 75.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.008s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 8.1
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-b83ab92bc5",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2026-87975 fix to this branch, and the related test suites pass. I didn't check that the new tests fail without the fix: that run needed your approval, so I skipped it.\n\n**What changed:**\n- **`django/forms/models.py`:** `BaseModelFormSet.save_existing_objects()` now skips any instance whose `_state.adding` is set, as well as instances with no PK. So forged POST data with an editable primary key can no longer delete a row outside the formset's queryset. It also can no longer create a row through a formset that should only edit. The fix only moved by a few lines; the code was otherwise the same.\n- **Release notes:** I added the CVE section to `docs/releases/5.2.18.txt` and `docs/releases/6.0.9.txt`. `6.1.2.txt` doesn't exist on this branch, so I left it out. The `model-formsets-edit-only` link the notes use already exists here.\n- **Tests:** I added the three tests from the commit to `tests/model_formsets/tests.py` as written. The models and imports they need are already on this branch.\n\n**Tests:** `python tests/runtests.py --parallel=1 --noinput model_formsets model_formsets_regress inline_formsets admin_inlines admin_views` finished with `OK (skipped=72)`. That covers the `model_formsets.tests` command you gave.\n\nNothing was committed and git history is untouched.\n\nRESULT: SUCCESS\n",
+          "seconds": 83.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-b83ab92bc5/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.583s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 94.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-b83ab92bc5/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.583s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 11.2
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-ad8f9e19e0",
+      "kind": "clean_differs",
+      "description": "[6.0.x] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix: the in-memory upload handler now checks the real body size instead of trusting the declared `Content-Length`, so ASGI requests with a missing or understated header can no longer slip past `FILE_UPLOAD_MAX_MEMORY_SIZE`. The specified test run (`asgi.tests` and `requests_tests.tests`) passed, 110 tests.\n\nThe commit applied almost unchanged; the only adjustments were where things sit in this branch's files:\n- **`django/core/files/uploadhandler.py`**: the code change is exactly as in the commit.\n- **`tests/asgi/tests.py`**: the test class rename and the new understated-`Content-Length` upload test are in.\n- **`tests/requests_tests/tests.py`**: the four new tests (in a new `MemoryFileUploadHandlerTests` class) are placed before `HostValidationTests`.\n- **Release notes**: the CVE-2026-5766 section is added to `docs/releases/5.2.14.txt` and to `docs/releases/6.0.5.txt`, above its Bugfixes section.\n\nI also ran the `file_uploads` and `handlers` suites as an extra check. One test failed there: `file_uploads.tests.DirectoryCreationTests.test_readonly_root`, which expects a write to a read-only folder to be refused. This environment runs as root, which can write anywhere, so that's almost certainly the cause and not this change. I couldn't confirm it on the code without my change because stashing it needed an approval that wasn't given.\n\nRESULT: SUCCESS\n",
+          "seconds": 50.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 8.940s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 71.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 8.940s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 21.8
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-4b86ba51e4",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2026-1285 fix to the 6.0.x branch. The `utils_tests.test_text` tests pass, along with the template filter tests (475 tests).\n\n- **The fix** (`django/utils/text.py`): when the HTML truncator sees an end tag, it now removes a tag from its stack only if it matches the most recently opened tag. Before, it searched the whole stack each time, which is what made many unmatched end tags slow. The code here was slightly different from the development branch (it builds `self.output` with `+=` rather than `.append()`), so I changed only the removal lines.\n- **Test** (`tests/utils_tests/test_text.py`): added `test_truncate_chars_html_with_misnested_tags`, which checks that tags closed out of order are all still closed correctly when the text is cut.\n- **Release notes**: added the CVE-2026-1285 section to `docs/releases/4.2.28.txt`, `5.2.11.txt` and `6.0.2.txt`. In 6.0.2 it goes before \"Bugfixes\", as in the original commit.\n\nI left the summary line at the top of 6.0.2.txt unchanged. It already says \"two security issues with severity moderate\", which counts this one.\n\nRESULT: SUCCESS\n",
+          "seconds": 21.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.014s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 31.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.014s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 10.1
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-0910af6046",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2026-33033 fix to this branch, and the requested test suite passes: `requests_tests.tests` ran 68 tests with no failures, including the new one.\n\n**What changed:**\n- **`django/http/multipartparser.py`**: the base64 alignment loop now reads `self._chunk_size` bytes at a time instead of 1\u20133 bytes per call. It also collects the stripped pieces in a list and joins them once at the end. The code here matched the original commit, so the patch went in unchanged.\n- **Release notes**: I added the CVE section to `docs/releases/4.2.30.txt`, `5.2.13.txt` and `6.0.4.txt`. In 6.0.4 it goes before the \"Bugfixes\" section, as in the original.\n- **`tests/requests_tests/tests.py`**: I added `test_multipart_file_upload_base64_whitespace_heavy` plus the imports it needs (`mock` and `LazyStream`). This branch imports from `multipartparser` on one line and doesn't import `MultiPartParser`, so I wrote the import block to fit that.\n\n**Other checks:**\n- I also ran the `file_uploads` suite: 40 tests with one failure, `test_readonly_root`. It expects a `PermissionError` from a read-only directory, which doesn't happen here because the tests run as root. I didn't get to run that test on the unpatched code to confirm, but it doesn't touch the parser code I changed.\n- I didn't run `flake8` or `black`; those commands needed approval in this environment.\n\nRESULT: SUCCESS\n",
+          "seconds": 46.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.014s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 56.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.014s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 9.3
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-ff27883ca0",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix for CVE-2026-87975 to this branch. The test command you gave passes, and so do the `model_formsets`, `model_formsets_regress`, `inline_formsets` and `admin_inlines` suites (204 tests, 15 skipped). I didn't confirm that the three new tests fail without the fix. That check needed `git stash`, which wasn't approved, so I skipped it.\n\n- **The fix** (`django/forms/models.py`): `save_existing_objects()` now skips any instance where `obj._state.adding` is true, in addition to instances with no primary key. This means an object that didn't come from the formset's queryset can't be deleted or saved through forged POST data. The code here was at a different line than in the original commit but otherwise matched, so the change went in as written.\n- **Tests** (`tests/model_formsets/tests.py`): I added the three tests from the commit: two that check deletion is blocked outside the queryset (one with an inline formset whose primary key is a `OneToOneField`, one with an editable custom primary key), and one that checks a forged instance isn't created.\n- **Release notes:** this branch only has `docs/releases/5.2.18.txt`, so I added the CVE section there and left out the 6.0.9 and 6.1.2 notes.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 42.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-ff27883ca0/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.544s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 53.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-ff27883ca0/baseline/score/django'\nFound 74 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..........................................................................\n----------------------------------------------------------------------\nRan 74 tests in 0.544s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 11.7
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-972dbdd4f7",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the CVE-2025-14550 fix to this branch. The full `asgi.tests` suite passes (26 tests), and so do the `handlers` and `requests_tests` suites.\n\n- **`django/core/handlers/asgi.py`**: repeated headers are no longer joined onto the existing value one at a time. The handler now collects them in a `defaultdict(list)` and joins each header once at the end: cookie headers with `\"; \"`, all others with `\",\"`. It then writes them into `META` with a single `update()`. The code here matched the upstream \"before\" version, so the diff applied as written.\n- **Release notes**: I added the CVE-2025-14550 section to `4.2.28.txt`, `5.2.11.txt` and `6.0.2.txt`. All three files exist on this branch.\n- **`tests/asgi/tests.py`**: I renamed `test_create_request_error` to `test_request_too_big_request_error` and added `test_meta_not_modified_with_repeat_headers`.\n\nI didn't confirm that the new test fails against the old code. That check needed a `git stash`, which required approval, so I skipped it. I also couldn't run a lint check because flake8 isn't installed here.\n\nRESULT: SUCCESS\n",
+          "seconds": 48.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 8.909s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "the working tree is not a valid apply of eb22e1d6d6 onto d72cc3be3b:\n- check `existing_tests_preserved` failed: pre-existing tests were removed or renamed: test_create_request_error\n",
+          "seconds": 68.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 8.909s\n\nOK\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 20.4
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-02a69e3791",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the fix to the 5.2 branch, and all tests pass. `i18n.tests` ran 97 tests with 1 skipped. I also ran the wider `i18n`, `check_framework` and `view_tests` suites, which all passed (93 skipped).\n\nThe code here was almost identical to the code on the development branch, so the changes went in as written:\n\n- **`django/utils/translation/trans_real.py`:** the lookup logic now lives in a cached private function, `_get_supported_language_variant()`. The public `get_supported_language_variant()` is no longer cached. It cuts any language code over 500 characters back to a shorter generic variant first, or rejects it in strict mode, so only the shortened code is ever stored in the cache. `reset_cache` now clears the new private function's cache. Nothing else in the codebase called `cache_clear()` on the old function.\n- **`docs/releases/5.2.18.txt`:** added the CVE-2026-77050 note. I left out the 6.0.9 and 6.1.2 release notes from the original commit because those files don't exist on this branch.\n- **`tests/i18n/tests.py`:** added the two new cache tests.\n\nNothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 42.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.296s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 52.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.296s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 10.6
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-6ecd66e09a",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "\n  - I added `test_rfc2231_invalid_encoding`, which is not in the upstream commit.\n- **`docs/releases/5.2.18.txt`**: added the CVE-2026-84429 section. I didn't touch the 6.0.9 and 6.1.2 notes because they don't exist on this branch.\n\n**Where this branch differed from upstream:**\n- **No length limit here.** 5.2.x has no `max_length` / `MAX_HEADER_LENGTH` parameter, so the function signature stays as it was. I removed the release-note sentence about \"the per-call length limit\", since that limit doesn't exist on this branch.\n- **Unknown charsets still raise `LookupError`, not `ValueError`.** Upstream catches the lookup failure and raises `ValueError`, but that rejection was added in a later change that isn't on this branch. Here an unknown charset already raised `LookupError`, and no caller catches either error. So I let `codecs.lookup()` raise `LookupError` as before; my added test covers this. The alternative, letting the standard library quietly fall back to us-ascii, would have accepted bad input silently.\n\n**Tests:**\n- `utils_tests.test_http`: all 48 pass.\n- I also ran `requests_tests`, `file_uploads`, `handlers`, `httpwrappers` and `test_client`. One test fails, `file_uploads\u2026test_readonly_root`, because the tests run as root and the read-only directory doesn't raise a permission error. It has nothing to do with this change.\n- A 200,000-semicolon quoted value now parses in about 0.06s.\n- I couldn't run flake8, black or isort because they aren't installed.\n\nRESULT: SUCCESS\n",
+          "seconds": 72.1,
+          "hidden_pass": false,
+          "hidden_output": "evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/tests/utils_tests/test_http.py\", line 526, in test_rfc2231_invalid_encoding\n    parse_header_parameters(header)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/django/utils/http.py\", line 343, in parse_header_parameters\n    codecs.lookup(encoding)\n    ~~~~~~~~~~~~~^^^^^^^^^^\nLookupError: unknown encoding: INVALID\n\n======================================================================\nERROR: test_rfc2231_invalid_encoding (utils_tests.test_http.ParseHeaderParameterTests.test_rfc2231_invalid_encoding) (raw_line=\"text/plain; title*=NOTACODEC''%E2%80%A6\")\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/tests/utils_tests/test_http.py\", line 526, in test_rfc2231_invalid_encoding\n    parse_header_parameters(header)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/django/utils/http.py\", line 343, in parse_header_parameters\n    codecs.lookup(encoding)\n    ~~~~~~~~~~~~~^^^^^^^^^^\nLookupError: unknown encoding: NOTACODEC\n\n----------------------------------------------------------------------\nRan 48 tests in 0.009s\n\nFAILED (errors=3)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 82.3,
+          "hidden_pass": false,
+          "hidden_output": "evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/tests/utils_tests/test_http.py\", line 526, in test_rfc2231_invalid_encoding\n    parse_header_parameters(header)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/django/utils/http.py\", line 343, in parse_header_parameters\n    codecs.lookup(encoding)\n    ~~~~~~~~~~~~~^^^^^^^^^^\nLookupError: unknown encoding: INVALID\n\n======================================================================\nERROR: test_rfc2231_invalid_encoding (utils_tests.test_http.ParseHeaderParameterTests.test_rfc2231_invalid_encoding) (raw_line=\"text/plain; title*=NOTACODEC''%E2%80%A6\")\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/tests/utils_tests/test_http.py\", line 526, in test_rfc2231_invalid_encoding\n    parse_header_parameters(header)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-6ecd66e09a/baseline/score/django/utils/http.py\", line 343, in parse_header_parameters\n    codecs.lookup(encoding)\n    ~~~~~~~~~~~~~^^^^^^^^^^\nLookupError: unknown encoding: NOTACODEC\n\n----------------------------------------------------------------------\nRan 48 tests in 0.009s\n\nFAILED (errors=3)\n",
+          "false_success": true,
+          "verified": true,
+          "verify_seconds": 10.2
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-d5d60ed032",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch. `DomainNameValidator` now rejects domain names that end in a newline, and the validator tests pass (15 run, 0 failures, 5 skipped).\n\n- **The fix:** the code in `django/core/validators.py` was the same as where the commit was written, so the change applied unchanged. The regex now ends with `\\Z` instead of `$`. That matters because `$` also matches just before a final newline, so a value like `\"example.com\\n\"` used to pass.\n- **Tests:** in `tests/validators/tests.py` I added the four new cases, `\"example.com\\n\"` and `\"example.com\\r\\n\"` for both the default validator and `DomainNameValidator(accept_idna=False)`.\n- **Release notes:** I added the CVE-2026-53878 section to `docs/releases/5.2.16.txt`. That file already said it covers three security issues but listed only two, so this fills the gap. The original commit also edited `docs/releases/6.0.7.txt`; that file isn't on this branch, so I left it out.\n\nI made no commits.\n\nRESULT: SUCCESS\n",
+          "seconds": 22.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.070s\n\nOK (skipped=5)\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 33.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.070s\n\nOK (skipped=5)\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 10.5
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-b9adb81339",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to `main`. The tests pass: `admin_utils.tests` (30 tests), plus the `admin_views` and `admin_changelist` suites, which I also ran.\n\n- **`django/contrib/admin/utils.py`:** `display_for_field()` now checks `URLField` values with `URLValidator` before rendering them as a link. If a value fails the check, such as `javascript:alert(1)`, it is shown as plain text instead of a clickable link. The commit applied cleanly apart from the import lines: this branch doesn't import `get_user_model` or `render_password_as_hash`, so I added only the two new imports.\n- **`tests/admin_utils/tests.py`:** added `test_url_display_for_field_invalid_url`, which checks that `javascript:` and `data:` values come out as plain text.\n- **`docs/releases/5.2.17.txt`:** added the CVE-2026-15920 section. I left out the `6.0.8.txt` note because that file doesn't exist on this branch. The intro already says the release fixes two \"moderate\" issues, but only one was listed before this change, so the count is now correct and needed no edit.\n\nI didn't commit anything.\n\nRESULT: SUCCESS\n",
+          "seconds": 54.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-b9adb81339/baseline/score/django'\nFound 30 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..............................\n----------------------------------------------------------------------\nRan 30 tests in 0.052s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 63.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-b9adb81339/baseline/score/django'\nFound 30 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..............................\n----------------------------------------------------------------------\nRan 30 tests in 0.052s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 9.2
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-c72a5dbb64",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": " fix to this branch. The i18n and `view_tests.tests.test_i18n` suites pass (272 tests, 90 skipped), and the new max-length test passes. I couldn't run the exact command you gave because Django isn't installed here and the sandbox wouldn't let me set `PYTHONPATH`. Instead I ran `runtests.py` through a small `python -c` wrapper that adds the repo root to `sys.path`.\n\nThe change matches the upstream commit, with two small adjustments for this branch:\n\n- **`django/utils/translation/trans_real.py`**: `check_for_language()` no longer uses a cache. It returns `False` for `None` or for any code longer than `LANGUAGE_CODE_MAX_LENGTH` (500 characters). Otherwise it calls the new cached function `translation_catalog_exists()`, which does the lookup as before. The comment on `LANGUAGE_CODE_MAX_LENGTH` was updated, and the settings-change handler now clears the new cache.\n- **`django/test/signals.py`**: clears `translation_catalog_exists`'s cache instead.\n- **`docs/ref/utils.txt`**: notes the 500-character limit.\n- **`docs/releases/5.2.17.txt`**: adds the CVE section. This branch has no 6.0.8 release notes, so that part of the upstream change was left out. The existing intro of the 5.2.17 notes already counts a \"low\" severity issue, so I didn't change it.\n- **`tests/i18n/tests.py`**: adds `test_check_for_language_lang_code_max_length` and the matching import.\n\nNothing else in the code base cleared the old cache, so no other callers needed changing. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 51.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.317s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 60.5,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.317s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 9.3
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-721685aa77",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I backported the fix to this branch, and the `cache.tests` suite passes (184 tests skipped, none failed).\n\n- **`django/middleware/cache.py`**: `UpdateCacheMiddleware` now refuses to cache any response that both sets a cookie and varies on `Cookie`. Before, it only did this when the request had no cookies at all, so a request carrying an unrelated cookie got past the check.\n- **`tests/cache/tests.py`**: `test_sensitive_cookie_not_cached` now runs twice, once with no cookies and once with an unrelated cookie. I also added `test_refreshed_cookie_not_cached`, which covers a response that changes the value of a cookie the request already had.\n- **`docs/releases/5.2.16.txt`**: added the CVE-2026-48588 section.\n\nThe original commit also edits the 6.0.7 release notes. That file is for a newer release and doesn't belong on the 5.2.x branch, so I left it out. The only real adaptation was the test's position in the file: it sits about 350 lines earlier here, and the code itself was the same. Nothing is committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 82.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-721685aa77/baseline/score/django'\nFound 583 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss......................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 583 tests in 57.867s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 149.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-721685aa77/baseline/score/django'\nFound 583 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss......................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 583 tests in 57.867s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 67.1
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-9b62b0af71",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "I've backported the CVE-2026-48587 fix to this branch, and the full cache test suite passes: 582 tests, OK, 184 skipped. I didn't run the new tests against the old code to watch them fail.\n\n- **Fix (`django/utils/cache.py`):** `has_vary_header()` now strips surrounding whitespace from both the `Vary` header values and the header being looked up. This means a padded wildcard like `\" * \"` is now recognised and the response is not cached.\n- **Release note (`docs/releases/5.2.15.txt`):** I added the CVE section after the existing CVE-2026-35193 entry. This branch has no `6.0.6.txt`, so that part of the original commit was skipped.\n- **Tests (`tests/cache/tests.py`):**\n  - Added the new `test_has_vary_header` test.\n  - Added the padded-wildcard view and changed the existing view's header to `\"Cookie, * , Pony\"`. Both are now covered by `test_vary_asterisk_not_cached`.\n  - Switched the tests to import `cc_delim_re` from `django.utils.cache` and removed the now-unused `import re`.\n\nThe code here differed only in line positions, so no other changes were needed. Nothing was committed.\n\nRESULT: SUCCESS\n",
+          "seconds": 138.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 57.817s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 205.8,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-30-27Z-real-claude-code/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 57.817s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 67.4
+        }
+      }
+    }
+  ]
+}

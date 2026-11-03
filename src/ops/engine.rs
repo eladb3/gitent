@@ -242,7 +242,11 @@ pub(crate) fn prepare_step(
     step.tests_before = tests_before.into_iter().collect();
     step.goal = goal_for(&kind, ctx, branch);
     match &kind {
-        StepKind::Apply { .. } => step.required_tests = ctx.records[0].1.tests.clone(),
+        StepKind::Apply { .. } => {
+            step.required_tests = ctx.records[0].1.tests.clone();
+            // Tests the change itself deletes may disappear on the target too.
+            step.removable_tests = diff::tests_removed_in_patch(&ctx.reference_diff);
+        }
         StepKind::Revert { .. } => step.removable_tests = ctx.records[0].1.tests.clone(),
         StepKind::Merge { .. } => {
             let mut t: BTreeSet<String> = BTreeSet::new();
