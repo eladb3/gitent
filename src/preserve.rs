@@ -67,6 +67,22 @@ pub fn defs(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
     out
 }
 
+/// Test identifiers defined in a tree (like `diff::tests_in_tree`, but from git objects).
+pub fn test_names(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    walk(repo, tree, |_, content| {
+        if content.len() > 1_000_000 || content.contains(&0) {
+            return;
+        }
+        for line in String::from_utf8_lossy(content).lines() {
+            if let Some(t) = diff::test_in_line(line) {
+                out.insert(t);
+            }
+        }
+    });
+    out
+}
+
 fn tree_of(repo: &Repo, commit: Oid) -> Result<Tree<'_>> {
     Ok(repo.git.find_commit(commit)?.tree()?)
 }

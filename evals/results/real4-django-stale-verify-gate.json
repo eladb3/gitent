@@ -1,0 +1,615 @@
+{
+  "meta": {
+    "started": "2026-11-03T04-25-41Z",
+    "agent": "stale",
+    "llm": null,
+    "arms": [
+      "baseline",
+      "baseline+verify"
+    ],
+    "source": "django real backports",
+    "agent_command": "stale"
+  },
+  "results": [
+    {
+      "id": "stable-6.1.x-0931d3c352",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37403 -- Fixed JSONField __in crash on SQLite with Value(None) expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/aggregates.py\", line 17, in <module>\n    from django.db.models.functions import Coalesce\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/__init__.py\", line 28, in <module>\n    from .json import JSONArray, JSONObject\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/json.py\", line 4, in <module>\n    from django.db.models.fields.json import JSONField\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/fields/json.py\", line 17, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "92225456397/tmp/verify-op_20261103042549_06754b/django/db/models/aggregates.py\", line 17, in <module>\n    from django.db.models.functions import Coalesce\n  File \"/tmp/gitent-worktrees/repo-892225456397/tmp/verify-op_20261103042549_06754b/django/db/models/functions/__init__.py\", line 28, in <module>\n    from .json import JSONArray, JSONObject\n  File \"/tmp/gitent-worktrees/repo-892225456397/tmp/verify-op_20261103042549_06754b/django/db/models/functions/json.py\", line 4, in <module>\n    from django.db.models.fields.json import JSONField\n  File \"/tmp/gitent-worktrees/repo-892225456397/tmp/verify-op_20261103042549_06754b/django/db/models/fields/json.py\", line 17, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n\n",
+          "seconds": 10.0,
+          "hidden_pass": false,
+          "hidden_output": "serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/aggregates.py\", line 17, in <module>\n    from django.db.models.functions import Coalesce\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/__init__.py\", line 28, in <module>\n    from .json import JSONArray, JSONObject\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/functions/json.py\", line 4, in <module>\n    from django.db.models.fields.json import JSONField\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-0931d3c352/baseline/score/django/db/models/fields/json.py\", line 17, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.9
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-a92be5c4e2",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "1-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/fields/__init__.py\", line 18, in <module>\n    from django.db.models.query_utils import DeferredAttribute, RegisterLookupMixin\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/query_utils.py\", line 21, in <module>\n    from django.utils.text import trim_value\nImportError: cannot import name 'trim_value' from 'django.utils.text' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/utils/text.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "ions import (\n    ...<7 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-6e5da4a89668/tmp/verify-op_20261103042548_a050b1/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/tmp/gitent-worktrees/repo-6e5da4a89668/tmp/verify-op_20261103042548_a050b1/django/db/models/fields/__init__.py\", line 18, in <module>\n    from django.db.models.query_utils import DeferredAttribute, RegisterLookupMixin\n  File \"/tmp/gitent-worktrees/repo-6e5da4a89668/tmp/verify-op_20261103042548_a050b1/django/db/models/query_utils.py\", line 21, in <module>\n    from django.utils.text import trim_value\nImportError: cannot import name 'trim_value' from 'django.utils.text' (/tmp/gitent-worktrees/repo-6e5da4a89668/tmp/verify-op_20261103042548_a050b1/django/utils/text.py)\n\n",
+          "seconds": 11.3,
+          "hidden_pass": false,
+          "hidden_output": "1-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/fields/__init__.py\", line 18, in <module>\n    from django.db.models.query_utils import DeferredAttribute, RegisterLookupMixin\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/db/models/query_utils.py\", line 21, in <module>\n    from django.utils.text import trim_value\nImportError: cannot import name 'trim_value' from 'django.utils.text' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-a92be5c4e2/baseline/score/django/utils/text.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 11.2
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8485c6ac38",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.6,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.417s\n\nOK (skipped=125)\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 12.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-8485c6ac38/baseline/score/django'\nFound 274 test(s).\nSystem check identified no issues (0 silenced).\n................................................................................................................................sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................\n----------------------------------------------------------------------\nRan 274 tests in 0.417s\n\nOK (skipped=125)\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 11.5
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cce6c57ed3",
+      "kind": "identical",
+      "description": "[6.1.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.519s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 14.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cce6c57ed3/baseline/score/django'\nFound 78 test(s).\nSystem check identified no issues (1 silenced).\nCreating test database for alias 'default'...\n..............................................................................\n----------------------------------------------------------------------\nRan 78 tests in 0.519s\n\nOK\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 14.3
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-8590dfdb41",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37291 -- Prevented tuple lookups from hanging on F() expressions.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.246s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 13.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-8590dfdb41/baseline/score/django'\nFound 107 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n........x.............................s........x............................s.......................x......\n----------------------------------------------------------------------\nRan 107 tests in 0.246s\n\nOK (skipped=2, expected failures=3)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 13.1
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-cabad83ed1",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37259 -- Restored support for old-signature Model.from_db() overrides.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.3,
+          "hidden_pass": false,
+          "hidden_output": "ome/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/http/response.py\", line 19, in <module>\n    from django.core.serializers.json import DjangoJSONEncoder\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/__init__.py\", line 54, in <module>\n    from django.db.models.manager import Manager\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/manager.py\", line 7, in <module>\n    from django.db.models.query import QuerySet\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/query.py\", line 49, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\nImportError: cannot import name 'RemovedInDjango71Warning' from 'django.utils.deprecation' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/utils/deprecation.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "    from django.db import models\n  File \"/tmp/gitent-worktrees/repo-5ea6f66dc70f/tmp/verify-op_20261103042605_c9e8ba/django/db/models/__init__.py\", line 54, in <module>\n    from django.db.models.manager import Manager\n  File \"/tmp/gitent-worktrees/repo-5ea6f66dc70f/tmp/verify-op_20261103042605_c9e8ba/django/db/models/manager.py\", line 7, in <module>\n    from django.db.models.query import QuerySet\n  File \"/tmp/gitent-worktrees/repo-5ea6f66dc70f/tmp/verify-op_20261103042605_c9e8ba/django/db/models/query.py\", line 49, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\nImportError: cannot import name 'RemovedInDjango71Warning' from 'django.utils.deprecation' (/tmp/gitent-worktrees/repo-5ea6f66dc70f/tmp/verify-op_20261103042605_c9e8ba/django/utils/deprecation.py)\n\n",
+          "seconds": 12.8,
+          "hidden_pass": false,
+          "hidden_output": "ome/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/http/response.py\", line 19, in <module>\n    from django.core.serializers.json import DjangoJSONEncoder\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/__init__.py\", line 23, in <module>\n    from django.core.serializers.base import SerializerDoesNotExist\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/core/serializers/base.py\", line 8, in <module>\n    from django.db import models\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/__init__.py\", line 54, in <module>\n    from django.db.models.manager import Manager\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/manager.py\", line 7, in <module>\n    from django.db.models.query import QuerySet\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/db/models/query.py\", line 49, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\nImportError: cannot import name 'RemovedInDjango71Warning' from 'django.utils.deprecation' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-cabad83ed1/baseline/score/django/utils/deprecation.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 12.5
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-bc529fb8a6",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37187, #37190 -- Pointed ModelAdmin warnings to the deprecated code.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1312, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/__init__.py\", line 1, in <module>\n    from django.contrib.admin.decorators import action, display, register\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/decorators.py\", line 1, in <module>\n    from django.contrib.admin.options import ActionLocation\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/options.py\", line 80, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "ootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/tmp/gitent-worktrees/repo-764ecdcf1bb4/tmp/verify-op_20261103042608_79b01a/django/contrib/admin/__init__.py\", line 1, in <module>\n    from django.contrib.admin.decorators import action, display, register\n  File \"/tmp/gitent-worktrees/repo-764ecdcf1bb4/tmp/verify-op_20261103042608_79b01a/django/contrib/admin/decorators.py\", line 1, in <module>\n    from django.contrib.admin.options import ActionLocation\n  File \"/tmp/gitent-worktrees/repo-764ecdcf1bb4/tmp/verify-op_20261103042608_79b01a/django/contrib/admin/options.py\", line 80, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n\n",
+          "seconds": 9.5,
+          "hidden_pass": false,
+          "hidden_output": "^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1312, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"<frozen importlib._bootstrap>\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/__init__.py\", line 1, in <module>\n    from django.contrib.admin.decorators import action, display, register\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/decorators.py\", line 1, in <module>\n    from django.contrib.admin.options import ActionLocation\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-bc529fb8a6/baseline/score/django/contrib/admin/options.py\", line 80, in <module>\n    from django.utils.warnings import django_file_prefixes\nModuleNotFoundError: No module named 'django.utils.warnings'\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.4
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-969450ebcc",
+      "kind": "conflict",
+      "description": "[6.1.x] Fixed #37270 -- Fixed incorrect values for second-degree relations in ModelAdmin.list_display.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 0.864s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 13.3,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-969450ebcc/baseline/score/django'\nFound 93 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n...................................................................................ssssssssss\n----------------------------------------------------------------------\nRan 93 tests in 0.864s\n\nOK (skipped=10)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 13.2
+        }
+      }
+    },
+    {
+      "id": "stable-6.1.x-3143a7e7a7",
+      "kind": "conflict",
+      "description": "[6.1.x] Refs #37187 -- Implemented warn_about_implementation() deprecation utility.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "Traceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/tests/runtests.py\", line 24, in <module>\n    from django.conf import settings\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/conf/__init__.py\", line 17, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/utils/deprecation.py\", line 8, in <module>\n    from django.middleware import MiddlewareMixin as _MiddlewareMixin\nImportError: cannot import name 'MiddlewareMixin' from 'django.middleware' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/middleware/__init__.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "onf import settings\n  File \"/tmp/gitent-worktrees/repo-63a787ab5e4c/tmp/verify-op_20261103042626_029f92/django/conf/__init__.py\", line 17, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-63a787ab5e4c/tmp/verify-op_20261103042626_029f92/django/utils/deprecation.py\", line 8, in <module>\n    from django.middleware import MiddlewareMixin as _MiddlewareMixin\nImportError: cannot import name 'MiddlewareMixin' from 'django.middleware' (/tmp/gitent-worktrees/repo-63a787ab5e4c/tmp/verify-op_20261103042626_029f92/django/middleware/__init__.py)\n\n- check `target_preserved` failed: removes definition(s) the target still has: MiddlewareMixin, RemovedInNextVersionWarning, django_file_prefixes (the change being moved does not remove them)\n",
+          "seconds": 11.5,
+          "hidden_pass": false,
+          "hidden_output": "Traceback (most recent call last):\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/tests/runtests.py\", line 24, in <module>\n    from django.conf import settings\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/conf/__init__.py\", line 17, in <module>\n    from django.utils.deprecation import (\n    ...<3 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/utils/deprecation.py\", line 8, in <module>\n    from django.middleware import MiddlewareMixin as _MiddlewareMixin\nImportError: cannot import name 'MiddlewareMixin' from 'django.middleware' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.1.x-3143a7e7a7/baseline/score/django/middleware/__init__.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 11.4
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-b83ab92bc5",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": false,
+          "hidden_output": "-6.0.x-b83ab92bc5/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/utils.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "s import fields\n  File \"/tmp/gitent-worktrees/repo-7e9711c338d4/tmp/verify-op_20261103042628_627345/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/tmp/gitent-worktrees/repo-7e9711c338d4/tmp/verify-op_20261103042628_627345/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-7e9711c338d4/tmp/verify-op_20261103042628_627345/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/tmp/gitent-worktrees/repo-7e9711c338d4/tmp/verify-op_20261103042628_627345/django/db/models/utils.py)\n\n",
+          "seconds": 10.1,
+          "hidden_pass": false,
+          "hidden_output": "-6.0.x-b83ab92bc5/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/aggregates.py\", line 7, in <module>\n    from django.db.models.expressions import (\n    ...<7 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-b83ab92bc5/baseline/score/django/db/models/utils.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.9
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d8f121695",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.007s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 10.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-3d8f121695/baseline/score/django'\nFound 49 test(s).\nSystem check identified no issues (0 silenced).\n.................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.007s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 9.9
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-3d32ee80ae",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.349s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "=========================\nFAIL: test_basque_date_formats (i18n.tests.FormattingTests.test_basque_date_formats)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-93c181e3d1b1/tmp/verify-op_20261103042631_87326c/tests/i18n/tests.py\", line 1189, in test_basque_date_formats\n    self.assertEqual(date_format(self.d), \"2009(e)ko abe.k 31\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009ko abe. 31a' != '2009(e)ko abe.k 31'\n- 2009ko abe. 31a\n?               -\n+ 2009(e)ko abe.k 31\n?     +++       +\n\n\n----------------------------------------------------------------------\nRan 99 tests in 0.356s\n\nFAILED (failures=1, skipped=1)\nDestroying test database for alias 'default'...\n\n",
+          "seconds": 10.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-3d32ee80ae/baseline/score/django'\nFound 98 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.....................................................................s............................\n----------------------------------------------------------------------\nRan 98 tests in 0.349s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 10.3
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-0910af6046",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-33033 -- Mitigated potential DoS in MultiPartParser.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.014s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "L: test_multipart_parser_class_immutable_after_parse (requests_tests.tests.RequestsTests.test_multipart_parser_class_immutable_after_parse)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-45b906d52dad/tmp/verify-op_20261103042650_f08318/tests/requests_tests/tests.py\", line 1250, in test_multipart_parser_class_immutable_after_parse\n    with self.assertRaisesMessage(RuntimeError, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 148, in __exit__\n    next(self.gen)\n    ~~~~^^^^^^^^^^\nAssertionError: RuntimeError not raised\n\n----------------------------------------------------------------------\nRan 70 tests in 0.017s\n\nFAILED (failures=2)\n\n",
+          "seconds": 8.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-0910af6046/baseline/score/django'\nFound 68 test(s).\nSystem check identified no issues (0 silenced).\n....................................................................\n----------------------------------------------------------------------\nRan 68 tests in 0.014s\n\nOK\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 8.6
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-4b86ba51e4",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2026-1285 -- Mitigated potential DoS in django.utils.text.Truncator for HTML input.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.018s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 8.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-4b86ba51e4/baseline/score/django'\nFound 21 test(s).\nSystem check identified no issues (0 silenced).\n.....................\n----------------------------------------------------------------------\nRan 21 tests in 0.018s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 8.6
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-ff27883ca0",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-87975 -- Prevented forging actions in model formsets with editable PKs.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "83ca0/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/aggregates.py\", line 6, in <module>\n    from django.db.models.expressions import Case, ColPairs, Func, Star, Value, When\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/utils.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "s import fields\n  File \"/tmp/gitent-worktrees/repo-15e2e2426d8f/tmp/verify-op_20261103042709_dac94d/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/tmp/gitent-worktrees/repo-15e2e2426d8f/tmp/verify-op_20261103042709_dac94d/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-15e2e2426d8f/tmp/verify-op_20261103042709_dac94d/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/tmp/gitent-worktrees/repo-15e2e2426d8f/tmp/verify-op_20261103042709_dac94d/django/db/models/utils.py)\n\n",
+          "seconds": 9.3,
+          "hidden_pass": false,
+          "hidden_output": "83ca0/baseline/score/django/db/models/__init__.py\", line 3, in <module>\n    from django.db.models.aggregates import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/aggregates.py\", line 6, in <module>\n    from django.db.models.expressions import Case, ColPairs, Func, Star, Value, When\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/expressions.py\", line 13, in <module>\n    from django.db.models import fields\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/fields/__init__.py\", line 11, in <module>\n    from django import forms\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/__init__.py\", line 10, in <module>\n    from django.forms.models import *  # NOQA\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/forms/models.py\", line 15, in <module>\n    from django.db.models.utils import AltersData, get_blank_choice_label\nImportError: cannot import name 'get_blank_choice_label' from 'django.db.models.utils' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-ff27883ca0/baseline/score/django/db/models/utils.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.2
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-6ecd66e09a",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-84429 -- Simplified parse_header_parameters by leveraging stdlib's Message.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-6ecd66e09a/baseline/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.008s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 9.4,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-6ecd66e09a/baseline/score/django'\nFound 48 test(s).\nSystem check identified no issues (0 silenced).\n................................................\n----------------------------------------------------------------------\nRan 48 tests in 0.008s\n\nOK\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 9.3
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-ad8f9e19e0",
+      "kind": "clean_differs",
+      "description": "[6.0.x] Fixed CVE-2026-5766 -- Enforced DATA_UPLOAD_MAX_MEMORY_SIZE in MemoryFileUploadHandler on ASGI.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 8.993s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "tipart_parser_class_immutable_after_parse (requests_tests.tests.RequestsTests.test_multipart_parser_class_immutable_after_parse)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-fa6f82091ff3/tmp/verify-op_20261103042648_df1ec2/tests/requests_tests/tests.py\", line 1264, in test_multipart_parser_class_immutable_after_parse\n    with self.assertRaisesMessage(RuntimeError, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 148, in __exit__\n    next(self.gen)\n    ~~~~^^^^^^^^^^\nAssertionError: RuntimeError not raised\n\n----------------------------------------------------------------------\nRan 113 tests in 8.951s\n\nFAILED (failures=2, errors=4)\n\n",
+          "seconds": 23.0,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-ad8f9e19e0/baseline/score/django'\nFound 110 test(s).\nSystem check identified no issues (0 silenced).\n..............................................................................................................\n----------------------------------------------------------------------\nRan 110 tests in 8.993s\n\nOK\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 22.8
+        }
+      }
+    },
+    {
+      "id": "stable-6.0.x-972dbdd4f7",
+      "kind": "conflict",
+      "description": "[6.0.x] Fixed CVE-2025-14550 -- Optimized repeated header parsing in ASGI requests.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 8.921s\n\nOK\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "the working tree is not a valid apply of eb22e1d6d6 onto d72cc3be3b:\n- check `existing_tests_preserved` failed: pre-existing tests were removed or renamed: test_create_request_error\n",
+          "seconds": 18.2,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-6.0.x-972dbdd4f7/baseline/score/django'\nFound 26 test(s).\nSystem check identified no issues (0 silenced).\n..........................\n----------------------------------------------------------------------\nRan 26 tests in 8.921s\n\nOK\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 18.1
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-02a69e3791",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-77050 -- Prevented memory exhaustion in get_supported_language_variant().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.345s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "Tests.test_uncommon_locale_formats) (locale='fr-ca', expected='2009-12-31 20\\xa0h\\xa050')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-23d07483df71/tmp/verify-op_20261103042726_4f4aec/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009-12-31 20\\xa0h\\xa050' != '2009-12-31 20\\xa008\\xa050'\n- 2009-12-31 20\u00a0h\u00a050\n?              \u00a0^\n+ 2009-12-31 20\u00a008\u00a050\n?              \u00a0^^\n\n\n----------------------------------------------------------------------\nRan 99 tests in 0.379s\n\nFAILED (failures=4, skipped=1)\nDestroying test database for alias 'default'...\n\n",
+          "seconds": 12.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-02a69e3791/baseline/score/django'\nFound 97 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n....................................................................s............................\n----------------------------------------------------------------------\nRan 97 tests in 0.345s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 12.0
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-b9adb81339",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15920 -- Made display_for_field() validate URLs before rendering admin links.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": "strap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/__init__.py\", line 2, in <module>\n    from django.contrib.admin.filters import (\n    ...<10 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/filters.py\", line 12, in <module>\n    from django.contrib.admin.options import IncorrectLookupParameters\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/options.py\", line 14, in <module>\n    from django.contrib.admin import helpers, widgets\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/helpers.py\", line 4, in <module>\n    from django.contrib.admin.utils import (\n    ...<6 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/utils.py\", line 9, in <module>\n    from django.contrib.auth.templatetags.auth import render_password_as_hash\nModuleNotFoundError: No module named 'django.contrib.auth.templatetags'\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "admin/filters.py\", line 12, in <module>\n    from django.contrib.admin.options import IncorrectLookupParameters\n  File \"/tmp/gitent-worktrees/repo-36544287fabd/tmp/verify-op_20261103042729_4ca906/django/contrib/admin/options.py\", line 14, in <module>\n    from django.contrib.admin import helpers, widgets\n  File \"/tmp/gitent-worktrees/repo-36544287fabd/tmp/verify-op_20261103042729_4ca906/django/contrib/admin/helpers.py\", line 4, in <module>\n    from django.contrib.admin.utils import (\n    ...<6 lines>...\n    )\n  File \"/tmp/gitent-worktrees/repo-36544287fabd/tmp/verify-op_20261103042729_4ca906/django/contrib/admin/utils.py\", line 9, in <module>\n    from django.contrib.auth.templatetags.auth import render_password_as_hash\nModuleNotFoundError: No module named 'django.contrib.auth.templatetags'\n\n",
+          "seconds": 9.8,
+          "hidden_pass": false,
+          "hidden_output": "strap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/__init__.py\", line 2, in <module>\n    from django.contrib.admin.filters import (\n    ...<10 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/filters.py\", line 12, in <module>\n    from django.contrib.admin.options import IncorrectLookupParameters\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/options.py\", line 14, in <module>\n    from django.contrib.admin import helpers, widgets\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/helpers.py\", line 4, in <module>\n    from django.contrib.admin.utils import (\n    ...<6 lines>...\n    )\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-b9adb81339/baseline/score/django/contrib/admin/utils.py\", line 9, in <module>\n    from django.contrib.auth.templatetags.auth import render_password_as_hash\nModuleNotFoundError: No module named 'django.contrib.auth.templatetags'\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.7
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-d5d60ed032",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-53878 -- Prevented newlines from being accepted in DomainNameValidator.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.076s\n\nOK (skipped=5)\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": true,
+          "detail": "",
+          "seconds": 8.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-d5d60ed032/baseline/score/django'\nFound 15 test(s).\nSystem check identified no issues (0 silenced).\n.....sssss.........\n----------------------------------------------------------------------\nRan 15 tests in 0.076s\n\nOK (skipped=5)\n",
+          "false_success": false,
+          "verified": true,
+          "verify_seconds": 8.0
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-c72a5dbb64",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-15337 -- Mitigated potential DoS in check_for_language().",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.288s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "Tests.test_uncommon_locale_formats) (locale='fr-ca', expected='2009-12-31 20\\xa0h\\xa050')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-worktrees/repo-5c9511c4aa97/tmp/verify-op_20261103042730_aa1947/tests/i18n/tests.py\", line 1183, in test_uncommon_locale_formats\n    self.assertEqual(expected, format_function(*format_args))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '2009-12-31 20\\xa0h\\xa050' != '2009-12-31 20\\xa008\\xa050'\n- 2009-12-31 20\u00a0h\u00a050\n?              \u00a0^\n+ 2009-12-31 20\u00a008\u00a050\n?              \u00a0^^\n\n\n----------------------------------------------------------------------\nRan 97 tests in 0.376s\n\nFAILED (failures=4, skipped=1)\nDestroying test database for alias 'default'...\n\n",
+          "seconds": 9.7,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-c72a5dbb64/baseline/score/django'\nFound 95 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n..................................................................s............................\n----------------------------------------------------------------------\nRan 95 tests in 0.288s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 9.6
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-721685aa77",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48588 -- Prevented caching of responses that set cookies and vary on Cookie.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": false,
+          "hidden_output": ">\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/__init__.py\", line 22, in <module>\n    from django.contrib.admin.sites import AdminSite, site\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/sites.py\", line 22, in <module>\n    from django.views.decorators.cache import never_cache\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/views/decorators/cache.py\", line 5, in <module>\n    from django.middleware.cache import CacheMiddleware\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/middleware/cache.py\", line 61, in <module>\n    from django.utils.http import parse_http_date_safe, split_directive_names\nImportError: cannot import name 'split_directive_names' from 'django.utils.http' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/utils/http.py)\n",
+          "false_success": true
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": " AdminSite, site\n  File \"/tmp/gitent-worktrees/repo-83fc57701af6/tmp/verify-op_20261103042752_555735/django/contrib/admin/sites.py\", line 22, in <module>\n    from django.views.decorators.cache import never_cache\n  File \"/tmp/gitent-worktrees/repo-83fc57701af6/tmp/verify-op_20261103042752_555735/django/views/decorators/cache.py\", line 5, in <module>\n    from django.middleware.cache import CacheMiddleware\n  File \"/tmp/gitent-worktrees/repo-83fc57701af6/tmp/verify-op_20261103042752_555735/django/middleware/cache.py\", line 61, in <module>\n    from django.utils.http import parse_http_date_safe, split_directive_names\nImportError: cannot import name 'split_directive_names' from 'django.utils.http' (/tmp/gitent-worktrees/repo-83fc57701af6/tmp/verify-op_20261103042752_555735/django/utils/http.py)\n\n",
+          "seconds": 10.9,
+          "hidden_pass": false,
+          "hidden_output": ">\", line 1404, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1369, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1340, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 1027, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/__init__.py\", line 22, in <module>\n    from django.contrib.admin.sites import AdminSite, site\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/contrib/admin/sites.py\", line 22, in <module>\n    from django.views.decorators.cache import never_cache\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/views/decorators/cache.py\", line 5, in <module>\n    from django.middleware.cache import CacheMiddleware\n  File \"/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/middleware/cache.py\", line 61, in <module>\n    from django.utils.http import parse_http_date_safe, split_directive_names\nImportError: cannot import name 'split_directive_names' from 'django.utils.http' (/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-721685aa77/baseline/score/django/utils/http.py)\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 10.8
+        }
+      }
+    },
+    {
+      "id": "stable-5.2.x-9b62b0af71",
+      "kind": "conflict",
+      "description": "[5.2.x] Fixed CVE-2026-48587 -- Ignored whitespace padding when checking Vary header values.",
+      "arms": {
+        "baseline": {
+          "reported_success": true,
+          "detail": "RESULT: SUCCESS\n",
+          "seconds": 0.1,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 57.703s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false
+        },
+        "baseline+verify": {
+          "reported_success": false,
+          "detail": "r/realbench/venv/lib/python3.13/site-packages/asgiref/sync.py\", line 416, in main_wrap\n    result = await awaitable\n             ^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-worktrees/repo-fdfe8817a2fa/tmp/verify-op_20261103042752_59d83a/tests/cache/tests.py\", line 1220, in test_has_key_async_uses_specialized_implementation\n    mocked.assert_called_once()\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.13/unittest/mock.py\", line 958, in assert_called_once\n    raise AssertionError(msg)\nAssertionError: Expected 'has_key' to have been called once. Called 0 times.\n\n----------------------------------------------------------------------\nRan 647 tests in 57.921s\n\nFAILED (failures=10, skipped=209)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n\n",
+          "seconds": 69.9,
+          "hidden_pass": true,
+          "hidden_output": "Testing against Django installed in '/home/user/gitent/evals/runs/2026-11-03T04-25-41Z-real-stale/stable-5.2.x-9b62b0af71/baseline/score/django'\nFound 582 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n.........................................................................................................................................................................................ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.....................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 582 tests in 57.703s\n\nOK (skipped=184)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'...\n",
+          "false_success": false,
+          "verified": false,
+          "verify_seconds": 69.8
+        }
+      }
+    }
+  ]
+}

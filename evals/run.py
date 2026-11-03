@@ -209,10 +209,36 @@ def stale_agent(case, repo):
     return f"cat > /dev/null; git checkout {src} -- {' '.join(keep)} && git reset -q; echo 'RESULT: SUCCESS'"
 
 
+def verify_gate(case, repo, gitent, env_extra=None):
+    """`gitent verify --working-tree` on an arm's (uncommitted) result: the
+    ADR 0011 gate. Returns (verified, seconds, detail). No agent is invoked."""
+    op, rev = case["operation"]["op"], case["operation"]["rev"]
+    git = lambda *a: sh(["git", *a], repo).stdout.strip()
+    if op == "rebase":
+        br = case["operation"]["branch"]
+        base = git("merge-base", br, rev)
+        checks = [(c, "apply") for c in git("rev-list", "--reverse", f"{base}..{br}").split()]
+    else:
+        checks = [(rev, {"cherry-pick": "apply", "revert": "revert", "merge": "merge"}[op])]
+    t0, details = time.time(), []
+    env = dict(CLEAN_ENV, **(env_extra or {}))
+    ok = True
+    for src, kind in checks:
+        p = sh([gitent, "--json", "--provider", "none", "verify", src, "--working-tree", "--kind", kind], repo, env=env)
+        try:
+            v = json.loads(p.stdout)
+        except json.JSONDecodeError:
+            v = {"error": p.stdout + p.stderr}
+        if p.returncode != 0:
+            ok = False
+            details.append((v.get("error") or "")[-800:])
+    return ok, round(time.time() - t0, 1), "\n".join(details)
+
+
 def run_case(case, args, out):
     res = {"id": case["id"], "kind": case["kind"], "description": case["description"], "arms": {}}
     agent_cmd = reference_agent(case, out) if args.agent == "offline" else AGENTS.get(args.agent, args.agent)
-    for arm in args.arms:
+    for arm in [a for a in args.arms if a != "baseline+verify"]:
         work = out / case["id"] / arm
         repo = work / "repo"
         build(case, repo, args.gitent)
@@ -229,9 +255,19 @@ def run_case(case, args, out):
         except subprocess.TimeoutExpired:
             r = {"reported_success": False, "detail": "timeout"}
         r["seconds"] = round(time.time() - t0, 1)
+        gate = None
+        if arm == "baseline" and "baseline+verify" in args.arms:
+            gate = verify_gate(case, repo, args.gitent)
         r.update(score(case, repo, work))
         r["false_success"] = r["reported_success"] and not r["hidden_pass"]
         res["arms"][arm] = r
+        if gate is not None:
+            g = dict(r)
+            g["verified"], g["verify_seconds"], g["detail"] = gate
+            g["reported_success"] = r["reported_success"] and gate[0]
+            g["seconds"] = round(r["seconds"] + gate[1], 1)
+            g["false_success"] = g["reported_success"] and not g["hidden_pass"]
+            res["arms"]["baseline+verify"] = g
         print(f"  {case['id']:<32} {arm:<9} hidden={'PASS' if r['hidden_pass'] else 'fail'} "
               f"reported={'success' if r['reported_success'] else 'failure'} ({r['seconds']}s)", flush=True)
     return res

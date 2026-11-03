@@ -128,7 +128,9 @@ CASES.append({
     ],
     "operation": {"op": "merge", "rev": "punct"},
     "hidden": {"tests/test_hidden.py": 'import unittest\nfrom app.greet import greet\n\n\nclass Hidden(unittest.TestCase):\n    def test_both(self):\n        self.assertEqual(greet(" ada lovelace ", "!"), "Hello, Ada Lovelace!")\n\n    def test_default(self):\n        self.assertEqual(greet("bob"), "Hello, Bob")\n\n    def test_punct_only(self):\n        self.assertEqual(greet("Bob", "?"), "Hello, Bob?")\n'},
-    "reference": {"app/greet.py": 'def greet(name, punct=""):\n    return "Hello, " + name.strip().title() + punct\n'},
+    "reference": {"app/greet.py": 'def greet(name, punct=""):\n    return "Hello, " + name.strip().title() + punct\n',
+                  # a complete merge also carries their test
+                  "tests/test_punct.py": 'import unittest\nfrom app.greet import greet\n\n\nclass PunctTest(unittest.TestCase):\n    def test_punct(self):\n        self.assertEqual(greet("Bob", "?"), "Hello, Bob?")\n'},
 })
 
 # ---------------------------------------------------------------- E5 revert after refactor

@@ -107,6 +107,17 @@ fn mcp_stdio_end_to_end() {
     std::fs::write(wt.join("tests/test_cache.py"), TEST_CACHE_ACCOUNTS_PY).unwrap();
     let res = m.call("gitent_continue", json!({}));
     assert_eq!(res["structuredContent"]["state"], "succeeded", "{res}");
+    // V6: verify over MCP (the cherry-pick just made is a valid move of `feature`).
+    let res = m.call("gitent_verify", json!({"source": feature}));
+    assert_eq!(res["structuredContent"]["verified"], true, "{res}");
+    let res = m.call(
+        "gitent_verify",
+        json!({"source": feature, "result": "HEAD~1", "onto": "HEAD~2"}),
+    );
+    assert_eq!(
+        res["isError"], true,
+        "the rename commit is not a move of the caching change: {res}"
+    );
 
     // The host agent commits with its own intent and requirements.
     r.write(

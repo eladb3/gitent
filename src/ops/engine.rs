@@ -17,8 +17,8 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 /// Records and diffs a step needs (loaded on demand, not persisted).
-struct StepCtx {
-    records: Vec<(Oid, SemanticChange)>,
+pub(crate) struct StepCtx {
+    pub(crate) records: Vec<(Oid, SemanticChange)>,
     preserve: Vec<(Oid, SemanticChange)>,
     reference_diff: String,
     reference_label: String,
@@ -138,7 +138,7 @@ fn finalize(s: &Session, op: &mut Operation) -> Result<()> {
     Ok(())
 }
 
-fn load_ctx(s: &Session, kind: &StepKind, tip: Oid) -> Result<StepCtx> {
+pub(crate) fn load_ctx(s: &Session, kind: &StepKind, tip: Oid) -> Result<StepCtx> {
     let p = s.provider();
     Ok(match kind {
         StepKind::Apply { source } | StepKind::Revert { source } => {
@@ -185,7 +185,7 @@ fn load_ctx(s: &Session, kind: &StepKind, tip: Oid) -> Result<StepCtx> {
     })
 }
 
-fn goal_for(kind: &StepKind, ctx: &StepCtx, branch: &str) -> String {
+pub(crate) fn goal_for(kind: &StepKind, ctx: &StepCtx, branch: &str) -> String {
     match kind {
         StepKind::Apply { .. } => {
             let r = &ctx.records[0].1;
@@ -228,6 +228,60 @@ fn goal_for(kind: &StepKind, ctx: &StepCtx, branch: &str) -> String {
     }
 }
 
+/// Fill in what a step must satisfy: goal, test guards, requirements (ADR 0008 §7).
+/// Shared by operations and `gitent verify` (ADR 0011).
+pub(crate) fn prepare_step(
+    s: &Session,
+    step: &mut Step,
+    ctx: &StepCtx,
+    tip: Oid,
+    branch: &str,
+    tests_before: BTreeSet<String>,
+) -> Result<()> {
+    let kind = step.kind.clone();
+    step.tests_before = tests_before.into_iter().collect();
+    step.goal = goal_for(&kind, ctx, branch);
+    match &kind {
+        StepKind::Apply { .. } => step.required_tests = ctx.records[0].1.tests.clone(),
+        StepKind::Revert { .. } => step.removable_tests = ctx.records[0].1.tests.clone(),
+        StepKind::Merge { .. } => {
+            let mut t: BTreeSet<String> = BTreeSet::new();
+            for (_, r) in &ctx.records {
+                t.extend(r.tests.iter().cloned());
+            }
+            // Tests removed on their side may legitimately disappear.
+            step.removable_tests = diff::tests_removed_in_patch(&ctx.reference_diff);
+            step.required_tests = t.into_iter().collect();
+        }
+    }
+    let tip_ledger = requirements::ledger(&s.repo, tip)?;
+    let (reqs, retiring) = match &kind {
+        StepKind::Apply { source } => {
+            let src = requirements::live_from_record(&ctx.records[0].1, source);
+            (requirements::union(src, tip_ledger), vec![])
+        }
+        StepKind::Revert { .. } => {
+            let ids: std::collections::HashSet<String> = ctx.records[0]
+                .1
+                .requirements
+                .iter()
+                .map(|r| r.id.clone())
+                .collect();
+            let (gone, keep): (Vec<_>, Vec<_>) = tip_ledger
+                .into_iter()
+                .partition(|l| ids.contains(&l.req.id));
+            (keep, gone)
+        }
+        StepKind::Merge { theirs, .. } => {
+            let theirs_ledger = requirements::ledger(&s.repo, Oid::from_str(theirs)?)?;
+            (requirements::union(tip_ledger, theirs_ledger), vec![])
+        }
+    };
+    step.requirements = reqs;
+    step.retiring = retiring;
+    Ok(())
+}
+
 fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result<Outcome> {
     let tip = Oid::from_str(&op.tip)?;
     let wt_path = PathBuf::from(&op.worktree);
@@ -245,49 +299,8 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
     if !resuming {
         // ---- prepare ----
         Repo::reset_worktree(&wt, tip, None)?;
-        let step = &mut op.steps[i];
-        step.tests_before = diff::tests_in_tree(&wt_path).into_iter().collect();
-        step.goal = goal_for(&kind, &ctx, &branch);
-        match &kind {
-            StepKind::Apply { .. } => step.required_tests = ctx.records[0].1.tests.clone(),
-            StepKind::Revert { .. } => step.removable_tests = ctx.records[0].1.tests.clone(),
-            StepKind::Merge { .. } => {
-                let mut t: BTreeSet<String> = BTreeSet::new();
-                for (_, r) in &ctx.records {
-                    t.extend(r.tests.iter().cloned());
-                }
-                // Tests removed on their side may legitimately disappear.
-                let theirs_patch = &ctx.reference_diff;
-                step.removable_tests = diff::tests_removed_in_patch(theirs_patch);
-                step.required_tests = t.into_iter().collect();
-            }
-        }
-        // Requirements this step must satisfy (ADR 0008 §7).
-        let tip_ledger = requirements::ledger(&s.repo, tip)?;
-        let (reqs, retiring) = match &kind {
-            StepKind::Apply { source } => {
-                let src = requirements::live_from_record(&ctx.records[0].1, source);
-                (requirements::union(src, tip_ledger), vec![])
-            }
-            StepKind::Revert { .. } => {
-                let ids: std::collections::HashSet<String> = ctx.records[0]
-                    .1
-                    .requirements
-                    .iter()
-                    .map(|r| r.id.clone())
-                    .collect();
-                let (gone, keep): (Vec<_>, Vec<_>) = tip_ledger
-                    .into_iter()
-                    .partition(|l| ids.contains(&l.req.id));
-                (keep, gone)
-            }
-            StepKind::Merge { theirs, .. } => {
-                let theirs_ledger = requirements::ledger(&s.repo, Oid::from_str(theirs)?)?;
-                (requirements::union(tip_ledger, theirs_ledger), vec![])
-            }
-        };
-        op.steps[i].requirements = reqs;
-        op.steps[i].retiring = retiring;
+        let tests_before = diff::tests_in_tree(&wt_path);
+        prepare_step(s, &mut op.steps[i], &ctx, tip, &branch, tests_before)?;
 
         // ---- 1. deterministic attempt ----
         let mut starting_point = String::from("The worktree is at the current tip of the branch.");
@@ -527,17 +540,29 @@ fn write_brief(
 fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, ValidationReport)> {
     let snap = wt.stage_all()?;
     let tip = Oid::from_str(&op.tip)?;
+    let report = validate_candidate(s, &op.steps[i], tip, snap, &wt.workdir)?;
+    Ok((snap, report))
+}
+
+/// Validate a candidate tree `snap` (checked out at `workdir`) for `step`, starting from `tip`.
+/// The single validation code path for operations and `gitent verify` (ADR 0011).
+pub(crate) fn validate_candidate(
+    s: &Session,
+    step: &Step,
+    tip: Oid,
+    snap: Oid,
+    workdir: &Path,
+) -> Result<ValidationReport> {
     let tip_tree = s.repo.git.find_commit(tip)?.tree()?;
     let snap_tree = s.repo.git.find_tree(snap)?;
     let d = s.repo.diff_trees(Some(&tip_tree), &snap_tree)?;
-    let step = &op.steps[i];
     let before: BTreeSet<String> = step.tests_before.iter().cloned().collect();
     let mut goal = step.goal.clone();
     if let StepKind::Merge { .. } = step.kind {
         goal.push_str("\n(For a merge, the diff below is relative to OUR side; it should add their intentions.)");
     }
     // Executable requirements first (ADR 0008 §7); judged ones go to the verifier.
-    let mut runner = requirements::Runner::new(&wt.workdir, &s.cfg);
+    let mut runner = requirements::Runner::new(workdir, &s.cfg);
     let exec: Vec<_> = step
         .requirements
         .iter()
@@ -569,7 +594,7 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
         vcfg.verifier = false;
     }
     let mut report = validate::validate(&validate::Ctx {
-        worktree: &wt.workdir,
+        worktree: workdir,
         diff: &d,
         tests_before: &before,
         required_tests: &step.required_tests,
@@ -679,7 +704,7 @@ fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, Va
             report.passed = report.checks.iter().all(|c| c.passed);
         }
     }
-    Ok((snap, report))
+    Ok(report)
 }
 
 fn commit_step(

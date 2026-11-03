@@ -125,6 +125,24 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
             }
             Ok(v)
         }
+        "verify" => {
+            let src = arg_str(args, "source").ok_or_else(|| anyhow!("`source` is required"))?;
+            let mut s2 = s;
+            if arg_bool(args, "no_llm") {
+                s2.provider = None;
+            }
+            crate::ops::verify::verify(
+                &s2,
+                &crate::ops::verify::VerifyOptions {
+                    source: src,
+                    result: arg_str(args, "result"),
+                    onto: arg_str(args, "onto"),
+                    working_tree: arg_bool(args, "working_tree"),
+                    kind: arg_str(args, "kind").unwrap_or_default(),
+                    record: arg_bool(args, "record"),
+                },
+            )
+        }
         "check" => check(
             &s,
             arg_str(args, "rev").as_deref(),
@@ -396,6 +414,14 @@ pub fn tool_defs() -> Vec<Value> {
             "retires": {"type": "array", "description": "Live requirements this change deliberately ends: [{id, reason}]", "items": {"type": "object"}},
             "check_ledger": {"type": "boolean", "description": "Reject the commit if it breaks any live requirement"},
             "prove": {"type": "string", "enum": ["warn", "require", "off"]}}), &[])}),
+        json!({"name": "gitent_verify", "description": "Check that an existing result (a commit, or your uncommitted working tree) correctly moves a change: the change's requirements, the target's requirements and tests, nothing resurrected/deleted/weakened. Use before committing or merging agent-made backports, merges and reverts. No agent is invoked.", "inputSchema": obj(json!({
+            "source": {"type": "string", "description": "The change that was moved (commit or int_…); for merge, the merged branch"},
+            "result": {"type": "string", "description": "Commit to verify (default HEAD)"},
+            "onto": {"type": "string", "description": "Target before the change (default: result's first parent)"},
+            "working_tree": {"type": "boolean", "description": "Verify uncommitted changes against HEAD"},
+            "kind": {"type": "string", "enum": ["apply", "revert", "merge"]},
+            "record": {"type": "boolean", "description": "Attach a semantic record to the result if verified"},
+            "no_llm": {"type": "boolean"}}), &["source"])}),
         json!({"name": "gitent_check", "description": "Run all live requirements (the ledger) on the working tree or a revision; names the intention behind any failure.", "inputSchema": obj(json!({"rev": {"type": "string"}, "intent": {"type": "string"}, "judge": {"type": "boolean"}}), &[])}),
         json!({"name": "gitent_cherry_pick", "description": "Re-implement a commit's intention on the current branch. Tries git first, validates, falls back to an agent. With executor=host returns state=awaiting_host with a worktree and brief: edit there, then call gitent_continue.", "inputSchema": with(json!({"commit": {"type": "string"}, "commits": {"type": "array", "items": {"type": "string"}}}), &[])}),
         json!({"name": "gitent_merge", "description": "Merge a branch by composing intentions from both sides; checks compatibility, validates the result.", "inputSchema": with(json!({"branch": {"type": "string"}, "force": {"type": "boolean", "description": "Proceed even if intentions look incompatible"}}), &["branch"])}),

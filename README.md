@@ -15,6 +15,7 @@ gitent init --agent claude-code      # or codex, kiro, gemini, aider, builtin, h
 gitent commit -m "Add caching"       # records a structured intention next to the git commit
 gitent log                           # history of intentions + provenance
 gitent check                         # are all live requirements still satisfied?
+gitent verify <fix> [--working-tree] # did someone/some agent move <fix> correctly? (no agent call)
 gitent cherry-pick <commit>          # re-implements the intention on the current branch
 gitent merge <branch>                # composes intentions from both sides
 gitent rebase <onto>                 # replays intentions onto a new base

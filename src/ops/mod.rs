@@ -4,6 +4,7 @@ pub mod brief;
 pub mod commit;
 pub mod engine;
 pub mod plan;
+pub mod verify;
 
 use crate::config::Config;
 use crate::llm::Provider;
