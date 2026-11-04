@@ -15,3 +15,4 @@ Short, numbered, immutable once accepted (supersede instead of editing).
 | [0009](0009-worktrees-outside-git-dir.md) | Operation worktrees live outside `.git/` (found by the first live eval) |
 | [0010](0010-target-preservation-guards.md) | Results must not resurrect deleted paths or drop target definitions (found by fault injection) |
 | [0011](0011-verify.md) | `gitent verify`: validate any agent's/bot's/human's result without driving the agent |
+| [0012](0012-github-action.md) | GitHub Action: `gitent verify-pr` on backport PRs; release binaries; self-test on real runners |
