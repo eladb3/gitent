@@ -20,3 +20,29 @@ jobs:
           cargo build --release
           python3 evals/run.py --agent offline --jobs 4
           python3 evals/run.py --agent stale --arms baseline,baseline+verify,gitent --jobs 4
+
+  # Same build as release.yml, without publishing: proves every release target builds.
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with: { key: "${{ matrix.target }}" }
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: smoke test
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'aarch64-apple-darwin'
+        run: target/${{ matrix.target }}/release/gitent --version
+      - run: tar -C target/${{ matrix.target }}/release -czf gitent-${{ matrix.target }}.tar.gz gitent
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitent-${{ matrix.target }}
+          path: gitent-${{ matrix.target }}.tar.gz
