@@ -752,8 +752,7 @@ fn commit_step(
     let symbols = diff::symbols_from_patch(&d.patch);
     let files: Vec<String> = d.files.iter().map(|f| f.path.clone()).collect();
     let mut rec;
-    let message;
-    match &step.kind {
+    let message = match &step.kind {
         StepKind::Apply { source } => {
             let (_, src) = &ctx.records[0];
             rec = src.clone();
@@ -775,7 +774,7 @@ fn commit_step(
                 .unwrap_or("")
                 .to_string();
             let first = src_msg.lines().next().unwrap_or(&src.title).to_string();
-            message = format!(
+            format!(
                 "{first}\n\nRe-implemented by gitent {} from {} ({}).\nIntent: {}\n\nGitent-Intent: {}\nGitent-Derived-From: {}\n",
                 op.kind,
                 short(source),
@@ -783,7 +782,7 @@ fn commit_step(
                 src.intent,
                 src.intent_id,
                 source
-            );
+            )
         }
         StepKind::Revert { source } => {
             let (_, src) = &ctx.records[0];
@@ -812,15 +811,18 @@ fn commit_step(
                 commit: source.clone(),
                 intent_id: src.intent_id.clone(),
             });
-            message =
-                format!(
+            format!(
                 "{}\n\nReverted by gitent ({}) from {}.\n\nGitent-Intent: {}\nGitent-Reverts: {}\n",
                 rec.title,
-                if by == "git" { "deterministic" } else { "agent" },
+                if by == "git" {
+                    "deterministic"
+                } else {
+                    "agent"
+                },
                 short(source),
                 rec.intent_id,
                 src.intent_id
-            );
+            )
         }
         StepKind::Merge {
             theirs,
@@ -855,7 +857,7 @@ fn commit_step(
                 method: "composed".into(),
                 ..Default::default()
             };
-            message = format!(
+            format!(
                 "{}\n\nMerged by gitent ({}).\nComposes: {}\n\nGitent-Intent: {}\n",
                 rec.title,
                 if by == "git" {
@@ -869,9 +871,9 @@ fn commit_step(
                     .collect::<Vec<_>>()
                     .join(", "),
                 rec.intent_id
-            );
+            )
         }
-    }
+    };
     // Deterministic facts of *this* realisation.
     let mut syms = symbols;
     for s0 in &rec.affected.symbols {
