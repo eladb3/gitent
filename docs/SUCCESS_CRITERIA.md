@@ -81,13 +81,13 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 
 | ID | Criterion | Verified by |
 |----|-----------|-------------|
-| G1 | `gitent verify-pr` detects sources from `Gitent-Derived-From`, `(cherry picked from commit …)`, `Backport of …`, `This reverts commit …`, or `--source`; PR without a marker → `neutral` (exit 0; exit 2 with `--require-source`). | ⏳ `tests/verify_pr.rs` |
-| G2 | Single source → whole PR verified against it (follow-up commits count); several sources → per commit. Missing source commit → exit 1 with a `fetch-depth: 0` hint. | ⏳ `tests/verify_pr.rs` |
-| G3 | Markdown report names each failed check; JSON result has `result ∈ {verified, rejected, neutral, error}`. | ⏳ `tests/verify_pr.rs` |
-| G4 | `action.yml` installs Gitent (release binary, fallback build), runs `verify-pr`, writes the step summary, maintains one sticky comment, fails the job on rejection. | ⏳ `action-selftest.yml` on GitHub runners |
-| G5 | Self-test on real GitHub runners: a good backport passes; a stale port, a half port and a test-deleting port fail; a non-backport PR is neutral. | ⏳ `action-selftest.yml` run link |
-| G6 | Gitent CI (fmt, clippy, tests) green on GitHub; release workflow builds Linux and macOS binaries. | ⏳ `ci.yml` run link, `release.yml` |
-| G7 | Usage docs with a copy-paste workflow, inputs, outputs and limits. | ⏳ `docs/GITHUB_ACTION.md` |
+| G1 | `gitent verify-pr` detects sources from `Gitent-Derived-From`, `(cherry picked from commit …)`, `Backport of …`, `This reverts commit …`, or `--source`; PR without a marker → `neutral` (exit 0; exit 2 with `--require-source`). | ✅ `tests/verify_pr.rs`, `ops::verify_pr::tests::detects_markers` |
+| G2 | Single source → whole PR verified against it (follow-up commits count); several sources → per commit. Missing source commit → exit 1 with a `fetch-depth: 0` hint. | ✅ `tests/verify_pr.rs` |
+| G3 | Markdown report names each failed check; JSON result has `result ∈ {verified, rejected, neutral, error}`. | ✅ `tests/verify_pr.rs` |
+| G4 | `action.yml` installs Gitent (release binary, fallback build), runs `verify-pr`, writes the step summary, maintains one sticky comment, fails the job on rejection. | ✅ install-from-source, verify-pr, step summary, outputs and exit status on GitHub runners ([run](https://github.com/eladb3/gitent/actions/runs/41783056897)). ⏳ the release-binary download path (needs a first release) and the sticky PR comment (needs a `pull_request` event) |
+| G5 | Self-test on real GitHub runners: a good backport passes; a stale port, a half port and a test-deleting port fail; a non-backport PR is neutral. | ✅ [action-selftest run](https://github.com/eladb3/gitent/actions/runs/41783056897): good → verified, stale/half/delete-test → rejected (job fails), no-marker → neutral |
+| G6 | Gitent CI (fmt, clippy, tests) green on GitHub; release workflow builds Linux and macOS binaries. | ✅ [ci run](https://github.com/eladb3/gitent/actions/runs/41783056827): fmt, clippy, tests, offline evals, plus Linux x86_64/arm64 and macOS arm64/x86_64 binaries. ⏳ `release.yml` publishing (no tag pushed yet) |
+| G7 | Usage docs with a copy-paste workflow, inputs, outputs and limits. | ✅ `docs/GITHUB_ACTION.md`, README |
 
 ## E. Agent integration
 
