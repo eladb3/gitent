@@ -1,0 +1,109 @@
+name: "Gitent verify backports"
+description: "Verify that a backport / cherry-pick / revert PR correctly carries the original change onto its target branch (no AI involved)."
+author: "eladb3"
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  working-directory:
+    description: "Repository directory (for monorepos or checkouts into a subdirectory)."
+    required: false
+    default: "."
+  base:
+    description: "Target branch the PR goes into. Default: origin/<pull request base branch>."
+    required: false
+    default: ""
+  head:
+    description: "Result to verify."
+    required: false
+    default: "HEAD"
+  source:
+    description: "The original change (sha / ref / int_…). Default: detected from commit markers."
+    required: false
+    default: ""
+  kind:
+    description: "apply | revert. Default: inferred from the markers."
+    required: false
+    default: ""
+  test-command:
+    description: "Command that runs the project's tests (overrides .gitent/config.toml)."
+    required: false
+    default: ""
+  test-selector:
+    description: "Command that runs one test; {test} is replaced by its name (overrides .gitent/config.toml)."
+    required: false
+    default: ""
+  require-source:
+    description: "Fail when the PR does not reference an original change."
+    required: false
+    default: "false"
+  comment:
+    description: "Maintain one sticky PR comment with the report (needs pull-requests: write)."
+    required: false
+    default: "true"
+  version:
+    description: "Gitent version to install (a release tag), or 'source' to build the action's own checkout. Default: the action's ref, falling back to building from source."
+    required: false
+    default: ""
+  github-token:
+    description: "Token used for the PR comment."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  result:
+    description: "verified | rejected | neutral | error"
+    value: ${{ steps.verify.outputs.result }}
+  report:
+    description: "Path to the Markdown report"
+    value: ${{ steps.verify.outputs.report }}
+  json:
+    description: "Path to the JSON result"
+    value: ${{ steps.verify.outputs.json }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install gitent
+      shell: bash
+      env:
+        GITENT_VERSION: ${{ inputs.version }}
+        GITENT_ACTION_REF: ${{ github.action_ref }}
+        GITENT_ACTION_PATH: ${{ github.action_path }}
+      run: bash "$GITHUB_ACTION_PATH/action/install.sh"
+
+    - name: Verify
+      id: verify
+      shell: bash
+      env:
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_SOURCE: ${{ inputs.source }}
+        INPUT_KIND: ${{ inputs.kind }}
+        INPUT_TEST_COMMAND: ${{ inputs.test-command }}
+        INPUT_TEST_SELECTOR: ${{ inputs.test-selector }}
+        INPUT_REQUIRE_SOURCE: ${{ inputs.require-source }}
+        GITENT_BASE_REF: ${{ github.base_ref }}
+      run: bash "$GITHUB_ACTION_PATH/action/run.sh"
+
+    - name: Comment on the pull request
+      if: always() && inputs.comment == 'true' && github.event.pull_request.number != '' && steps.verify.outputs.report != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPORT: ${{ steps.verify.outputs.report }}
+      run: bash "$GITHUB_ACTION_PATH/action/comment.sh"
+
+    - name: Result
+      shell: bash
+      env:
+        RESULT: ${{ steps.verify.outputs.result }}
+      run: |
+        echo "gitent: $RESULT"
+        case "$RESULT" in
+          verified|neutral) exit 0 ;;
+          *) exit 1 ;;
+        esac

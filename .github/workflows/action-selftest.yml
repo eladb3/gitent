@@ -1,0 +1,49 @@
+name: action-selftest
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  scenario:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { scenario: good,        expect: verified }
+          - { scenario: stale,       expect: rejected }
+          - { scenario: half,        expect: rejected }
+          - { scenario: delete-test, expect: rejected }
+          - { scenario: no-marker,   expect: neutral }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: build fixture repository
+        run: bash action/selftest/fixture.sh "$RUNNER_TEMP/fx" "${{ matrix.scenario }}"
+      - name: run the action (uses ./)
+        id: gitent
+        continue-on-error: true
+        uses: ./
+        with:
+          version: source
+          working-directory: ${{ runner.temp }}/fx
+          base: main
+          test-command: python3 -m unittest discover -q
+          test-selector: python3 -m unittest discover -q -k {test}
+          comment: "false"
+      - name: assert outcome
+        env:
+          RESULT: ${{ steps.gitent.outputs.result }}
+          OUTCOME: ${{ steps.gitent.outcome }}
+          EXPECT: ${{ matrix.expect }}
+        run: |
+          echo "result=$RESULT outcome=$OUTCOME expected=$EXPECT"
+          test "$RESULT" = "$EXPECT"
+          case "$EXPECT" in
+            verified|neutral) test "$OUTCOME" = "success" ;;
+            *)                test "$OUTCOME" = "failure" ;;
+          esac
+          test -s "${{ steps.gitent.outputs.report }}"
+          grep -q "gitent-verify-pr" "${{ steps.gitent.outputs.report }}"
