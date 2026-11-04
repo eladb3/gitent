@@ -22,6 +22,32 @@ gitent rebase <onto>                 # replays intentions onto a new base
 gitent revert <commit>               # removes an intention's behaviour, keeping later work
 ```
 
+## Check backport PRs in CI
+
+```yaml
+# .github/workflows/verify-backports.yml
+on:
+  pull_request:
+    branches: ["stable/**", "release/**"]
+permissions: { contents: read, pull-requests: write }
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: pip install -e . pytest          # your project's test setup
+      - uses: eladb3/gitent@v0
+        with:
+          test-command: "python -m pytest -q"
+          test-selector: "python -m pytest -q -k {test}"
+```
+
+The action finds the original change from `(cherry picked from commit …)` /
+`Backport of …` / `Gitent-Derived-From:` markers and verifies the PR against it.
+It posts one sticky comment and fails the check on a rejected backport. See
+[docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
+
 Gitent sits **on top of Git**. Every Gitent operation produces an ordinary Git
 commit; the semantic record is stored in `refs/notes/gitent`, so a Gitent repo
 is a Git repo and every Git tool keeps working.
