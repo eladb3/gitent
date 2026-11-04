@@ -31,6 +31,9 @@ struct Cli {
     /// Override validation.test_command
     #[arg(long, global = true)]
     test_command: Option<String>,
+    /// Override validation.test_selector (`{test}` is replaced by a test name)
+    #[arg(long, global = true)]
+    test_selector: Option<String>,
     /// Override validation.max_attempts
     #[arg(long, global = true)]
     max_attempts: Option<u32>,
@@ -107,6 +110,30 @@ enum Cmd {
         /// If verified, attach a semantic record (provenance + requirements) to the result
         #[arg(long)]
         record: bool,
+        /// Skip the LLM verifier even if configured
+        #[arg(long)]
+        no_llm: bool,
+    },
+    /// Verify the backports/cherry-picks/reverts in base..head (for PR checks; see docs/GITHUB_ACTION.md)
+    VerifyPr {
+        /// Target branch the PR goes into (e.g. origin/stable/5.2.x)
+        #[arg(long)]
+        base: String,
+        /// Result to verify (default HEAD)
+        #[arg(long)]
+        head: Option<String>,
+        /// The original change, if it is not marked in the commit messages
+        #[arg(long)]
+        source: Option<String>,
+        /// apply | revert (default: inferred from the markers)
+        #[arg(long)]
+        kind: Option<String>,
+        /// Fail when no original change is found
+        #[arg(long)]
+        require_source: bool,
+        /// Also write the Markdown report to this file
+        #[arg(long)]
+        markdown: Option<PathBuf>,
         /// Skip the LLM verifier even if configured
         #[arg(long)]
         no_llm: bool,
@@ -238,6 +265,7 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
         ("executor_command", &cli.executor_command),
         ("provider", &cli.provider),
         ("test_command", &cli.test_command),
+        ("test_selector", &cli.test_selector),
     ] {
         if let Some(v) = v {
             args[k] = json!(v);
@@ -384,6 +412,26 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             args["no_llm"] = json!(no_llm);
             ("verify", render_verify)
         }
+        Cmd::VerifyPr {
+            base,
+            head,
+            source,
+            kind,
+            require_source,
+            markdown,
+            no_llm,
+        } => {
+            args["base"] = json!(base);
+            for (k, v) in [("head", head), ("source", source), ("kind", kind)] {
+                if let Some(v) = v {
+                    args[k] = json!(v);
+                }
+            }
+            args["require_source"] = json!(require_source);
+            args["no_llm"] = json!(no_llm);
+            MARKDOWN_OUT.with(|m| *m.borrow_mut() = markdown.clone());
+            ("verify_pr", |v: &Value| println!("{}", s(v, "markdown")))
+        }
         Cmd::Check { rev, intent, judge } => {
             if let Some(r) = rev {
                 args["rev"] = json!(r);
@@ -409,6 +457,10 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
         }),
     };
     let v = api::call(&path, tool, &args, Surface::Cli)?;
+    if let Some(p) = MARKDOWN_OUT.with(|m| m.borrow().clone()) {
+        std::fs::write(&p, v["markdown"].as_str().unwrap_or(""))
+            .with_context(|| format!("writing {}", p.display()))?;
+    }
     if human {
         renderer(&v);
     }
@@ -562,6 +614,7 @@ fn render_record(r: &Value) {
 }
 
 thread_local! {
+    static MARKDOWN_OUT: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
     static REQ_DRAFTS: std::cell::RefCell<Vec<Value>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 

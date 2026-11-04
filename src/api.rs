@@ -35,6 +35,7 @@ fn overrides(a: &Value, surface: Surface) -> Overrides {
         executor_command: arg_str(a, "executor_command"),
         provider: arg_str(a, "provider"),
         test_command: arg_str(a, "test_command"),
+        test_selector: arg_str(a, "test_selector"),
         max_attempts: a
             .get("max_attempts")
             .and_then(|v| v.as_u64())
@@ -140,6 +141,23 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
                     working_tree: arg_bool(args, "working_tree"),
                     kind: arg_str(args, "kind").unwrap_or_default(),
                     record: arg_bool(args, "record"),
+                },
+            )
+        }
+        "verify_pr" => {
+            let base = arg_str(args, "base").ok_or_else(|| anyhow!("`base` is required"))?;
+            let mut s2 = s;
+            if arg_bool(args, "no_llm") {
+                s2.provider = None;
+            }
+            crate::ops::verify_pr::verify_pr(
+                &s2,
+                &crate::ops::verify_pr::PrOptions {
+                    base,
+                    head: arg_str(args, "head"),
+                    source: arg_str(args, "source"),
+                    kind: arg_str(args, "kind"),
+                    require_source: arg_bool(args, "require_source"),
                 },
             )
         }
@@ -422,6 +440,10 @@ pub fn tool_defs() -> Vec<Value> {
             "kind": {"type": "string", "enum": ["apply", "revert", "merge"]},
             "record": {"type": "boolean", "description": "Attach a semantic record to the result if verified"},
             "no_llm": {"type": "boolean"}}), &["source"])}),
+        json!({"name": "gitent_verify_pr", "description": "Find the backports/cherry-picks/reverts among the commits base..head (via commit markers) and verify each. Returns result verified|rejected|neutral and a Markdown report.", "inputSchema": obj(json!({
+            "base": {"type": "string", "description": "Target branch (e.g. origin/stable/5.2.x)"},
+            "head": {"type": "string"}, "source": {"type": "string"}, "kind": {"type": "string", "enum": ["apply", "revert"]},
+            "require_source": {"type": "boolean"}, "no_llm": {"type": "boolean"}}), &["base"])}),
         json!({"name": "gitent_check", "description": "Run all live requirements (the ledger) on the working tree or a revision; names the intention behind any failure.", "inputSchema": obj(json!({"rev": {"type": "string"}, "intent": {"type": "string"}, "judge": {"type": "boolean"}}), &[])}),
         json!({"name": "gitent_cherry_pick", "description": "Re-implement a commit's intention on the current branch. Tries git first, validates, falls back to an agent. With executor=host returns state=awaiting_host with a worktree and brief: edit there, then call gitent_continue.", "inputSchema": with(json!({"commit": {"type": "string"}, "commits": {"type": "array", "items": {"type": "string"}}}), &[])}),
         json!({"name": "gitent_merge", "description": "Merge a branch by composing intentions from both sides; checks compatibility, validates the result.", "inputSchema": with(json!({"branch": {"type": "string"}, "force": {"type": "boolean", "description": "Proceed even if intentions look incompatible"}}), &["branch"])}),
