@@ -77,6 +77,18 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | V7 | Operations and verify share one validation code path (`validate_candidate`). | ✅ `ops::engine::validate_candidate` + `prepare_step` used by both; all operation tests green |
 | V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | 📊 met for fault injection (real 9→0, synthetic 8→0) and reference solutions (0 false rejections). Live Claude Code on 24 real backports: 1 false success **not** caught (target-only behaviour absent from the source's requirements); 1 false rejection found and fixed. `evals/RESULTS.md` |
 
+## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
+
+| ID | Criterion | Verified by |
+|----|-----------|-------------|
+| G1 | `gitent verify-pr` detects sources from `Gitent-Derived-From`, `(cherry picked from commit …)`, `Backport of …`, `This reverts commit …`, or `--source`; PR without a marker → `neutral` (exit 0; exit 2 with `--require-source`). | ⏳ `tests/verify_pr.rs` |
+| G2 | Single source → whole PR verified against it (follow-up commits count); several sources → per commit. Missing source commit → exit 1 with a `fetch-depth: 0` hint. | ⏳ `tests/verify_pr.rs` |
+| G3 | Markdown report names each failed check; JSON result has `result ∈ {verified, rejected, neutral, error}`. | ⏳ `tests/verify_pr.rs` |
+| G4 | `action.yml` installs Gitent (release binary, fallback build), runs `verify-pr`, writes the step summary, maintains one sticky comment, fails the job on rejection. | ⏳ `action-selftest.yml` on GitHub runners |
+| G5 | Self-test on real GitHub runners: a good backport passes; a stale port, a half port and a test-deleting port fail; a non-backport PR is neutral. | ⏳ `action-selftest.yml` run link |
+| G6 | Gitent CI (fmt, clippy, tests) green on GitHub; release workflow builds Linux and macOS binaries. | ⏳ `ci.yml` run link, `release.yml` |
+| G7 | Usage docs with a copy-paste workflow, inputs, outputs and limits. | ⏳ `docs/GITHUB_ACTION.md` |
+
 ## E. Agent integration
 
 | ID | Criterion | Verified by |
