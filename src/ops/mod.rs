@@ -5,6 +5,7 @@ pub mod commit;
 pub mod engine;
 pub mod plan;
 pub mod verify;
+pub mod verify_pr;
 
 use crate::config::Config;
 use crate::llm::Provider;
@@ -28,6 +29,7 @@ pub struct Overrides {
     pub executor_command: Option<String>,
     pub provider: Option<String>,
     pub test_command: Option<String>,
+    pub test_selector: Option<String>,
     pub max_attempts: Option<u32>,
 }
 
@@ -46,6 +48,9 @@ impl Session {
         }
         if let Some(t) = &ov.test_command {
             cfg.validation.test_command = t.clone();
+        }
+        if let Some(t) = &ov.test_selector {
+            cfg.validation.test_selector = t.clone();
         }
         if let Some(m) = ov.max_attempts {
             cfg.validation.max_attempts = m.max(1);
