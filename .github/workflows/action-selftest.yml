@@ -47,3 +47,31 @@ jobs:
           esac
           test -s "${{ steps.gitent.outputs.report }}"
           grep -q "gitent-verify-pr" "${{ steps.gitent.outputs.report }}"
+
+  # Exercise the PR-comment path on this repository's own pull requests
+  # (not backports, so the expected result is a single, updated "neutral" comment).
+  pr-comment:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Swatinem/rust-cache@v2
+      - id: gitent
+        uses: ./
+        with:
+          version: source
+          test-command: "true"
+      - name: assert neutral + one sticky comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ steps.gitent.outputs.result }}
+        run: |
+          test "$RESULT" = "neutral"
+          n=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --paginate \
+                --jq '[.[] | select(.body | contains("<!-- gitent-verify-pr -->"))] | length')
+          echo "sticky comments: $n"
+          test "$n" = "1"
