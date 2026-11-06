@@ -1,13 +1,19 @@
 name: ci
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: [main]        # PR branches are covered by pull_request (avoids duplicate runs)
   pull_request:
   workflow_dispatch:
+
+# A newer commit on the same PR/branch supersedes older runs (saves scarce macOS runners).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add rustfmt clippy
@@ -32,6 +38,7 @@ jobs:
           - { os: macos-latest, target: aarch64-apple-darwin }
           - { os: macos-latest, target: x86_64-apple-darwin }
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - run: rustup target add ${{ matrix.target }}

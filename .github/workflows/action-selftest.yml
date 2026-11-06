@@ -1,13 +1,19 @@
 name: action-selftest
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: [main]        # PR branches are covered by pull_request (avoids duplicate runs)
   pull_request:
   workflow_dispatch:
+
+# A newer commit on the same PR/branch supersedes older runs (saves scarce macOS runners).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   scenario:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +59,7 @@ jobs:
   pr-comment:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
