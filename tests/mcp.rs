@@ -152,8 +152,9 @@ fn mcp_stdio_end_to_end() {
     assert_eq!(res["isError"], false, "{res}");
     let rec = &res["structuredContent"]["record"];
     assert_eq!(rec["provenance"]["analysis"]["method"], "host");
-    assert_eq!(rec["requirements"][0]["proof"]["before"], "fail");
-    assert_eq!(rec["requirements"][0]["proof"]["after"], "pass");
+    // S11: the agent's command is not run (not even to prove it) without the user's consent.
+    assert_eq!(rec["requirements"][0]["proof"]["before"], "skipped");
+    assert_eq!(rec["requirements"][0]["proof"]["after"], "skipped");
     // S3: a command check supplied by an agent is never stored as the author's.
     assert_eq!(rec["requirements"][0]["origin"], "agent", "{rec}");
     assert_eq!(
@@ -164,7 +165,20 @@ fn mcp_stdio_end_to_end() {
 
     let res = m.call("gitent_check", json!({}));
     assert_eq!(res["structuredContent"]["passed"], true, "{res}");
-    assert_eq!(res["structuredContent"]["counts"]["pass"], 2);
+    assert_eq!(res["structuredContent"]["counts"]["pass"], 1, "{res}");
+    assert_eq!(res["structuredContent"]["counts"]["skipped"], 1, "{res}");
+    let text = res["structuredContent"]["results"].to_string();
+    assert!(text.contains("--trust-agent-commands"), "{text}");
+    // The agent cannot grant itself consent through the tool API.
+    let res = m.call("gitent_check", json!({"trust_agent_commands": true}));
+    assert_eq!(res["isError"], true, "{res}");
+    // The user can, in local config (or with the CLI flag).
+    r.local_config("[requirements]\ntrust_agent_commands = true\n");
+    let res = m.call("gitent_check", json!({}));
+    assert_eq!(res["structuredContent"]["counts"]["pass"], 2, "{res}");
+    std::fs::remove_file(r.path.join(".git/gitent/config.toml")).unwrap();
+    let (_, v) = r.gitent(&["--trust-agent-commands", "check"]);
+    assert_eq!(v["counts"]["pass"], 2, "{v}");
 
     let res = m.call("gitent_log", json!({"limit": 3}));
     let entries = res["structuredContent"]["entries"].as_array().unwrap();
@@ -405,6 +419,41 @@ fn tool_arguments_cannot_choose_commands() {
     let (code, v) = r.gitent(&["--test-command", &evil, "status"]);
     assert_eq!(code, 0, "{v}");
     assert_eq!(v["config"]["test_command"], evil.as_str());
+}
+
+/// S14: an agent that edits `.gitent/config.toml` in the working tree does not
+/// choose the commands MCP/HTTP calls run: command keys come from HEAD.
+#[test]
+fn agent_surfaces_take_command_keys_from_head() {
+    let r = TestRepo::users();
+    let committed = r.gitent(&["status"]).1["config"]["test_command"].clone();
+    let evil = format!("touch {}", r.tools.join("pwned").display());
+    r.write(
+        ".gitent/config.toml",
+        &format!(
+            "[validation]\ntest_command = \"{evil}\"\nmax_attempts = 5\n[executor]\nkind = \"command\"\ncommand = \"{evil}\"\n"
+        ),
+    );
+    // The working tree config is also untrusted: `gitent trust` it, as a user would
+    // for their own edit, to show HEAD wins for agents regardless.
+    let (code, _) = r.gitent(&["trust"]);
+    assert_eq!(code, 0);
+    let mut m = Mcp::start(&r);
+    let v = m.call("gitent_status", json!({}))["structuredContent"].clone();
+    assert_eq!(v["config"]["test_command"], committed, "{v}");
+    assert_eq!(v["config"]["executor_command"], "", "{v}");
+    assert_eq!(
+        v["config"]["max_attempts"], 5,
+        "non-command keys: working tree"
+    );
+    let (srv, _e) = serve(&r, Some(TOKEN));
+    let (code, v) = http(srv.port, "POST", "/v1/tools/gitent_status", "{}");
+    assert_eq!(code, 200);
+    assert_eq!(v["config"]["test_command"], committed, "{v}");
+    // The CLI user's own working tree config applies to the CLI.
+    let (_, v) = r.gitent(&["status"]);
+    assert_eq!(v["config"]["test_command"], evil.as_str());
+    assert_eq!(v["config"]["executor_command"], evil.as_str());
 }
 
 /// S4: crafted operation ids are refused and never touch the filesystem.

@@ -32,6 +32,8 @@ pub struct Overrides {
     pub test_command: Option<String>,
     pub test_selector: Option<String>,
     pub max_attempts: Option<u32>,
+    /// `--trust-agent-commands` (CLI only, ADR 0016 §3).
+    pub trust_agent_commands: bool,
 }
 
 impl Session {
@@ -47,7 +49,7 @@ impl Session {
         rev: Option<&str>,
     ) -> Result<Session> {
         let repo = Repo::discover(path)?;
-        let mut cfg = match rev {
+        let cfg = match rev {
             None => Config::load(&repo.workdir, &repo.git_dir)?,
             Some(r) => {
                 let tree = repo.git.find_commit(repo.resolve(r)?)?.tree()?;
@@ -55,6 +57,30 @@ impl Session {
                 Config::load_with_shared(text.as_deref(), &repo.git_dir)?
             }
         };
+        Session::with_config(repo, cfg, ov)
+    }
+
+    /// For MCP/HTTP callers (ADR 0016 §3): an agent that edits the working tree
+    /// must not choose commands by editing `.gitent/config.toml`, so the command
+    /// keys (`config::COMMAND_KEYS`) come from the committed HEAD's copy (plus
+    /// local config and env); other keys come from the working tree.
+    pub fn open_for_agent(path: &Path, ov: &Overrides) -> Result<Session> {
+        let repo = Repo::discover(path)?;
+        let shared = repo.workdir.join(".gitent/config.toml");
+        let wt = if shared.exists() {
+            Some(std::fs::read_to_string(&shared)?)
+        } else {
+            None
+        };
+        let head = match repo.head_commit()? {
+            Some(c) => crate::preserve::file_text(&repo, &c.tree()?, ".gitent/config.toml"),
+            None => None,
+        };
+        let cfg = Config::load_layered(wt.as_deref(), head.as_deref(), &repo.git_dir)?;
+        Session::with_config(repo, cfg, ov)
+    }
+
+    fn with_config(repo: Repo, mut cfg: Config, ov: &Overrides) -> Result<Session> {
         if let Some(e) = &ov.executor {
             cfg.executor.kind = e.clone();
         }
@@ -72,6 +98,9 @@ impl Session {
         }
         if let Some(m) = ov.max_attempts {
             cfg.validation.max_attempts = m.max(1);
+        }
+        if ov.trust_agent_commands {
+            cfg.requirements.trust_agent_commands = true;
         }
         let provider = crate::llm::from_config(&cfg.llm, &repo.workdir)?;
         Ok(Session {

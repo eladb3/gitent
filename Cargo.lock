@@ -346,6 +346,7 @@ dependencies = [
  "git2",
  "libc",
  "regex",
+ "ring",
  "serde",
  "serde_json",
  "tempfile",
