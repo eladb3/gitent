@@ -90,11 +90,13 @@ The tests pass, the agent says "done", and Gitent still says no.
 **Three verdicts.**
 * `verified`: something executable proved the move.
 * `rejected`: something is definitely wrong, such as a deleted or skipped test,
-  a failing requirement or a resurrected file.
+  a failing requirement, a resurrected file, or a ported test that **also passes
+  on the unfixed target**. Gitent proves the ported test can fail, the same way
+  `gitent commit` proves it on the source.
 * `unverified`: nothing is known to be wrong, but nothing proves the move
-  either. The fix had no tests, a ported test lost assertions or got new
-  expected values, or code was copied from the source branch. A human should
-  look.
+  either. The fix had no tests (or none ran), a target-only test was
+  weakened, a test-harness file changed, or code was copied from the source
+  branch. A human should look.
 
 **What it cannot see.** A port that hard-codes exactly the tested inputs
 passes any test-based check. Only review catches that, by a person or the
@@ -226,11 +228,11 @@ with no LLM ([tests/fault_models.rs](tests/fault_models.rs)):
 | fault | v0.1 | now |
 |---|:---:|:---:|
 | test skipped | ❌ verified | ✅ rejected |
-| asserts weakened · expectations rewritten to match the bug · target's own test weakened | ❌ verified | ⚠️ unverified |
+| asserts weakened, made always-true, short-circuited, errors swallowed · expectations rewritten to match the bug · harness forcing exit 0 | ❌ verified | ✅ rejected: the ported test passes on the unfixed target, so it proves nothing |
 | a same-named old test stands in for the ported one | ❌ verified | ✅ rejected |
 | "revert" that only deletes the test | ❌ verified | ✅ rejected |
-| the fix had no tests | ❌ verified | ⚠️ unverified |
-| the source branch's file copied over | ❌ verified | ⚠️ unverified |
+| target's own test weakened · the fix had no tests · source branch's file copied over | ❌ verified | ⚠️ unverified |
+| proper port with the test adapted to the target's API | ✅ verified | ✅ verified |
 | exactly the tested inputs hard-coded | ❌ verified | ❌ verified (needs a reviewer) |
 
 **Honest summary:**
