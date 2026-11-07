@@ -120,6 +120,8 @@ unavailable; agent touched files that contain none of the affected symbols.
 ```
 .gitent/config.toml               shared, committed config (test command, executor preset)
 .git/gitent/config.toml           local overrides (e.g. which agent CLI is installed)
+.git/gitent/trusted               sha256 of shared configs allowed to set executor/llm commands (`gitent trust`, ADR 0016)
+.git/gitent/serve-token           generated `gitent serve` token (mode 0600)
 .git/gitent/ops/<op_id>.json      operation journal
 <tmp>/gitent-worktrees/<repo>-<id>/<op_id>/  isolated worktree (git worktree; executor.worktree_root)
 .git/gitent/ops/<op_id>/brief.md  task brief handed to the executor
