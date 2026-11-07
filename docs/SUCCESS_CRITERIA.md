@@ -77,6 +77,26 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | V7 | Operations and verify share one validation code path (`validate_candidate`). | ✅ `ops::engine::validate_candidate` + `prepare_step` used by both; all operation tests green |
 | V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | 📊 met for fault injection (real 9→0, synthetic 8→0) and reference solutions (0 false rejections). Live Claude Code on 24 real backports: 1 false success **not** caught (target-only behaviour absent from the source's requirements); 1 false rejection found and fixed. `evals/RESULTS.md` |
 
+## I. Verification integrity (ADR 0013)
+
+Each row is one fault model from the external evaluation of 2026-11-07, checked with `gitent verify` and no LLM.
+
+| # | Criterion | Verified by |
+|---|---|---|
+| I1 | Three verdicts: `verified` (exit 0), `rejected` (2), `unverified` (3, needs review). `verify` JSON has `schema: gitent/verify@1` and `verdict`. | ✅ `tests/fault_models.rs` (all) |
+| I2 | A requirement test that gets a skip/ignore/xfail marker, or loses every assertion, is **rejected** (port E). Fewer assertions (B), changed expected values (K) or a weakened target-only test (L) make the result **unverified**. Renaming the API under test does not. | ✅ `e_skipped_requirement_test_is_rejected`, `b_…`, `k_…`, `l_…`, `integrity::tests::detects_skip_weakening_and_new_expectations` |
+| I3 | Requirement tests are located by `test_path`. A same-named test that already existed elsewhere on the target does not count as ported (N). A test moved into another file by the port does count (H). | ✅ `n_a_same_named_pre_existing_test_does_not_count_as_ported`, `h_test_added_to_an_existing_file_is_verified` |
+| I4 | A selector run that executes 0 tests fails. A vacuous requirement is not proven at commit. | ✅ `requirements::selector_tests::detects_zero_tests`, `tests/requirements.rs::a_selector_that_runs_zero_tests_does_not_prove_a_requirement` |
+| I5 | A revert that only deletes the test is rejected: the reverted change's tests are restored and must fail. | ✅ `rev_fake_a_revert_that_only_deletes_the_test_is_rejected` |
+| I6 | A move with nothing executable behind it is `unverified`, not verified (T). | ✅ `t_a_fix_without_tests_proves_nothing` |
+| I7 | Copying a file the source only modified onto a target that never had it is flagged for review (J). | ✅ `j_copying_the_source_branch_code_is_not_verified` |
+| I8 | `verify-pr` verifies every source against the whole PR, so a later commit that breaks the port is seen. It reads every marker, refuses a PR that cites its own commits, and writes no notes. | ✅ `verify_pr_checks_the_whole_pr_and_refuses_self_citations` |
+| I9 | Ledger: the newest event wins (retire, then re-apply, makes the requirement live again). A merge keeps a retirement made on one side. | ✅ `tests/requirements.rs::ledger_newest_event_wins_and_merges_keep_retirements` |
+| I10 | Inside operations, review-level findings become `needs_review` warnings; definitive ones still block. | ✅ `tests/cherry_pick.rs::clean_but_wrong_pick_escalates_to_agent` (cents adaptation succeeds) |
+| I11 | The LLM verifier runs in the result tree, not the user's checkout. | ✅ `llm_verifier_judges_the_result_tree_not_the_users_checkout` |
+| I13 | A move that reduces a target definition to a stub (`pass`, `todo!()`, empty body) is flagged for review (`bodies_intact`), unless the moved change itself does so. | ✅ `stubbing_out_a_target_function_is_not_verified`, `integrity::tests::stub_detection` |
+| I12 | Known limit: hard-coding the tested inputs (F) passes any test oracle. Only a reviewer (human or the LLM verifier) can catch it. | 📌 `f_hard_coded_inputs_pass_the_oracle_documented_limit` pins the limit |
+
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
 
 | ID | Criterion | Verified by |
@@ -117,3 +137,18 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 The eval measures real agent behaviour and is therefore not part of `cargo
 test` (it costs money and is non-deterministic). Results are committed with the
 date, agent, and model used.
+
+## S. Trust boundaries (ADR 0014)
+
+| ID | Criterion | Verified by |
+|----|-----------|-------------|
+| S1 | `gitent serve` requires `Authorization: Bearer <token>` (`GITENT_TOKEN`, or a random token printed once on stderr), a loopback `Host` and no non-loopback `Origin`; failures are 401/403 JSON errors, before any tool runs. | ✅ `tests/mcp.rs::http_refuses_unauthenticated_rebinding_and_cross_origin_requests`, `tests/mcp.rs::http_generates_a_token_when_none_is_configured`, `tests/mcp.rs::http_api`; unit tests `http::tests::{authorization_rules,loopback_hosts,generated_tokens_are_random_hex}` |
+| S2 | MCP/HTTP tool arguments cannot set `test_command`, `test_selector`, `executor_command` or `provider` (refused, not advertised); the CLI flags still work. Tool schemas are versioned `gitent/tools@2`. | ✅ `tests/mcp.rs::tool_arguments_cannot_choose_commands`; `tests/mcp.rs::mcp_stdio_end_to_end` (`_meta`), `tests/mcp.rs::http_api` (`schema`) |
+| S3 | `gitent_commit` over MCP/HTTP stores agent-supplied command checks (`check.run`) with origin `agent`, never `author`. | ✅ `tests/mcp.rs::mcp_stdio_end_to_end` (result and stored note) |
+| S4 | `op_id` must match `^op_[A-Za-z0-9_-]{1,64}$`; worktree cleanup deletes only directories under the worktree root that git's worktree list knows. | ✅ `tests/mcp.rs::crafted_op_ids_are_refused` (MCP and CLI); unit tests `ops::tests::op_ids_are_validated`, `repo::tests::cleanup_only_removes_known_worktrees_under_the_root` |
+| S5 | An agent attempt that changes the common git dir's `hooks/` or `config` is rolled back and fails with `git_dir_integrity` ("agent modified .git/hooks or .git/config; restored"). | ✅ `tests/cherry_pick.rs::agent_tampering_with_git_hooks_or_config_is_restored_and_fails_the_attempt`; unit test `ops::containment::tests::detects_and_restores_hook_and_config_changes` (host-mode edits between `awaiting_host` and `continue` are not covered ⏳) |
+| S6 | Default worktrees live in `$TMPDIR/gitent-<uid>/<repo-hash>/` (mode 0700, ownership and symlinks checked) and are removed with their empty parents; the test suite leaves nothing in the temp dir. | ✅ `tests/mcp.rs::mcp_stdio_end_to_end` (path, modes, cleanup); unit test `repo::tests::private_dirs_are_0700_and_must_be_ours`; tests run gitent with a per-repo `TMPDIR` (`tests/common/mod.rs`) |
+| S7 | Commands run in their own process group; a timeout kills the whole group, and background grandchildren holding the pipes do not block. | ✅ unit tests `proc::tests::{timeout_kills_the_whole_process_group,background_grandchild_does_not_block_after_exit}` |
+| S8 | Environment variables override `llm.base_url` from config; an API key is never sent to a plain `http://` URL unless the host is loopback. | ✅ unit tests `llm::tests::{env_base_url_beats_config,api_keys_only_go_to_https_or_loopback}` |
+| S9 | The `gemini` and `kiro` executor presets print a one-line warning that they run with all tools auto-approved and unsandboxed. | ✅ unit test `agent::tests::unsandboxed_presets_warn` |
+| S10 | The Action: sticky comment matched on marker and author; PR title and tool output escaped; release tarball checked against its `.sha256` (mismatch fails, missing checksum builds from source); exit codes 0/2/3/other mapped to verified-or-neutral/rejected/unverified/error with `allow-unverified`; failed notes fetch warned; opt-in `llm-provider`. | ⏳ scripts syntax-checked (`bash -n`), `action/md.py selftest`, `run.sh` run locally against `action/selftest/fixture.sh` scenarios; not yet run on GitHub runners |

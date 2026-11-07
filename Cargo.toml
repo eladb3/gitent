@@ -2,7 +2,7 @@
 name = "gitent"
 version = "0.1.0"
 edition = "2021"
-description = "Agent-native version control: semantic intentions on top of Git"
+description = "Verify that backports, cherry-picks, merges and reverts actually carry the change: a safety and audit layer on top of Git"
 license = "MIT OR Apache-2.0"
 rust-version = "1.80"
 
@@ -23,6 +23,9 @@ tiny_http = "0.12"
 toml = "0.8"
 ureq = { version = "2.12", features = ["json", "native-certs"] }
 wait-timeout = "0.2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3"

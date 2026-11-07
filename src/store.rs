@@ -15,7 +15,28 @@ pub fn get(repo: &Repo, oid: Oid) -> Option<SemanticChange> {
 }
 
 pub fn put(repo: &Repo, oid: Oid, rec: &SemanticChange) -> Result<()> {
+    // Never silently replace a note we cannot read (ADR 0013 §10).
+    if let Some(body) = repo.read_note(oid) {
+        if serde_json::from_str::<SemanticChange>(&body).is_err() {
+            anyhow::bail!(
+                "refusing to overwrite the unreadable gitent note on {oid}; inspect it with \
+                 `git notes --ref=gitent show {oid}` and remove it if it is corrupt"
+            );
+        }
+    }
     repo.write_note(oid, &serde_json::to_string_pretty(rec)?)
+}
+
+thread_local! {
+    static PERSIST: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
+}
+
+/// Run `f` without persisting analysis results as notes (`verify-pr` is read-only, ADR 0013 §7).
+pub fn without_persisting<T>(f: impl FnOnce() -> T) -> T {
+    let prev = PERSIST.with(|p| p.replace(false));
+    let out = f();
+    PERSIST.with(|p| p.set(prev));
+    out
 }
 
 pub fn realization(repo: &Repo, oid: Oid) -> Result<Realization> {
@@ -70,6 +91,8 @@ pub fn record_for(
     let a = analyze::analyze(provider, None, &message, &d, false)?;
     let mut rec = analyze::build_record(a, &d, "annotate");
     rec.realization = realization(repo, oid)?;
-    put(repo, oid, &rec)?;
+    if PERSIST.with(|p| p.get()) {
+        put(repo, oid, &rec)?;
+    }
     Ok(rec)
 }

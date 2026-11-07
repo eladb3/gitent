@@ -2,6 +2,7 @@
 
 pub mod brief;
 pub mod commit;
+pub mod containment;
 pub mod engine;
 pub mod plan;
 pub mod verify;
@@ -35,8 +36,25 @@ pub struct Overrides {
 
 impl Session {
     pub fn open(path: &Path, ov: &Overrides) -> Result<Session> {
+        Session::open_with_config_from(path, ov, None)
+    }
+
+    /// Like `open`, but the shared config is read from `rev`'s tree when given
+    /// (`verify-pr` uses the PR base, so a PR cannot choose the commands it is checked with).
+    pub fn open_with_config_from(
+        path: &Path,
+        ov: &Overrides,
+        rev: Option<&str>,
+    ) -> Result<Session> {
         let repo = Repo::discover(path)?;
-        let mut cfg = Config::load(&repo.workdir, &repo.git_dir)?;
+        let mut cfg = match rev {
+            None => Config::load(&repo.workdir, &repo.git_dir)?,
+            Some(r) => {
+                let tree = repo.git.find_commit(repo.resolve(r)?)?.tree()?;
+                let text = crate::preserve::file_text(&repo, &tree, ".gitent/config.toml");
+                Config::load_with_shared(text.as_deref(), &repo.git_dir)?
+            }
+        };
         if let Some(e) = &ov.executor {
             cfg.executor.kind = e.clone();
         }
@@ -76,6 +94,7 @@ impl Session {
     }
 
     pub fn save_op(&self, op: &Operation) -> Result<()> {
+        validate_op_id(&op.id)?;
         std::fs::create_dir_all(self.ops_dir())?;
         let tmp = self.ops_dir().join(format!("{}.json.tmp", op.id));
         std::fs::write(&tmp, serde_json::to_string_pretty(op)?)?;
@@ -84,6 +103,7 @@ impl Session {
     }
 
     pub fn load_op(&self, id: &str) -> Result<Operation> {
+        validate_op_id(id)?;
         let p = self.op_path(id);
         let text =
             std::fs::read_to_string(&p).with_context(|| format!("no such operation {id}"))?;
@@ -98,7 +118,9 @@ impl Session {
                 if p.extension().map(|x| x == "json").unwrap_or(false) {
                     if let Ok(op) = serde_json::from_str::<Operation>(&std::fs::read_to_string(&p)?)
                     {
-                        out.push(op);
+                        if validate_op_id(&op.id).is_ok() {
+                            out.push(op);
+                        }
                     }
                 }
             }
@@ -286,6 +308,25 @@ impl Operation {
     }
 }
 
+/// Operation ids come from callers (CLI, MCP, HTTP) and are joined into paths:
+/// they must match `^op_[A-Za-z0-9_-]{1,64}$` (ADR 0014 §3).
+pub fn validate_op_id(id: &str) -> Result<()> {
+    let ok = id
+        .strip_prefix("op_")
+        .map(|rest| {
+            !rest.is_empty()
+                && rest.len() <= 64
+                && rest
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+        })
+        .unwrap_or(false);
+    if !ok {
+        bail!("invalid operation id {id:?} (expected op_ followed by 1-64 of [A-Za-z0-9_-])");
+    }
+    Ok(())
+}
+
 pub fn new_op_id() -> String {
     let now = chrono::Utc::now();
     let n = now.timestamp_nanos_opt().unwrap_or(0) ^ (std::process::id() as i64);
@@ -293,4 +334,30 @@ pub fn new_op_id() -> String {
         .unwrap()
         .to_string();
     format!("op_{}_{}", now.format("%Y%m%d%H%M%S"), &h[..6])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn op_ids_are_validated() {
+        validate_op_id(&new_op_id()).unwrap();
+        validate_op_id("op_x").unwrap();
+        validate_op_id(&format!("op_{}", "a".repeat(64))).unwrap();
+        for bad in [
+            "",
+            "op_",
+            "op_../../etc",
+            "../op_x",
+            "op_a/b",
+            "op_a b",
+            "op_\u{e9}",
+            "x_123",
+            "op_a\0",
+        ] {
+            assert!(validate_op_id(bad).is_err(), "{bad:?} accepted");
+        }
+        assert!(validate_op_id(&format!("op_{}", "a".repeat(65))).is_err());
+    }
 }

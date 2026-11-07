@@ -25,6 +25,9 @@ pub struct CommitOptions {
     pub prove: Option<String>,
     /// Requirement ids allowed to fail after the change.
     pub allow_failing: Vec<String>,
+    /// The intent/requirements came through an agent surface (MCP/HTTP): their
+    /// command checks are stored with origin `agent`, never `author` (ADR 0014 §2).
+    pub agent_supplied: bool,
 }
 
 pub struct CommitResult {
@@ -80,6 +83,13 @@ pub fn commit(s: &Session, o: &CommitOptions) -> Result<CommitResult> {
     let message = o.message.clone().unwrap_or_default();
     let a = analyze::analyze(s.provider(), o.intent.clone(), &message, &d, o.require_llm)?;
     let mut rec = analyze::build_record_with(a, &d, "commit", &o.requirements, &o.retires);
+    if o.agent_supplied {
+        for r in rec.requirements.iter_mut() {
+            if r.origin == "author" && r.check.is_some() {
+                r.origin = "agent".into();
+            }
+        }
+    }
     if o.dry_run {
         if !o.staged_only {
             repo.git.index()?.read(true)?;
@@ -92,7 +102,16 @@ pub fn commit(s: &Session, o: &CommitOptions) -> Result<CommitResult> {
         });
     }
 
-    let msg = analyze::commit_message(&rec, o.message.as_deref());
+    let mut msg = analyze::commit_message(&rec, o.message.as_deref());
+    if !s.cfg.commit.intent_trailer {
+        // The note already links commit and record; some teams keep messages clean.
+        msg = msg
+            .trim_end()
+            .trim_end_matches(&format!("Gitent-Intent: {}", rec.intent_id))
+            .trim_end()
+            .to_string()
+            + "\n";
+    }
     let parents: Vec<git2::Oid> = head_id.into_iter().collect();
     // Create the commit object first; the branch only moves if proofs pass.
     let oid = repo.commit(None, &msg, tree_oid, &parents)?;

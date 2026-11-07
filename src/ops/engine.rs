@@ -78,11 +78,17 @@ pub fn abort(s: &Session, id: Option<&str>) -> Result<Operation> {
     if op.state == OpState::Succeeded {
         anyhow::bail!("operation {} already succeeded", op.id);
     }
-    s.repo.remove_worktree(Path::new(&op.worktree))?;
+    s.repo
+        .remove_worktree_in(&op_worktree_root(s), Path::new(&op.worktree))?;
     op.state = OpState::Aborted;
     op.error = Some("aborted by user".into());
     s.save_op(&op)?;
     Ok(op)
+}
+
+/// Where this repository's operation worktrees live (only these are ever deleted).
+fn op_worktree_root(s: &Session) -> PathBuf {
+    s.repo.worktree_root(&s.cfg.executor.worktree_root)
 }
 
 fn drive(s: &Session, op: &mut Operation, mut resuming: bool) {
@@ -132,7 +138,13 @@ fn finalize(s: &Session, op: &mut Operation) -> Result<()> {
     }
     let expected = op.start_head.as_deref().map(Oid::from_str).transpose()?;
     s.repo.finalize_branch(&op.branch_ref, expected, tip)?;
-    s.repo.remove_worktree(Path::new(&op.worktree))?;
+    // The branch already moved: a cleanup refusal must not fail the operation.
+    if let Err(e) = s
+        .repo
+        .remove_worktree_in(&op_worktree_root(s), Path::new(&op.worktree))
+    {
+        op.warnings.push(format!("{e:#}"));
+    }
     op.state = OpState::Succeeded;
     op.result_commit = Some(op.tip.clone());
     Ok(())
@@ -277,8 +289,11 @@ pub(crate) fn prepare_step(
             (keep, gone)
         }
         StepKind::Merge { theirs, .. } => {
-            let theirs_ledger = requirements::ledger(&s.repo, Oid::from_str(theirs)?)?;
-            (requirements::union(tip_ledger, theirs_ledger), vec![])
+            drop(tip_ledger);
+            (
+                requirements::merge_ledger(&s.repo, tip, Oid::from_str(theirs)?)?,
+                vec![],
+            )
         }
     };
     step.requirements = reqs;
@@ -303,7 +318,8 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
     if !resuming {
         // ---- prepare ----
         Repo::reset_worktree(&wt, tip, None)?;
-        let tests_before = diff::tests_in_tree(&wt_path);
+        let tip_tree = s.repo.git.find_commit(tip)?.tree()?;
+        let tests_before = crate::preserve::test_names(&s.repo, &tip_tree);
         prepare_step(s, &mut op.steps[i], &ctx, tip, &branch, tests_before)?;
 
         // ---- 1. deterministic attempt ----
@@ -356,6 +372,7 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                                 name: "git_apply".into(),
                                 passed: false,
                                 detail: format!("textual conflicts in: {}", paths.join(", ")),
+                                ..Default::default()
                             }],
                             warnings: vec![],
                         },
@@ -442,8 +459,46 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
             brief: std::fs::read_to_string(&brief_path)?,
             brief_path,
         };
-        let report = exec.execute(&task)?;
-        let (snap, mut validation) = evaluate(s, op, i, &wt)?;
+        // ADR 0014 §8: the agent must not touch the shared hooks/ or config.
+        let gitdir_before = super::containment::GitDirSnapshot::take(&s.repo.git_dir);
+        let report = exec.execute(&task);
+        let mut tampered = gitdir_before.changes();
+        if !tampered.is_empty() {
+            gitdir_before
+                .restore()
+                .context("restoring .git/hooks and .git/config after the agent changed them")?;
+        }
+        let report = report?;
+        let evaluated = evaluate(s, op, i, &wt);
+        // Validation runs the agent's code (its tests) too.
+        let during_tests = gitdir_before.changes();
+        if !during_tests.is_empty() {
+            gitdir_before
+                .restore()
+                .context("restoring .git/hooks and .git/config after validation changed them")?;
+            tampered.extend(
+                during_tests
+                    .into_iter()
+                    .map(|c| format!("{c} (during validation)")),
+            );
+        }
+        let (snap, mut validation) = evaluated?;
+        if !tampered.is_empty() {
+            validation.passed = false;
+            validation.checks.insert(
+                0,
+                CheckResult {
+                    name: "git_dir_integrity".into(),
+                    passed: false,
+                    detail: format!(
+                        "agent modified .git/hooks or .git/config; restored ({}). \
+                         Never change files in the repository's git directory.",
+                        tampered.join(", ")
+                    ),
+                    ..Default::default()
+                },
+            );
+        }
         if !report.success {
             validation.passed = false;
             validation.checks.insert(
@@ -452,6 +507,7 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                     name: "executor".into(),
                     passed: false,
                     detail: report.summary.clone(),
+                    ..Default::default()
                 },
             );
         }
@@ -544,7 +600,16 @@ fn write_brief(
 fn evaluate(s: &Session, op: &Operation, i: usize, wt: &Repo) -> Result<(Oid, ValidationReport)> {
     let snap = wt.stage_all()?;
     let tip = Oid::from_str(&op.tip)?;
-    let report = validate_candidate(s, &op.steps[i], tip, snap, &wt.workdir)?;
+    let mut report = validate_candidate(s, &op.steps[i], tip, snap, &wt.workdir)?;
+    // In an operation, findings only a human can settle (e.g. a test's expected values
+    // adapted to the target's units) do not block; they are reported (ADR 0013 §1).
+    for c in report.checks.iter_mut().filter(|c| !c.passed && c.review) {
+        c.passed = true;
+        report
+            .warnings
+            .push(format!("needs_review: {}: {}", c.name, c.detail));
+    }
+    report.passed = report.checks.iter().all(|c| c.passed);
     Ok((snap, report))
 }
 
@@ -561,12 +626,31 @@ pub(crate) fn validate_candidate(
     let snap_tree = s.repo.git.find_tree(snap)?;
     let d = s.repo.diff_trees(Some(&tip_tree), &snap_tree)?;
     let before: BTreeSet<String> = step.tests_before.iter().cloned().collect();
+    // Test inventories and locations come from git trees (ADR 0013 §3, §8).
+    let index = crate::preserve::test_index(&s.repo, &snap_tree);
+    let after: BTreeSet<String> = index.keys().cloned().collect();
+    let locator = requirements::TestLocator {
+        index,
+        added: Some(diff::tests_added_with_paths(&d.patch).into_iter().collect()),
+    };
+    let path_of = |t: &str| {
+        step.requirements
+            .iter()
+            .find(|l| l.req.kind == ReqKind::Test && l.req.test == t)
+            .map(|l| l.req.test_path.clone())
+            .unwrap_or_default()
+    };
+    let missing_required: Vec<String> = step
+        .required_tests
+        .iter()
+        .filter_map(|t| locator.locate(t, &path_of(t)).err())
+        .collect();
     let mut goal = step.goal.clone();
     if let StepKind::Merge { .. } = step.kind {
         goal.push_str("\n(For a merge, the diff below is relative to OUR side; it should add their intentions.)");
     }
     // Executable requirements first (ADR 0008 §7); judged ones go to the verifier.
-    let mut runner = requirements::Runner::new(workdir, &s.cfg);
+    let mut runner = requirements::Runner::new(workdir, &s.cfg).with_locator(locator);
     let exec: Vec<_> = step
         .requirements
         .iter()
@@ -574,6 +658,7 @@ pub(crate) fn validate_candidate(
         .cloned()
         .collect();
     let results = runner.run_all(&exec);
+    let suite = runner.suite();
     let failing: Vec<_> = results.iter().filter(|r| r.status == "fail").collect();
     let skipped = results.iter().filter(|r| r.status == "skipped").count();
     let judged: Vec<String> = step
@@ -601,7 +686,10 @@ pub(crate) fn validate_candidate(
         worktree: workdir,
         diff: &d,
         tests_before: &before,
+        tests_after: &after,
         required_tests: &step.required_tests,
+        missing_required: &missing_required,
+        suite,
         removable_tests: &step.removable_tests,
         cfg: &vcfg,
         verifier: s.provider(),
@@ -638,46 +726,56 @@ pub(crate) fn validate_candidate(
                         .collect::<Vec<_>>()
                         .join("\n")
                 },
+                ..Default::default()
             },
         );
         report.passed = report.checks.iter().all(|c| c.passed);
     }
-    // The target's own structure must survive (ADR 0010).
-    match crate::preserve::check(&s.repo, &step.kind, tip, snap) {
-        Ok(c) => {
-            report.checks.push(c);
-            report.passed = report.checks.iter().all(|c| c.passed);
+    // The target's own structure must survive (ADR 0010), and its tests must keep testing
+    // (ADR 0013 §2, §6). A guard that cannot run is a review failure, not a warning.
+    let guards: [(&str, Result<Option<CheckResult>>); 4] = [
+        (
+            "target_preserved",
+            crate::preserve::check(&s.repo, &step.kind, tip, snap).map(Some),
+        ),
+        (
+            "tests_intact",
+            crate::integrity::tests_intact(&s.repo, &step.kind, tip, snap).map(Some),
+        ),
+        (
+            "bodies_intact",
+            crate::integrity::bodies_intact(&s.repo, &step.kind, tip, snap).map(Some),
+        ),
+        (
+            "no_orphan_copy",
+            crate::integrity::no_orphan_copy(&s.repo, &step.kind, tip, snap),
+        ),
+    ];
+    for (name, g) in guards {
+        match g {
+            Ok(Some(c)) => report.checks.push(c),
+            Ok(None) => {}
+            Err(e) => report.checks.push(CheckResult {
+                name: name.into(),
+                passed: false,
+                review: true,
+                detail: format!("could not run this check: {e:#}"),
+            }),
         }
-        Err(e) => report
-            .warnings
-            .push(format!("target_preserved check skipped: {e:#}")),
     }
-    // Revert: the removed requirements should no longer hold.
+    report.passed = report.checks.iter().all(|c| c.passed);
+    // Revert: the removed requirements should no longer hold, *with the reverted
+    // change's tests present* (ADR 0013 §5): deleting the test proves nothing.
     let retiring: Vec<_> = step
         .retiring
         .iter()
         .filter(|l| l.req.kind.executable())
         .cloned()
         .collect();
-    if !retiring.is_empty() {
-        let still: Vec<String> = runner
-            .run_all(&retiring)
-            .into_iter()
-            .filter(|r| r.status == "pass")
-            .map(|r| format!("{} \"{}\"", r.id, r.statement))
-            .collect();
-        report.checks.push(CheckResult {
-            name: "revert_effective".into(),
-            passed: still.is_empty(),
-            detail: if still.is_empty() {
-                format!("{} reverted requirement(s) no longer hold", retiring.len())
-            } else {
-                format!(
-                    "the reverted behaviour is still present; these requirements still pass: {}",
-                    still.join(", ")
-                )
-            },
-        });
+    if let (false, StepKind::Revert { source }) = (retiring.is_empty(), &step.kind) {
+        report
+            .checks
+            .push(revert_effective(s, source, tip, snap, &retiring)?);
         report.passed = report.checks.iter().all(|c| c.passed);
     }
     // Already realised (e.g. a later rebase step whose change an earlier step
@@ -709,6 +807,79 @@ pub(crate) fn validate_candidate(
         }
     }
     Ok(report)
+}
+
+/// Run the reverted requirements on the result with the reverted change's test files overlaid.
+fn revert_effective(
+    s: &Session,
+    source: &str,
+    tip: Oid,
+    snap: Oid,
+    retiring: &[requirements::LiveReq],
+) -> Result<CheckResult> {
+    let src = s.repo.git.find_commit(Oid::from_str(source)?)?;
+    let snap_commit = s
+        .repo
+        .commit(None, "gitent: revert check snapshot", snap, &[tip])?;
+    let tmp = requirements::TempTree::new(&s.repo, snap_commit, "revert-check")?;
+    let missing = |r: &requirements::ReqResult| {
+        r.status == "fail"
+            && (r.detail.contains("does not exist")
+                || r.detail.contains("was not ported")
+                || r.detail.contains("ran 0 tests"))
+    };
+    // 1. As the result stands (a revert may keep an adapted copy of the test).
+    let first = requirements::Runner::new(&tmp.path, &s.cfg).run_all(retiring);
+    // 2. Requirements whose test the result no longer has: restore the reverted change's
+    //    test files and run again; deleting a test proves nothing.
+    let gone: Vec<requirements::LiveReq> = retiring
+        .iter()
+        .filter(|l| first.iter().any(|r| r.id == l.req.id && missing(r)))
+        .cloned()
+        .collect();
+    let mut results: Vec<requirements::ReqResult> =
+        first.into_iter().filter(|r| !missing(r)).collect();
+    if !gone.is_empty() && src.parent_count() > 0 {
+        requirements::overlay_test_files(&s.repo, src.parent_id(0)?, src.id(), &tmp.path)?;
+        results.extend(requirements::Runner::new(&tmp.path, &s.cfg).run_all(&gone));
+    }
+    let (mut still, mut unrun) = (vec![], vec![]);
+    for r in results {
+        let label = format!("{} \"{}\"", r.id, r.statement);
+        if r.status == "pass" {
+            still.push(label);
+        } else if missing(&r) || r.status != "fail" {
+            unrun.push(label);
+        }
+    }
+    Ok(if !still.is_empty() {
+        CheckResult {
+            name: "revert_effective".into(),
+            passed: false,
+            detail: format!(
+                "the reverted behaviour is still present; these requirements still pass: {}",
+                still.join(", ")
+            ),
+            ..Default::default()
+        }
+    } else if !unrun.is_empty() {
+        CheckResult {
+            name: "revert_effective".into(),
+            passed: false,
+            review: true,
+            detail: format!(
+                "could not show the behaviour is gone; these requirements could not be run even with the reverted change's tests restored: {}",
+                unrun.join(", ")
+            ),
+        }
+    } else {
+        CheckResult {
+            name: "revert_effective".into(),
+            passed: true,
+            detail: format!("{} reverted requirement(s) no longer hold", retiring.len()),
+            ..Default::default()
+        }
+    })
 }
 
 fn commit_step(

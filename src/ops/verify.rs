@@ -98,11 +98,18 @@ pub fn verify(s: &Session, o: &VerifyOptions) -> Result<Value> {
     )?;
 
     let tmp = TempTree::new(repo, result_commit, "verify")?;
-    let report = validate_candidate(s, &step, base, result_tree, &tmp.path)?;
+    let mut report = validate_candidate(s, &step, base, result_tree, &tmp.path)?;
     drop(tmp);
+    if let Some(c) = evidence(&step, &report, source) {
+        report.checks.push(c);
+        report.passed = report.checks.iter().all(|c| c.passed);
+    }
+    let verdict = report.verdict();
 
     let mut out = json!({
-        "verified": report.passed,
+        "schema": VERIFY_SCHEMA,
+        "verdict": verdict,
+        "verified": verdict == "verified",
         "state": if report.passed { "succeeded" } else { "failed" },
         "kind": kind_name,
         "source": source.to_string(),
@@ -116,7 +123,7 @@ pub fn verify(s: &Session, o: &VerifyOptions) -> Result<Value> {
         if is_snapshot {
             bail!("--record needs a commit, not --working-tree");
         }
-        if !report.passed {
+        if verdict != "verified" {
             out["recorded"] = json!(false);
         } else if store::get(repo, result_commit).is_some() {
             out["recorded"] = json!(false);
@@ -129,7 +136,19 @@ pub fn verify(s: &Session, o: &VerifyOptions) -> Result<Value> {
             out["record"] = serde_json::to_value(&rec)?;
         }
     }
-    if !report.passed {
+    if verdict == "unverified" {
+        out["error"] = json!(format!(
+            "{} is not proven to be a valid {kind_name} of {} onto {} (needs review):\n{}",
+            if is_snapshot {
+                "the working tree".to_string()
+            } else {
+                short(&result_commit.to_string())
+            },
+            short(&source.to_string()),
+            short(&base.to_string()),
+            crate::validate::feedback(&report)
+        ));
+    } else if !report.passed {
         out["error"] = json!(format!(
             "{} is not a valid {kind_name} of {} onto {}:\n{}",
             if is_snapshot {
@@ -143,6 +162,55 @@ pub fn verify(s: &Session, o: &VerifyOptions) -> Result<Value> {
         ));
     }
     Ok(out)
+}
+
+pub const VERIFY_SCHEMA: &str = "gitent/verify@1";
+
+/// `evidence` (review): a green verdict needs something executable that proves the move
+/// (ADR 0013 §1). Passing tests that never exercised the change prove nothing.
+fn evidence(step: &Step, report: &ValidationReport, source: Oid) -> Option<CheckResult> {
+    let src = source.to_string();
+    let n = match &step.kind {
+        StepKind::Apply { .. } => step
+            .requirements
+            .iter()
+            .filter(|l| l.req.kind.executable() && l.commit == src)
+            .count(),
+        StepKind::Revert { .. } => step
+            .retiring
+            .iter()
+            .filter(|l| l.req.kind.executable())
+            .count(),
+        StepKind::Merge { .. } => return None,
+    };
+    let judged = report
+        .checks
+        .iter()
+        .any(|c| c.name == "verifier" && c.passed);
+    Some(if n > 0 {
+        CheckResult {
+            name: "evidence".into(),
+            passed: true,
+            detail: format!("{n} executable requirement(s) of the moved change were checked"),
+            ..Default::default()
+        }
+    } else if judged {
+        CheckResult {
+            name: "evidence".into(),
+            passed: true,
+            detail: "no executable requirement; judged by the LLM verifier only".into(),
+            ..Default::default()
+        }
+    } else {
+        CheckResult {
+            name: "evidence".into(),
+            passed: false,
+            review: true,
+            detail: "nothing executable proves this move: the moved change has no tests or \
+                     executable requirements, so passing tests say nothing about it"
+                .into(),
+        }
+    })
 }
 
 fn record_for_verified(

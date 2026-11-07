@@ -11,6 +11,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: shell syntax
+        run: for f in action/*.sh action/selftest/*.sh; do bash -n "$f"; done
+      - name: markdown escaping
+        run: python3 action/md.py selftest
+
   scenario:
     runs-on: ubuntu-latest
     timeout-minutes: 30

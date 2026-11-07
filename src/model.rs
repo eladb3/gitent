@@ -2,7 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const SCHEMA: &str = "gitent/semantic-change@2";
+pub const SCHEMA: &str = "gitent/semantic-change@3";
+pub const SCHEMA_V2: &str = "gitent/semantic-change@2";
 pub const SCHEMA_V1: &str = "gitent/semantic-change@1";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -211,9 +212,12 @@ pub struct Requirement {
     pub kind: ReqKind,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub test: String,
+    /// File the test was introduced in (qualifies `test`, ADR 0013 §3). Empty in `@2` records.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub test_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub check: Option<CheckSpec>,
-    /// auto | author | llm | migrated
+    /// auto | author | agent | llm | migrated
     pub origin: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proof: Option<Proof>,
@@ -292,6 +296,10 @@ impl SemanticChange {
             self.constraints.clear();
             self.schema = SCHEMA.into();
         }
+        if self.schema == SCHEMA_V2 {
+            // @3 only adds optional fields (requirement `test_path`).
+            self.schema = SCHEMA.into();
+        }
         self
     }
 
@@ -330,6 +338,9 @@ pub struct CheckResult {
     pub passed: bool,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub detail: String,
+    /// A failure only a human can settle ("needs review"), not a definitive one (ADR 0013 §1).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub review: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -343,6 +354,18 @@ pub struct ValidationReport {
 impl ValidationReport {
     pub fn failures(&self) -> Vec<&CheckResult> {
         self.checks.iter().filter(|c| !c.passed).collect()
+    }
+
+    /// `verified` | `rejected` | `unverified` (ADR 0013 §1).
+    pub fn verdict(&self) -> &'static str {
+        let f = self.failures();
+        if self.passed && f.is_empty() {
+            "verified"
+        } else if !f.is_empty() && f.iter().all(|c| c.review) {
+            "unverified"
+        } else {
+            "rejected"
+        }
     }
 }
 
@@ -391,8 +414,9 @@ pub fn json_schema() -> serde_json::Value {
                 "category":{"enum":["behavior","constraint"]},
                 "kind":{"enum":["test","command","judged"]},
                 "test":{"type":"string"},
+                "test_path":{"type":"string"},
                 "check":{"type":"object","properties":{"run":{"type":"string"},"expect_exit":{"type":"integer"},"timeout_secs":{"type":"integer"}}},
-                "origin":{"enum":["auto","author","llm","migrated"]},
+                "origin":{"enum":["auto","author","agent","llm","migrated"],"description":"agent = supplied by an agent over MCP/HTTP (its check.run is not author-trusted)"},
                 "proof":{"type":"object","properties":{"before":{"enum":["pass","fail","skipped"]},"after":{"enum":["pass","fail","skipped"]},"commit":{"type":"string"}}},
                 "rebound_from":{"type":"string"}}},
             "validation": {"type":"object","properties":{"passed":{"type":"boolean"},

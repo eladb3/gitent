@@ -6,6 +6,7 @@ pub mod api;
 pub mod config;
 pub mod diff;
 pub mod http;
+pub mod integrity;
 pub mod llm;
 pub mod mcp;
 pub mod model;

@@ -20,22 +20,22 @@ struct Cli {
     #[arg(long, global = true)]
     json: bool,
     /// Executor for this command: builtin | command | host
-    #[arg(long, global = true)]
+    #[arg(long, global = true, help_heading = "Overrides")]
     executor: Option<String>,
     /// Command line for the command executor
-    #[arg(long, global = true)]
+    #[arg(long, global = true, help_heading = "Overrides")]
     executor_command: Option<String>,
     /// LLM provider: anthropic | openai | command | scripted | none
-    #[arg(long, global = true)]
+    #[arg(long, global = true, help_heading = "Overrides")]
     provider: Option<String>,
     /// Override validation.test_command
-    #[arg(long, global = true)]
+    #[arg(long, global = true, help_heading = "Overrides")]
     test_command: Option<String>,
-    /// Override validation.test_selector (`{test}` is replaced by a test name)
-    #[arg(long, global = true)]
+    /// Override validation.test_selector (`{test}`, `{test_re}`, `{file}`, `{module}` are replaced, shell-quoted)
+    #[arg(long, global = true, help_heading = "Overrides")]
     test_selector: Option<String>,
     /// Override validation.max_attempts
-    #[arg(long, global = true)]
+    #[arg(long, global = true, help_heading = "Overrides")]
     max_attempts: Option<u32>,
     #[command(subcommand)]
     cmd: Cmd,
@@ -116,9 +116,11 @@ enum Cmd {
     },
     /// Verify the backports/cherry-picks/reverts in base..head (for PR checks; see docs/GITHUB_ACTION.md)
     VerifyPr {
-        /// Target branch the PR goes into (e.g. origin/stable/5.2.x)
-        #[arg(long)]
-        base: String,
+        /// Target branch the PR goes into (e.g. origin/stable/5.2.x); also accepted as --base
+        #[arg(value_name = "BASE", required_unless_present = "base")]
+        base_pos: Option<String>,
+        #[arg(long, hide = true, conflicts_with = "base_pos")]
+        base: Option<String>,
         /// Result to verify (default HEAD)
         #[arg(long)]
         head: Option<String>,
@@ -137,6 +139,10 @@ enum Cmd {
         /// Skip the LLM verifier even if configured
         #[arg(long)]
         no_llm: bool,
+        /// Run `command` requirements stored in notes (off by default: notes refs are not
+        /// protected by branch protection, ADR 0014)
+        #[arg(long)]
+        trust_notes: bool,
     },
     /// Run all live requirements (the ledger) on the working tree or a revision
     Check {
@@ -148,7 +154,7 @@ enum Cmd {
         #[arg(long)]
         judge: bool,
     },
-    /// Semantic diff: analyze uncommitted changes, or list intentions between revisions
+    /// [experimental] Semantic diff: analyze uncommitted changes, or list intentions between revisions
     Diff {
         from: Option<String>,
         to: Option<String>,
@@ -161,14 +167,14 @@ enum Cmd {
     },
     /// Show the semantic record of a commit or intent id
     Show { rev: Option<String> },
-    /// Re-implement commits' intentions on the current branch
+    /// [experimental] Re-implement commits' intentions on the current branch (git first, then your agent; validated)
     CherryPick {
         #[arg(required = true)]
         commits: Vec<String>,
         #[command(flatten)]
         o: OpFlags,
     },
-    /// Merge a branch by composing intentions
+    /// [experimental] Merge a branch by composing intentions
     Merge {
         branch: String,
         /// Proceed even if intentions look incompatible
@@ -177,13 +183,13 @@ enum Cmd {
         #[command(flatten)]
         o: OpFlags,
     },
-    /// Replay this branch's intentions onto another base
+    /// [experimental] Replay this branch's intentions onto another base
     Rebase {
         onto: String,
         #[command(flatten)]
         o: OpFlags,
     },
-    /// Remove a commit's intention from the current branch
+    /// [experimental] Remove a commit's intention from the current branch
     Revert {
         commit: String,
         #[command(flatten)]
@@ -197,7 +203,7 @@ enum Cmd {
     Status,
     /// List operations
     Ops,
-    /// Create semantic records for commits made with plain git
+    /// [experimental] Create semantic records for commits made with plain git
     Annotate {
         rev: Option<String>,
         #[arg(short = 'n', long, default_value_t = 50)]
@@ -205,7 +211,9 @@ enum Cmd {
     },
     /// Serve the tool API over MCP (stdio)
     Mcp,
-    /// Serve the tool API over HTTP
+    /// [experimental] Serve the tool API over HTTP (loopback only). Clients must send
+    /// `Authorization: Bearer $GITENT_TOKEN`; without GITENT_TOKEN a random token
+    /// is generated and printed once on stderr.
     Serve {
         #[arg(long, default_value = "127.0.0.1:7341")]
         addr: String,
@@ -413,6 +421,7 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             ("verify", render_verify)
         }
         Cmd::VerifyPr {
+            base_pos,
             base,
             head,
             source,
@@ -420,8 +429,10 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             require_source,
             markdown,
             no_llm,
+            trust_notes,
         } => {
-            args["base"] = json!(base);
+            args["base"] = json!(base_pos.clone().or(base.clone()));
+            args["trust_notes"] = json!(trust_notes);
             for (k, v) in [("head", head), ("source", source), ("kind", kind)] {
                 if let Some(v) = v {
                     args[k] = json!(v);
@@ -430,7 +441,7 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             args["require_source"] = json!(require_source);
             args["no_llm"] = json!(no_llm);
             MARKDOWN_OUT.with(|m| *m.borrow_mut() = markdown.clone());
-            ("verify_pr", |v: &Value| println!("{}", s(v, "markdown")))
+            ("verify_pr", render_verify_pr)
         }
         Cmd::Check { rev, intent, judge } => {
             if let Some(r) = rev {
@@ -464,7 +475,14 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
     if human {
         renderer(&v);
     }
-    let code = if gitent::mcp::is_failed(&v) { 2 } else { 0 };
+    // 0 ok · 2 rejected/failed · 3 unverified (ADR 0013 §1) · 1 error
+    let code = if v["verdict"] == "unverified" || v["result"] == "unverified" {
+        3
+    } else if gitent::mcp::is_failed(&v) {
+        2
+    } else {
+        0
+    };
     Ok((v, code))
 }
 
@@ -509,23 +527,54 @@ fn init(path: &std::path::Path, agent: Option<&str>, local: bool, force: bool) -
     )
 }
 
-/// (test_command, test_selector) defaults for common project layouts.
+/// (test_command, test_selector) defaults for common project layouts. Selectors run one test
+/// where the runner allows it (ADR 0013 §3); placeholders are shell-quoted by gitent.
 fn detect_test_command(dir: &std::path::Path) -> (String, String) {
     let p = |a: &str, b: &str| (a.to_string(), b.to_string());
+    let read = |f: &str| std::fs::read_to_string(dir.join(f)).unwrap_or_default();
     if dir.join("Cargo.toml").exists() {
         p("cargo test", "cargo test {test}")
     } else if dir.join("package.json").exists() {
-        p("npm test --silent", "npx jest -t \"{test}\"")
+        let pkg = read("package.json");
+        if pkg.contains("\"vitest\"") {
+            p("npx vitest run", "npx vitest run -t {test}")
+        } else if pkg.contains("\"mocha\"") {
+            p("npm test --silent", "npx mocha -g {test}")
+        } else {
+            p("npm test --silent", "npx jest -t {test}")
+        }
     } else if dir.join("go.mod").exists() {
-        p("go test ./...", "go test ./... -run '^{test}$'")
+        p("go test ./...", "go test ./... -run {test_re}")
     } else if dir.join("pyproject.toml").exists()
         || dir.join("setup.py").exists()
+        || dir.join("setup.cfg").exists()
         || dir.join("tests").is_dir()
     {
-        p(
-            "python3 -m unittest discover -q",
-            "python3 -m unittest discover -q -k {test}",
-        )
+        let uses_pytest = dir.join("conftest.py").exists()
+            || dir.join("tests/conftest.py").exists()
+            || dir.join("pytest.ini").exists()
+            || read("pyproject.toml").contains("[tool.pytest")
+            || read("pyproject.toml").contains("pytest")
+            || read("setup.cfg").contains("[tool:pytest]")
+            || read("tox.ini").contains("[pytest]")
+            || [
+                "requirements.txt",
+                "requirements-dev.txt",
+                "requirements_test.txt",
+            ]
+            .iter()
+            .any(|f| read(f).contains("pytest"));
+        if uses_pytest {
+            p(
+                "python3 -m pytest -q",
+                "python3 -m pytest -q {file} -k {test}",
+            )
+        } else {
+            p(
+                "python3 -m unittest discover -q",
+                "python3 -m unittest -q -k {test} {module}",
+            )
+        }
     } else {
         p("", "")
     }
@@ -672,10 +721,10 @@ fn render_verify(v: &Value) {
     let result = s(v, "result");
     println!(
         "{} {} of {} onto {} → {}",
-        if v["verified"] == true {
-            ok("✓ verified:")
-        } else {
-            bad("✗ rejected:")
+        match s(v, "verdict") {
+            "verified" => ok("✓ verified:"),
+            "unverified" => paint("? unverified (needs review):", "1;33"),
+            _ => bad("✗ rejected:"),
         },
         s(v, "kind"),
         short(s(v, "source")),
@@ -689,6 +738,8 @@ fn render_verify(v: &Value) {
     for c in v["validation"]["checks"].as_array().into_iter().flatten() {
         let mark = if c["passed"] == true {
             ok("✓")
+        } else if c["review"] == true {
+            paint("?", "1;33")
         } else {
             bad("✗")
         };
@@ -709,6 +760,37 @@ fn render_verify(v: &Value) {
             s(&v["record"], "intent_id"),
             short(result)
         );
+    }
+}
+
+fn render_verify_pr(v: &Value) {
+    use std::io::IsTerminal;
+    if !std::io::stdout().is_terminal() {
+        // Piped (e.g. into a PR comment): the Markdown report.
+        println!("{}", s(v, "markdown"));
+        return;
+    }
+    let verifications = v["verifications"].as_array().cloned().unwrap_or_default();
+    if verifications.is_empty() {
+        let n = s(v, "note");
+        match s(v, "result") {
+            "rejected" => println!("{} {n}", bad("✗ rejected:")),
+            _ => println!("– nothing to verify: {n}"),
+        }
+        if let Some(e) = v.get("error").and_then(|e| e.as_str()) {
+            println!("  {e}");
+        }
+        return;
+    }
+    for x in &verifications {
+        println!("{} ({})", s(x, "source_subject"), s(x, "marker"));
+        render_verify(x);
+        println!();
+    }
+    match s(v, "result") {
+        "verified" => println!("{}", ok("PR verified")),
+        "unverified" => println!("{}", paint("PR not proven: needs review", "1;33")),
+        _ => println!("{}", bad("PR rejected")),
     }
 }
 

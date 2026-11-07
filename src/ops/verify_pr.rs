@@ -59,13 +59,24 @@ fn patterns() -> &'static [(Regex, &'static str, &'static str)] {
 
 /// Markers in a commit message, in priority order (first match wins).
 pub fn detect(message: &str) -> Option<(String, &'static str, &'static str)> {
+    detect_all(message).into_iter().next()
+}
+
+/// Every marker in a commit message (squashed PRs carry several), de-duplicated by sha.
+pub fn detect_all(message: &str) -> Vec<(String, &'static str, &'static str)> {
+    let mut out: Vec<(String, &'static str, &'static str)> = vec![];
     for (re, kind, name) in patterns() {
-        if let Some(c) = re.captures(message) {
-            return Some((c[1].to_string(), kind, name));
+        for c in re.captures_iter(message) {
+            let sha = c[1].to_string();
+            if !out.iter().any(|(s, _, _)| s == &sha) {
+                out.push((sha, kind, name));
+            }
         }
     }
-    None
+    out
 }
+
+pub const VERIFY_PR_SCHEMA: &str = "gitent/verify-pr@1";
 
 pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
     let repo = &s.repo;
@@ -98,7 +109,7 @@ pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
                 .message()
                 .unwrap_or("")
                 .to_string();
-            if let Some((sha, kind, marker)) = detect(&msg) {
+            for (sha, kind, marker) in detect_all(&msg) {
                 match repo.resolve(&sha) {
                     Ok(src) => found.push(Detected {
                         commit: c.to_string(),
@@ -124,10 +135,29 @@ pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
         );
     }
 
+    // A PR cannot cite its own commits as the change it moves (ADR 0013 §7).
+    let own: Vec<String> = found
+        .iter()
+        .filter(|d| commits.iter().any(|c| c.to_string() == d.source))
+        .map(|d| short(&d.source))
+        .collect();
     let mut base_json = json!({
+        "schema": VERIFY_PR_SCHEMA,
         "base": base_tip.to_string(), "onto": onto.to_string(), "head": head.to_string(),
         "commits": commits.len(), "detected": found,
     });
+    if !own.is_empty() {
+        base_json["result"] = json!("rejected");
+        base_json["state"] = json!("failed");
+        base_json["verifications"] = json!([]);
+        base_json["note"] = json!(format!(
+            "the PR cites its own commit(s) {} as the original change; a backport must reference a commit outside the PR",
+            own.join(", ")
+        ));
+        base_json["error"] = json!("source commit is part of this PR");
+        base_json["markdown"] = json!(markdown(&base_json));
+        return Ok(base_json);
+    }
     if found.is_empty() {
         let (result, state) = if o.require_source {
             ("rejected", "failed")
@@ -146,39 +176,31 @@ pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
         return Ok(base_json);
     }
 
-    // One source → verify the PR as a whole; several → each marked commit on its own parent.
+    // Every source is verified against the whole PR (result = head, onto = merge base), so a
+    // later commit in the PR that breaks the port is seen (ADR 0013 §7).
     let mut uniq: Vec<&Detected> = vec![];
     for d in &found {
         if !uniq.iter().any(|u| u.source == d.source) {
             uniq.push(d);
         }
     }
-    let mut runs = vec![];
-    if uniq.len() == 1 {
-        let d = uniq[0];
-        runs.push((d.clone(), head, onto));
-    } else {
-        for d in &found {
-            let c = Oid::from_str(&d.commit)?;
-            let parent = repo.git.find_commit(c)?.parent_id(0)?;
-            runs.push((d.clone(), c, parent));
-        }
-    }
     let mut verifications = vec![];
-    let mut all_ok = true;
-    for (d, result, base) in runs {
-        let mut v = verify(
-            s,
-            &VerifyOptions {
-                source: d.source.clone(),
-                result: Some(result.to_string()),
-                onto: Some(base.to_string()),
-                working_tree: false,
-                kind: d.kind.to_string(),
-                record: false,
-            },
-        )?;
-        all_ok &= v["verified"] == true;
+    let mut verdicts = vec![];
+    for d in uniq {
+        let mut v = crate::store::without_persisting(|| {
+            verify(
+                s,
+                &VerifyOptions {
+                    source: d.source.clone(),
+                    result: Some(head.to_string()),
+                    onto: Some(onto.to_string()),
+                    working_tree: false,
+                    kind: d.kind.to_string(),
+                    record: false,
+                },
+            )
+        })?;
+        verdicts.push(v["verdict"].as_str().unwrap_or("rejected").to_string());
         let subj = repo
             .git
             .find_commit(Oid::from_str(&d.source)?)?
@@ -189,11 +211,26 @@ pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
         v["marker"] = json!(d.marker);
         verifications.push(v);
     }
-    base_json["result"] = json!(if all_ok { "verified" } else { "rejected" });
-    base_json["state"] = json!(if all_ok { "succeeded" } else { "failed" });
+    let result = if verdicts.iter().any(|v| v == "rejected") {
+        "rejected"
+    } else if verdicts.iter().any(|v| v == "unverified") {
+        "unverified"
+    } else {
+        "verified"
+    };
+    base_json["result"] = json!(result);
+    base_json["state"] = json!(if result == "verified" {
+        "succeeded"
+    } else {
+        "failed"
+    });
     base_json["verifications"] = json!(verifications);
-    if !all_ok {
-        base_json["error"] = json!("backport verification failed (see the report)");
+    match result {
+        "rejected" => base_json["error"] = json!("backport verification failed (see the report)"),
+        "unverified" => {
+            base_json["error"] = json!("backport not proven: needs human review (see the report)")
+        }
+        _ => {}
     }
     base_json["markdown"] = json!(markdown(&base_json));
     Ok(base_json)
@@ -209,6 +246,7 @@ pub fn markdown(v: &Value) -> String {
     let (icon, title) = match s(v, "result") {
         "verified" => ("✅", "backport verified"),
         "rejected" => ("❌", "backport rejected"),
+        "unverified" => ("⚠️", "backport not proven (needs review)"),
         _ => ("➖", "nothing to verify"),
     };
     m.push_str(&format!("### {icon} Gitent: {title}\n\n"));
@@ -220,14 +258,22 @@ pub fn markdown(v: &Value) -> String {
         return m;
     }
     for x in v["verifications"].as_array().into_iter().flatten() {
-        let ok = x["verified"] == true;
+        let verdict = s(x, "verdict");
         m.push_str(&format!(
             "**{}** {} `{}` {}: {} onto `{}` → `{}`\n\n",
-            if ok { "✅" } else { "❌" },
+            match verdict {
+                "verified" => "✅",
+                "unverified" => "⚠️",
+                _ => "❌",
+            },
             s(x, "kind"),
             short(s(x, "source")),
-            s(x, "source_subject"),
-            if ok { "verified" } else { "rejected" },
+            md_inline(s(x, "source_subject")),
+            if verdict.is_empty() {
+                "rejected"
+            } else {
+                verdict
+            },
             short(s(x, "base")),
             short(s(x, "result"))
         ));
@@ -236,12 +282,18 @@ pub fn markdown(v: &Value) -> String {
         for c in x["validation"]["checks"].as_array().into_iter().flatten() {
             let passed = c["passed"] == true;
             let detail = s(c, "detail");
-            let first = detail.lines().next().unwrap_or("").replace('|', "\\|");
+            let first = detail.lines().next().unwrap_or("").to_string();
             m.push_str(&format!(
                 "| {} `{}` | {} |\n",
-                if passed { "✓" } else { "✗" },
+                if passed {
+                    "✓"
+                } else if c["review"] == true {
+                    "?"
+                } else {
+                    "✗"
+                },
                 s(c, "name"),
-                crate::proc::tail(&first, 160)
+                md_inline(&crate::proc::tail(&first, 160))
             ));
             if !passed && detail.lines().count() > 1 {
                 failures.push((s(c, "name").to_string(), crate::proc::tail(detail, 3000)));
@@ -251,14 +303,39 @@ pub fn markdown(v: &Value) -> String {
             m.push_str(&format!("\n> ⚠️ {}\n", w.as_str().unwrap_or("")));
         }
         for (name, detail) in failures {
+            let fence = fence_for(&detail);
             m.push_str(&format!(
-                "\n<details><summary>{name}: details</summary>\n\n```\n{detail}\n```\n</details>\n"
+                "\n<details><summary>{name}: details</summary>\n\n{fence}\n{detail}\n{fence}\n</details>\n"
             ));
         }
         m.push('\n');
     }
-    m.push_str("<sub>Checked by [gitent verify](https://github.com/eladb3/gitent/blob/main/docs/GITHUB_ACTION.md): the original change's requirements, the target's tests and requirements, no resurrected files, no dropped definitions, no deleted tests.</sub>\n");
+    m.push_str("<sub>Checked by [gitent verify](https://github.com/eladb3/gitent/blob/main/docs/GITHUB_ACTION.md): the original change's requirements, the target's tests and requirements, no resurrected files, no dropped definitions, no deleted, skipped or weakened tests. ⚠️ means nothing is known to be wrong but the backport is not proven, so a human should look.</sub>\n");
     m
+}
+
+/// Text from commits/tests going into a Markdown line: no HTML, no code spans, no table breaks.
+fn md_inline(t: &str) -> String {
+    t.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('`', "'")
+        .replace('|', "\\|")
+}
+
+/// A code fence longer than any backtick run in `t`, so `t` cannot close it.
+fn fence_for(t: &str) -> String {
+    let mut longest = 0;
+    let mut run = 0;
+    for ch in t.chars() {
+        if ch == '`' {
+            run += 1;
+            longest = longest.max(run);
+        } else {
+            run = 0;
+        }
+    }
+    "`".repeat(longest.max(2) + 1)
 }
 
 #[cfg(test)]

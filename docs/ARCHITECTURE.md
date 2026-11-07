@@ -32,7 +32,7 @@ Full schema: `gitent schema`.
 
 | field | meaning |
 |-------|---------|
-| `schema` | `"gitent/semantic-change@2"` (`@1` records are read with the mapping in `docs/REQUIREMENTS.md` §3) |
+| `schema` | `"gitent/semantic-change@3"` (`@2` records read unchanged; `@1` records are read with the mapping in `docs/REQUIREMENTS.md` §3) |
 | `intent_id` | Identity of the *intention*. Shared by every realisation (original commit, cherry-picks, rebased copies). `int_<12 hex>` |
 | `kind` | `feature · fix · refactor · perf · test · docs · chore · revert · merge` |
 | `title`, `intent`, `behavior` | What and why; the observable behaviour after the change |

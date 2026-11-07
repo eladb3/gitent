@@ -12,12 +12,21 @@ fn init_creates_config_and_is_idempotent() {
     let cfg = r.read(".gitent/config.toml");
     assert!(cfg.contains("claude -p"), "{cfg}");
     assert!(
-        cfg.contains("python3 -m unittest discover -q -k {test}"),
+        cfg.contains("python3 -m unittest -q -k {test} {module}"),
         "selector detected: {cfg}"
     );
     let (code, v) = r.gitent(&["init"]);
     assert_eq!(code, 0);
     assert_eq!(v["initialized"], false, "second init must not overwrite");
+    // pytest projects get pytest (plain `def test_x()` functions are invisible to unittest).
+    r.write("conftest.py", "");
+    let (code, _) = r.gitent(&["init", "--force"]);
+    assert_eq!(code, 0);
+    let cfg = r.read(".gitent/config.toml");
+    assert!(
+        cfg.contains("python3 -m pytest -q {file} -k {test}"),
+        "{cfg}"
+    );
     assert_eq!(r.read(".gitent/config.toml"), cfg);
     let (code, _) = r.gitent(&["init", "--agent", "nope"]);
     assert_eq!(code, 1);
@@ -34,7 +43,7 @@ fn commit_records_intent_and_requirements() {
 
     // A2: persisted in refs/notes/gitent and readable after the process exits.
     let note = r.note("HEAD");
-    assert_eq!(note["schema"], "gitent/semantic-change@2");
+    assert_eq!(note["schema"], "gitent/semantic-change@3");
     assert_eq!(note["kind"], "feature");
     assert_eq!(note["title"], "cache user lookups");
     assert_eq!(note["realization"]["commit"], commit.as_str());
@@ -81,6 +90,16 @@ fn git_compat() {
         "",
         "working tree clean after commit"
     );
+    // The trailer is optional (the note links commit and record anyway).
+    r.local_config("[commit]\nintent_trailer = false\n");
+    r.write("app/db.py", &(DB_PY.to_string() + "\n# tweak\n"));
+    r.commit("tweak", &["--no-prove"]);
+    let msg = r.git(&["log", "-1", "--format=%B"]);
+    assert!(!msg.contains("Gitent-Intent"), "{msg}");
+    assert!(r.note("HEAD")["intent_id"]
+        .as_str()
+        .unwrap()
+        .starts_with("int_"));
 }
 
 #[test]
@@ -88,7 +107,7 @@ fn json_output_and_schema() {
     let r = TestRepo::users();
     let (code, v) = r.gitent(&["schema"]);
     assert_eq!(code, 0);
-    assert_eq!(v["$id"], "gitent/semantic-change@2");
+    assert_eq!(v["$id"], "gitent/semantic-change@3");
     assert!(v["$defs"]["requirement"].is_object());
     let (code, v) = r.gitent(&["status"]);
     assert_eq!(code, 0);
