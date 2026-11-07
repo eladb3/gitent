@@ -20,4 +20,4 @@ jobs:
       - uses: eladb3/gitent@v0
         with:
           test-command: "python -m pytest -q"
-          test-selector: "python -m pytest -q -k {test}"
+          test-selector: "python -m pytest -q {file} -k {test}"

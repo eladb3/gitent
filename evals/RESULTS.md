@@ -14,6 +14,37 @@ Raw data: `evals/results/run*.json` · Harness: `evals/run.py`, scenarios: `eval
 *false success* is an arm reporting success on a result that fails the hidden
 tests.
 
+## External review: more fault models (2026-11-07, ADR 0013)
+
+**Read the "0 false successes" numbers below with this caveat.** They measure
+*one* fault model, the stale port, and the guard that catches it (ADR 0010)
+was written after we saw that fault. An external hands-on review built 15
+hand-made backports of one fix. Nine bad ones were **verified** by v0.1.
+Each is now a deterministic regression test in `tests/fault_models.rs`:
+
+| port | fault | v0.1 | now |
+|---|---|---|---|
+| B | asserts weakened, no fix | verified | unverified (exit 3) |
+| E | requirement test `@unittest.skip`, no fix | verified | rejected |
+| K | expectations rewritten to match the bug | verified | unverified |
+| L | proper fix, target-only test weakened | verified | unverified |
+| N | same-named pre-existing test stands in | verified | rejected |
+| T | fix had no tests, port unrelated | verified | unverified |
+| J | source branch's file copied (dead code) | verified | unverified |
+| rev-fake | "revert" deletes only the test | verified | rejected |
+| F | hard-codes the tested inputs | verified | **verified (known limit: needs a reviewer)** |
+| A, H | proper ports | verified | verified |
+| C, D, I | test file deleted / helper dropped / test not ported | rejected | rejected |
+| G | proper fix, test renamed | rejected | rejected (arguably a false rejection) |
+
+With the LLM verifier enabled (`claude -p`, Sonnet), the reviewer saw B, E,
+F, K and L rejected and J still verified. The verifier now runs in the result
+tree. Before, it ran in the user's checkout, which skewed its explanations.
+
+These fault models have not yet been added to the live agent runs
+(`evals/run.py --agent …`). Until they are, the live numbers below cover only
+the stale-port fault.
+
 ## `gitent verify` as a gate behind an agent (ADR 0011, criterion V8)
 
 Arm `baseline+verify`: the baseline agent works alone, exactly as in the

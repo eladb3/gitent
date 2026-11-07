@@ -53,7 +53,7 @@ Gitent records **what each change is for and what it must keep doing**. It then
 | | | |
 |---|---|---|
 | 🧾 **Record** | `gitent commit` | Stores the change's intent and **requirements** next to the Git commit. Every test you add becomes a requirement, *proven* to fail before the change and pass after it. |
-| 🔍 **Verify** | `gitent verify <fix>` | Checks that a port carries the fix: the fix's requirements pass on the target, the target's own tests and requirements still pass, nothing was resurrected, dropped or deleted. **No AI is needed.** |
+| 🔍 **Verify** | `gitent verify <fix>` | Checks that a port carries the fix: the fix's requirements pass on the target, the target's own tests and requirements still pass, nothing was resurrected, dropped or deleted, and no test was skipped or weakened. Deterministic: **no AI needed**. An LLM verifier can be added. |
 | 🤖 **Operate** *(optional)* | `gitent cherry-pick <fix>` | Tries Git first. If Git can't do it, hands the job to *your* coding agent in an isolated worktree, verifies the result, and only then moves your branch. |
 
 It is **not a Git replacement.** A Gitent repo is a Git repo, and records live
@@ -69,9 +69,10 @@ flowchart LR
   V --> R2["the target's tests and<br/>requirements still pass"]
   V --> R3["no deleted files<br/>brought back"]
   V --> R4["no existing functions<br/>dropped"]
-  V --> R5["no tests deleted<br/>or weakened"]
-  R1 & R2 & R3 & R4 & R5 --> OK(["✓ verified"])
-  V -. any check fails .-> NO(["✗ rejected, with the reason"])
+  V --> R5["no tests deleted,<br/>skipped or weakened"]
+  R1 & R2 & R3 & R4 & R5 --> OK(["✓ verified · exit 0"])
+  V -. something is wrong .-> NO(["✗ rejected · exit 2"])
+  V -. nothing proves it .-> RV(["? unverified · exit 3<br/>a human should look"])
 ```
 
 The output on a bad port, from the demo above:
@@ -85,6 +86,19 @@ $ gitent verify 1.x
 ```
 
 The tests pass, the agent says "done", and Gitent still says no.
+
+**Three verdicts.**
+* `verified`: something executable proved the move.
+* `rejected`: something is definitely wrong, such as a deleted or skipped test,
+  a failing requirement or a resurrected file.
+* `unverified`: nothing is known to be wrong, but nothing proves the move
+  either. The fix had no tests, a ported test lost assertions or got new
+  expected values, or code was copied from the source branch. A human should
+  look.
+
+**What it cannot see.** A port that hard-codes exactly the tested inputs
+passes any test-based check. Only review catches that, by a person or the
+optional LLM verifier ([what is checked and what isn't](docs/adr/0013-verification-integrity.md)).
 
 ## Quick start
 
@@ -136,7 +150,7 @@ jobs:
       - uses: eladb3/gitent@v0
         with:
           test-command: "python -m pytest -q"
-          test-selector: "python -m pytest -q -k {test}"
+          test-selector: "python -m pytest -q {file} -k {test}"
 ```
 
 The action:
@@ -144,7 +158,12 @@ The action:
   `(cherry picked from commit …)` (`git cherry-pick -x`, most backport bots),
   `Backport of …`, `This reverts commit …`;
 * posts **one** PR comment and keeps it up to date;
-* **fails the check** on a rejected backport.
+* **fails the check** on a rejected backport, and on an unverified one unless
+  you set `allow-unverified: true`;
+* runs deterministically (`--no-llm`) unless you opt into an LLM verifier with
+  `llm-provider`;
+* reads the test command and config from the PR's **base**, so a PR cannot
+  choose how it is checked.
 
 Full reference: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md). Ready-made
 workflows are in [examples/](examples/).
@@ -179,7 +198,14 @@ result is verified.
 </table>
 
 Everything is also available as JSON (`--json`), over MCP (`gitent mcp`) and
-over HTTP (`gitent serve`).
+over HTTP (`gitent serve`, token-protected). The tool surfaces cannot choose
+which commands Gitent runs; that comes only from config and the CLI
+([trust boundaries](docs/adr/0014-trust-boundaries.md)).
+
+**Core vs experimental.** `verify`, `verify-pr`, the Action, `commit` and
+`check` are the core. The operations (`cherry-pick`, `merge`, `rebase`,
+`revert`), `diff`, `annotate` and `serve` are marked `[experimental]` in
+`--help`.
 
 ## Does it work? The evidence
 
@@ -190,15 +216,31 @@ conflicts. The hidden oracle is the *human* backport's tests
 | | plain git | Claude Code alone | Claude Code + Gitent |
 |---|:---:|:---:|:---:|
 | backports correct | 5 / 24 | **24 / 24** | **24 / 24** |
-| **wrong results reported as success**, with a faulty agent | — | ❌ 9 | ✅ **0** |
+| **wrong results reported as success**, with a faulty "stale port" agent | — | ❌ 9 | ✅ **0** |
 | …same, with `gitent verify` as a gate behind the agent | — | ✅ **0** | |
 | extra cost of the gate | | ~18 s per backport, no AI tokens | |
 
+Hand-made bad backports from an external review, checked by `gitent verify`
+with no LLM ([tests/fault_models.rs](tests/fault_models.rs)):
+
+| fault | v0.1 | now |
+|---|:---:|:---:|
+| test skipped | ❌ verified | ✅ rejected |
+| asserts weakened · expectations rewritten to match the bug · target's own test weakened | ❌ verified | ⚠️ unverified |
+| a same-named old test stands in for the ported one | ❌ verified | ✅ rejected |
+| "revert" that only deletes the test | ❌ verified | ✅ rejected |
+| the fix had no tests | ❌ verified | ⚠️ unverified |
+| the source branch's file copied over | ❌ verified | ⚠️ unverified |
+| exactly the tested inputs hard-coded | ❌ verified | ❌ verified (needs a reviewer) |
+
 **Honest summary:**
 * Gitent doesn't make a good agent smarter; on correctness it ties.
-* It makes the result **trustworthy**: it never reports success on broken work.
-* It only catches what is recorded. Behaviour that matters only on the target
-  branch, and that nothing there tests, can slip through. We saw this once.
+* The "0 false successes" figure is for one fault model, the stale port. The
+  table above adds the ones an external reviewer found. Each is now a
+  regression test.
+* It only catches what is recorded or tested. Behaviour that matters only on
+  the target branch, and that nothing there tests, can slip through. We saw
+  this once. Hard-coded test inputs also need a reviewer.
 
 ## How it works
 
@@ -226,7 +268,7 @@ flowchart TB
 
 ## Status and contributing
 
-**Experimental (v0.1).** CI runs 70 integration tests on real Git repositories.
+**Experimental (v0.1).** CI runs 90+ tests (unit, plus integration tests on real Git repositories).
 The action is tested on GitHub's own runners. Known limits are documented in
 [evals/RESULTS.md](evals/RESULTS.md).
 

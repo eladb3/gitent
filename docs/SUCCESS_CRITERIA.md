@@ -77,6 +77,25 @@ Legend: ✅ verified by automated test · 📊 verified by eval run (real LLM) �
 | V7 | Operations and verify share one validation code path (`validate_candidate`). | ✅ `ops::engine::validate_candidate` + `prepare_step` used by both; all operation tests green |
 | V8 | Eval: `gitent verify` as a gate behind the *baseline* agent reaches the same false-success rate as Gitent operations (0), at no extra agent cost. | 📊 met for fault injection (real 9→0, synthetic 8→0) and reference solutions (0 false rejections). Live Claude Code on 24 real backports: 1 false success **not** caught (target-only behaviour absent from the source's requirements); 1 false rejection found and fixed. `evals/RESULTS.md` |
 
+## I. Verification integrity (ADR 0013)
+
+Each row is one fault model from the external evaluation of 2026-11-07, checked with `gitent verify` and no LLM.
+
+| # | Criterion | Verified by |
+|---|---|---|
+| I1 | Three verdicts: `verified` (exit 0), `rejected` (2), `unverified` (3, needs review). `verify` JSON has `schema: gitent/verify@1` and `verdict`. | ✅ `tests/fault_models.rs` (all) |
+| I2 | A requirement test that gets a skip/ignore/xfail marker, or loses every assertion, is **rejected** (port E). Fewer assertions (B), changed expected values (K) or a weakened target-only test (L) make the result **unverified**. Renaming the API under test does not. | ✅ `e_skipped_requirement_test_is_rejected`, `b_…`, `k_…`, `l_…`, `integrity::tests::detects_skip_weakening_and_new_expectations` |
+| I3 | Requirement tests are located by `test_path`. A same-named test that already existed elsewhere on the target does not count as ported (N). A test moved into another file by the port does count (H). | ✅ `n_a_same_named_pre_existing_test_does_not_count_as_ported`, `h_test_added_to_an_existing_file_is_verified` |
+| I4 | A selector run that executes 0 tests fails. A vacuous requirement is not proven at commit. | ✅ `requirements::selector_tests::detects_zero_tests`, `tests/requirements.rs::a_selector_that_runs_zero_tests_does_not_prove_a_requirement` |
+| I5 | A revert that only deletes the test is rejected: the reverted change's tests are restored and must fail. | ✅ `rev_fake_a_revert_that_only_deletes_the_test_is_rejected` |
+| I6 | A move with nothing executable behind it is `unverified`, not verified (T). | ✅ `t_a_fix_without_tests_proves_nothing` |
+| I7 | Copying a file the source only modified onto a target that never had it is flagged for review (J). | ✅ `j_copying_the_source_branch_code_is_not_verified` |
+| I8 | `verify-pr` verifies every source against the whole PR, so a later commit that breaks the port is seen. It reads every marker, refuses a PR that cites its own commits, and writes no notes. | ✅ `verify_pr_checks_the_whole_pr_and_refuses_self_citations` |
+| I9 | Ledger: the newest event wins (retire, then re-apply, makes the requirement live again). A merge keeps a retirement made on one side. | ✅ `tests/requirements.rs::ledger_newest_event_wins_and_merges_keep_retirements` |
+| I10 | Inside operations, review-level findings become `needs_review` warnings; definitive ones still block. | ✅ `tests/cherry_pick.rs::clean_but_wrong_pick_escalates_to_agent` (cents adaptation succeeds) |
+| I11 | The LLM verifier runs in the result tree, not the user's checkout. | ✅ `llm_verifier_judges_the_result_tree_not_the_users_checkout` |
+| I12 | Known limit: hard-coding the tested inputs (F) passes any test oracle. Only a reviewer (human or the LLM verifier) can catch it. | 📌 `f_hard_coded_inputs_pass_the_oracle_documented_limit` pins the limit |
+
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
 
 | ID | Criterion | Verified by |
