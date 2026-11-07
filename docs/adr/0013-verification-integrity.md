@@ -152,6 +152,13 @@ a preceding line: `#[test]`, `#[tokio::test]`, `@Test`, `[Test]`, `[Fact]`,
 Definitions now include Java/C#/Kotlin/Swift methods and typed TypeScript arrow
 functions.
 
+### 12. Stubbed bodies (`bodies_intact`, review)
+
+`target_preserved` compares definition *names*, so emptying a function's body
+passed. A definition that has a real body at the base and is reduced to a stub
+in the result (`pass`, `...`, `todo!()`, `{}`) is a review failure, unless the
+moved change itself does the same.
+
 ## What remains out of reach
 
 * **Port F.** Hard-coding the tested inputs passes any test oracle. Only a

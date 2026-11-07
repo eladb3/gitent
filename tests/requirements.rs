@@ -257,6 +257,12 @@ fn a_selector_that_runs_zero_tests_does_not_prove_a_requirement() {
         "from app import users\n\n\ndef test_plain_cache():\n    assert users.get_user(1) == users.get_user(1)\n",
     );
     let (code, v) = r.gitent(&["commit", "-m", "cache (pytest-style test)"]);
-    assert_ne!(code, 0, "a vacuous requirement must not pass its proof: {v}");
-    assert!(v.to_string().contains("ran 0 tests") || v.to_string().contains("NO TESTS RAN"), "{v}");
+    assert_ne!(
+        code, 0,
+        "a vacuous requirement must not pass its proof: {v}"
+    );
+    assert!(
+        v.to_string().contains("ran 0 tests") || v.to_string().contains("NO TESTS RAN"),
+        "{v}"
+    );
 }

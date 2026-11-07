@@ -23,7 +23,10 @@ fn init_creates_config_and_is_idempotent() {
     let (code, _) = r.gitent(&["init", "--force"]);
     assert_eq!(code, 0);
     let cfg = r.read(".gitent/config.toml");
-    assert!(cfg.contains("python3 -m pytest -q {file} -k {test}"), "{cfg}");
+    assert!(
+        cfg.contains("python3 -m pytest -q {file} -k {test}"),
+        "{cfg}"
+    );
     assert_eq!(r.read(".gitent/config.toml"), cfg);
     let (code, _) = r.gitent(&["init", "--agent", "nope"]);
     assert_eq!(code, 1);

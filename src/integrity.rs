@@ -289,6 +289,130 @@ pub fn tests_intact(
     })
 }
 
+/// Definition name → block, for one code file (same block rules as tests).
+fn def_blocks(path: &str, text: &str) -> HashMap<String, String> {
+    let lines: Vec<&str> = text.lines().collect();
+    let indent = |l: &str| l.len() - l.trim_start().len();
+    let mut out = HashMap::new();
+    for (i, l) in lines.iter().enumerate() {
+        let Some((name, _)) = diff::defs_in_line_for(path, l) else {
+            continue;
+        };
+        let base = indent(l);
+        let mut end = i + 1;
+        while end < lines.len() {
+            let m = lines[end];
+            if !m.trim().is_empty() && indent(m) <= base && !m.trim_start().starts_with('}') {
+                break;
+            }
+            end += 1;
+            if indent(m) == base && m.trim_start().starts_with('}') {
+                break;
+            }
+        }
+        out.entry(name)
+            .or_insert_with(|| lines[i + 1..end].join("\n"));
+    }
+    out
+}
+
+/// Meaningful body lines: not blank, not a brace, not a placeholder statement.
+fn substance(body: &str) -> usize {
+    body.lines()
+        .map(|l| l.trim())
+        .filter(|l| {
+            !l.is_empty()
+                && !matches!(
+                    *l,
+                    "{" | "}"
+                        | "};"
+                        | "pass"
+                        | "..."
+                        | "return"
+                        | "return;"
+                        | "return None"
+                        | "todo!()"
+                        | "unimplemented!()"
+                        | "throw new UnsupportedOperationException();"
+                )
+                && !l.starts_with('#')
+                && !l.starts_with("//")
+                && !l.starts_with("\"\"\"")
+        })
+        .count()
+}
+
+/// `bodies_intact` (review): a definition the target had with a real body, which the move
+/// reduces to a stub (and the moved change itself did not). Name-based guards cannot see it.
+pub fn bodies_intact(
+    repo: &Repo,
+    kind: &StepKind,
+    base: Oid,
+    result_tree: Oid,
+) -> Result<CheckResult> {
+    let base_t = repo.git.find_commit(base)?.tree()?;
+    let res_t = repo.git.find_tree(result_tree)?;
+    let moved = repo.diff_trees(Some(&base_t), &res_t)?;
+    // Definitions the moved change itself stubs out may legitimately be stubbed.
+    let mut stubbed_by_change: BTreeSet<String> = BTreeSet::new();
+    if let Some((from, to, _)) = change_of(repo, kind)? {
+        let (ft, tt) = (
+            repo.git.find_commit(from)?.tree()?,
+            repo.git.find_commit(to)?.tree()?,
+        );
+        for f in &repo.diff_trees(Some(&ft), &tt)?.files {
+            let a = file_text(repo, &ft, &f.path)
+                .map(|t| def_blocks(&f.path, &t))
+                .unwrap_or_default();
+            let b = file_text(repo, &tt, &f.path)
+                .map(|t| def_blocks(&f.path, &t))
+                .unwrap_or_default();
+            for (n, body) in &b {
+                if a.get(n)
+                    .map(|o| substance(o) > substance(body))
+                    .unwrap_or(false)
+                {
+                    stubbed_by_change.insert(n.clone());
+                }
+            }
+        }
+    }
+    let mut stubbed = vec![];
+    for f in moved.files.iter().filter(|f| f.status == "modified") {
+        if !crate::preserve::is_code(&f.path) || crate::requirements::is_test_file(&f.path) {
+            continue;
+        }
+        let (Some(a), Some(b)) = (
+            file_text(repo, &base_t, &f.path),
+            file_text(repo, &res_t, &f.path),
+        ) else {
+            continue;
+        };
+        let (old, new) = (def_blocks(&f.path, &a), def_blocks(&f.path, &b));
+        for (n, body) in &new {
+            if let Some(o) = old.get(n) {
+                if substance(o) >= 1 && substance(body) == 0 && !stubbed_by_change.contains(n) {
+                    stubbed.push(format!("{}::{n}", f.path));
+                }
+            }
+        }
+    }
+    stubbed.sort();
+    Ok(CheckResult {
+        name: "bodies_intact".into(),
+        passed: stubbed.is_empty(),
+        review: !stubbed.is_empty(),
+        detail: if stubbed.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "definitions of the target reduced to stubs: {}",
+                stubbed.join(", ")
+            )
+        },
+    })
+}
+
 /// `no_orphan_copy` (review): the move creates a file the source only modified and the
 /// target never had, i.e. it copied the source branch's code instead of adapting the target's.
 pub fn no_orphan_copy(
@@ -352,7 +476,10 @@ mod tests {
             "    def test_clamp",
             "    @unittest.skip(\"later\")\n    def test_clamp",
         );
-        assert!(!compare(&r, &block(&skipped)).unwrap().1, "skip is definitive");
+        assert!(
+            !compare(&r, &block(&skipped)).unwrap().1,
+            "skip is definitive"
+        );
         let weaker = REF.replace("        self.assertEqual(total(-5), 100)\n", "");
         assert!(
             compare(&r, &block(&weaker)).unwrap().1,
@@ -367,6 +494,18 @@ mod tests {
         // Renaming the API under test is fine.
         let renamed = REF.replace("total(", "cart_total(");
         assert!(compare(&r, &block(&renamed)).is_none());
+    }
+
+    #[test]
+    fn stub_detection() {
+        let py = "def total(p, d):\n    s = sum(p)\n    return s - s * d / 100\n\ndef other():\n    pass\n";
+        let b = def_blocks("a.py", py);
+        assert_eq!(substance(&b["total"]), 2);
+        assert_eq!(substance(&b["other"]), 0);
+        let rs = "fn total(p: &[u32]) -> u32 {\n    let s: u32 = p.iter().sum();\n    s\n}\nfn stub() {\n    todo!()\n}\n";
+        let b = def_blocks("a.rs", rs);
+        assert_eq!(substance(&b["total"]), 2, "{b:?}");
+        assert_eq!(substance(&b["stub"]), 0, "{b:?}");
     }
 
     #[test]

@@ -390,3 +390,26 @@ fn llm_verifier_judges_the_result_tree_not_the_users_checkout() {
     assert_eq!(code, 0, "{v}");
     assert_eq!(check(&v, "verifier")["passed"], true, "{v}");
 }
+
+#[test]
+fn stubbing_out_a_target_function_is_not_verified() {
+    let s = scenario();
+    let (code, v) = port(
+        &s,
+        &[
+            ("shop/calc.py", CALC_FIXED),
+            ("tests/test_discount.py", &ported_test(GOOD_TEST_BODY)),
+            ("shop/money.py", "def round_money(x):\n    pass\n"),
+            ("tests/test_money.py", "import unittest\n"),
+        ],
+    );
+    assert_ne!(code, 0, "{v}");
+    let c = check(&v, "bodies_intact");
+    assert!(
+        c["detail"]
+            .as_str()
+            .unwrap()
+            .contains("shop/money.py::round_money"),
+        "{c}"
+    );
+}

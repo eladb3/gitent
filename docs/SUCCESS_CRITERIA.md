@@ -94,6 +94,7 @@ Each row is one fault model from the external evaluation of 2026-11-07, checked 
 | I9 | Ledger: the newest event wins (retire, then re-apply, makes the requirement live again). A merge keeps a retirement made on one side. | ✅ `tests/requirements.rs::ledger_newest_event_wins_and_merges_keep_retirements` |
 | I10 | Inside operations, review-level findings become `needs_review` warnings; definitive ones still block. | ✅ `tests/cherry_pick.rs::clean_but_wrong_pick_escalates_to_agent` (cents adaptation succeeds) |
 | I11 | The LLM verifier runs in the result tree, not the user's checkout. | ✅ `llm_verifier_judges_the_result_tree_not_the_users_checkout` |
+| I13 | A move that reduces a target definition to a stub (`pass`, `todo!()`, empty body) is flagged for review (`bodies_intact`), unless the moved change itself does so. | ✅ `stubbing_out_a_target_function_is_not_verified`, `integrity::tests::stub_detection` |
 | I12 | Known limit: hard-coding the tested inputs (F) passes any test oracle. Only a reviewer (human or the LLM verifier) can catch it. | 📌 `f_hard_coded_inputs_pass_the_oracle_documented_limit` pins the limit |
 
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria

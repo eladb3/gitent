@@ -683,7 +683,7 @@ pub(crate) fn validate_candidate(
     }
     // The target's own structure must survive (ADR 0010), and its tests must keep testing
     // (ADR 0013 §2, §6). A guard that cannot run is a review failure, not a warning.
-    let guards: [(&str, Result<Option<CheckResult>>); 3] = [
+    let guards: [(&str, Result<Option<CheckResult>>); 4] = [
         (
             "target_preserved",
             crate::preserve::check(&s.repo, &step.kind, tip, snap).map(Some),
@@ -691,6 +691,10 @@ pub(crate) fn validate_candidate(
         (
             "tests_intact",
             crate::integrity::tests_intact(&s.repo, &step.kind, tip, snap).map(Some),
+        ),
+        (
+            "bodies_intact",
+            crate::integrity::bodies_intact(&s.repo, &step.kind, tip, snap).map(Some),
         ),
         (
             "no_orphan_copy",
