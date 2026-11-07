@@ -9,6 +9,9 @@ use std::process::Command;
 pub struct TestRepo {
     _dir: tempfile::TempDir,
     pub path: PathBuf,
+    /// `TMPDIR` for gitent processes: operation worktrees (including the ones a
+    /// failed operation keeps for inspection) live here and vanish with the repo.
+    pub tmp: PathBuf,
     _tools: tempfile::TempDir,
     pub tools: PathBuf,
 }
@@ -41,8 +44,11 @@ impl TestRepo {
         let tools = tempfile::tempdir().unwrap();
         let path = dir.path().join("repo");
         std::fs::create_dir_all(&path).unwrap();
+        let tmp = dir.path().join("tmp");
+        std::fs::create_dir_all(&tmp).unwrap();
         let r = TestRepo {
             path,
+            tmp,
             tools: tools.path().to_path_buf(),
             _dir: dir,
             _tools: tools,
@@ -114,8 +120,15 @@ impl TestRepo {
         self.gitent_env(args, &[])
     }
 
-    pub fn gitent_env(&self, args: &[&str], env: &[(&str, &str)]) -> (i32, Value) {
+    /// `gitent` with a clean environment, in the repo, with the repo's TMPDIR.
+    pub fn gitent_cmd(&self) -> Command {
         let mut c = cmd(bin(), &self.path);
+        c.env("TMPDIR", &self.tmp);
+        c
+    }
+
+    pub fn gitent_env(&self, args: &[&str], env: &[(&str, &str)]) -> (i32, Value) {
+        let mut c = self.gitent_cmd();
         c.arg("--json").args(args);
         for (k, v) in env {
             c.env(k, v);
@@ -133,7 +146,7 @@ impl TestRepo {
 
     /// Human (non-JSON) output.
     pub fn gitent_text(&self, args: &[&str]) -> (i32, String) {
-        let o = cmd(bin(), &self.path).args(args).output().unwrap();
+        let o = self.gitent_cmd().args(args).output().unwrap();
         (
             o.status.code().unwrap_or(-1),
             format!(
