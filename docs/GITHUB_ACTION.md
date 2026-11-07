@@ -33,6 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0       # the original commits must be reachable
+          persist-credentials: false   # keep the token out of .git/config, where the PR's tests could read it
       - uses: actions/setup-python@v5        # your project's own test setup
         with: { python-version: "3.12" }
       - run: pip install -e . pytest
@@ -107,6 +108,10 @@ check advisory.
 
 Without `llm-provider` the action passes `--no-llm` and needs no secrets. With
 it, `verify-pr` runs with `--provider <name>`; a missing key is an `error`.
+Gitent uses the key itself, for the provider's HTTPS API; the processes it
+starts for the PR (test commands, selectors, requirement checks) get a scrubbed
+environment without it (ADR 0016). Only an LLM *CLI* configured as
+`llm.command` receives provider keys, and never GitHub tokens.
 Secrets are not available to `pull_request` runs from forks; do not switch to
 `pull_request_target` to get them, because the job runs the PR's code (its
 tests) and would then run it with your secrets. Base URLs come from the
@@ -134,6 +139,37 @@ loopback.
 * The job runs the PR's own tests, so it runs the PR's code: give it a
   read-only token (`contents: read`; `pull-requests: write` only for the
   comment) and no other secrets.
+
+## Security notes (ADR 0016)
+
+* **Scrubbed environments.** The processes gitent starts for the PR get an
+  allowlisted environment (`PATH`, `HOME`, locale, `TMPDIR`, `CI`, language
+  toolchain variables). `GH_TOKEN`, `GITHUB_TOKEN`, `ACTIONS_*`, anything
+  named like a secret (`*_TOKEN`, `*_KEY`, `*_SECRET`, `*PASSWORD*`) and the
+  workflow command files (`$GITHUB_ENV`, `$GITHUB_PATH`, `$GITHUB_OUTPUT`,
+  …) are never passed: writing `BASH_ENV` into `$GITHUB_ENV` would otherwise
+  run PR code in a later step. Pass a variable your tests need explicitly
+  with `GITENT_PASS_ENV: "NAME,OTHER,PREFIX_*"` in the step's `env`.
+* **No GitHub token in the verify step.** The verify step sets `GH_TOKEN` and
+  `GITHUB_TOKEN` to empty (and `run.sh` unsets them), even if your job sets
+  them; only the comment step gets `github-token`.
+* **`persist-credentials: false`.** `actions/checkout` otherwise stores the
+  job token in `.git/config`, where the PR's tests can read it. The action
+  warns when it finds a persisted credential.
+* **Source builds are isolated from the PR.** When the action builds gitent
+  from source, it builds the action's own checkout (`$GITHUB_ACTION_PATH`)
+  from a fresh directory outside the workspace, with a fresh `CARGO_HOME`, a
+  minimal environment, an explicitly named toolchain (`stable`, or the
+  action's own `rust-toolchain`) and `--locked`: the PR's
+  `.cargo/config.toml`, `rust-toolchain.toml` and variables set via
+  `$GITHUB_ENV` do not affect the binary.
+* **Helper scripts** run Python with `-I`, so a `json.py` in the PR's checkout
+  is never imported by the action.
+* **Limit.** Steps of *your* workflow that run before the action and execute
+  PR code (`pip install -e .`, `npm ci` with install scripts) can still change
+  the runner (for example `~/.rustup` or `$GITHUB_PATH`) before gitent is
+  installed. Prefer the release binary (the default; checked against its
+  `.sha256`) over `version: source` in such workflows.
 
 ## Local equivalent
 

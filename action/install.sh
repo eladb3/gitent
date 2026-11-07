@@ -52,11 +52,57 @@ if [ -n "$version" ] && [ "$version" != "source" ] && [ -n "$target" ]; then
 fi
 
 if [ -z "$installed" ]; then
-  echo "gitent: building from source (${GITENT_ACTION_PATH})"
-  command -v cargo >/dev/null || { curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal; . "$HOME/.cargo/env"; }
-  cargo build --release --locked --manifest-path "${GITENT_ACTION_PATH}/Cargo.toml" --target-dir "${RUNNER_TEMP:-/tmp}/gitent-target"
-  cp "${RUNNER_TEMP:-/tmp}/gitent-target/release/gitent" "$dest/"
-  installed="source"
+  # Build the action's OWN checkout, isolated from the PR (ADR 0016 section 2):
+  # cargo reads .cargo/config.toml from the current directory and its parents,
+  # rustup reads rust-toolchain(.toml) from the current directory, and both
+  # read environment variables an earlier step may have set via $GITHUB_ENV.
+  # So: cwd is a fresh directory outside the workspace, CARGO_HOME is fresh,
+  # the toolchain is named explicitly, the environment is minimal, --locked.
+  src="${GITENT_ACTION_PATH:?GITENT_ACTION_PATH is not set}"
+  src="$(cd "$src" && pwd -P)"
+  ws="$(cd "${GITHUB_WORKSPACE:-/nonexistent}" 2>/dev/null && pwd -P || true)"
+  if [ -n "$ws" ]; then
+    case "$src/" in
+      "$ws"/*) echo "::warning::gitent: the action's source is inside the workspace ($src); building it builds the checked-out code (fine for 'uses: ./' self-tests only)" ;;
+    esac
+  fi
+  build="$(mktemp -d "${RUNNER_TEMP:-/tmp}/gitent-build.XXXXXX")"
+  mkdir -p "$build/cargo-home" "$build/tmp"
+  toolchain="stable"
+  # Only the action's own pin counts, never the PR's.
+  if [ -f "$src/rust-toolchain" ]; then
+    toolchain="$(head -1 "$src/rust-toolchain" | tr -d '[:space:]')"
+  fi
+  rustup_home="${RUSTUP_HOME:-$HOME/.rustup}"
+  rustup_bin="$(command -v rustup || true)"
+  if [ -z "$rustup_bin" ]; then
+    curl -fsSL https://sh.rustup.rs | env -i PATH=/usr/bin:/bin HOME="$HOME" RUSTUP_HOME="$rustup_home" CARGO_HOME="$build/rustup-bin" \
+      sh -s -- -y --profile minimal --no-modify-path --default-toolchain none
+    rustup_bin="$build/rustup-bin/bin/rustup"
+  fi
+  # rustup itself runs with the CARGO_HOME it is installed in; cargo gets a fresh one.
+  rustup_cargo_home="$(dirname "$(dirname "$rustup_bin")")"
+  net_env=()
+  # Network settings for runners behind a proxy (crates are checksum-verified by --locked).
+  for v in HTTPS_PROXY https_proxy HTTP_PROXY http_proxy NO_PROXY no_proxy SSL_CERT_FILE CARGO_HTTP_CAINFO; do
+    if [ -n "${!v:-}" ]; then net_env+=("$v=${!v}"); fi
+  done
+  rustup_env=(env -i "PATH=/usr/local/bin:/usr/bin:/bin" "HOME=$HOME" "RUSTUP_HOME=$rustup_home"
+              "CARGO_HOME=$rustup_cargo_home" "${net_env[@]}")
+  echo "gitent: building from source ($src, toolchain $toolchain, in $build)"
+  (
+    cd "$build"
+    "${rustup_env[@]}" "$rustup_bin" toolchain install "$toolchain" --profile minimal
+    # The toolchain's own binaries, not rustup's proxies (which would consult
+    # rust-toolchain files and RUSTUP_TOOLCHAIN).
+    tc_bin="$(dirname "$("${rustup_env[@]}" "$rustup_bin" which --toolchain "$toolchain" cargo)")"
+    env -i "PATH=$tc_bin:/usr/local/bin:/usr/bin:/bin" "HOME=$HOME" "TMPDIR=$build/tmp" \
+      "CARGO_HOME=$build/cargo-home" "RUSTC=$tc_bin/rustc" "${net_env[@]}" \
+      "$tc_bin/cargo" build --release --locked \
+      --manifest-path "$src/Cargo.toml" --target-dir "$build/target"
+  )
+  cp "$build/target/release/gitent" "$dest/"
+  installed="source ($toolchain)"
 fi
 chmod +x "$dest/gitent"
 echo "$dest" >> "$GITHUB_PATH"

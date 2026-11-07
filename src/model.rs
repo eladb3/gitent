@@ -349,6 +349,9 @@ pub struct ValidationReport {
     pub checks: Vec<CheckResult>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub warnings: Vec<String>,
+    /// Executable requirements of the moved change that actually ran and passed (ADR 0015 §3).
+    #[serde(default, skip_serializing)]
+    pub executed: usize,
 }
 
 impl ValidationReport {

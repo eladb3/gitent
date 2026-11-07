@@ -27,13 +27,20 @@ impl Provider for CommandProvider {
         format!("command:{}", self.command)
     }
 
+    /// The CLI runs in an EMPTY temporary directory: the repository (possibly a PR
+    /// checkout) may carry `.claude/settings.json`, `.mcp.json` or `AGENTS.md` that would
+    /// configure an agentic CLI (ADR 0015 §6). Everything it needs is in the prompt.
     fn complete(&self, system: &str, messages: &[Message]) -> Result<String> {
-        self.complete_in(system, messages, &self.cwd.clone())
+        let _ = &self.cwd;
+        let empty = tempfile::tempdir()?;
+        self.complete_in(system, messages, empty.path())
     }
 
     fn complete_in(&self, system: &str, messages: &[Message], dir: &Path) -> Result<String> {
         let prompt = flatten(system, messages);
-        let out = crate::proc::run_shell(
+        // The CLI needs its own API key, never GitHub tokens (ADR 0016 §1).
+        let out = crate::proc::run_shell_with(
+            crate::proc::EnvPolicy::LlmCli,
             &self.command,
             dir,
             Some(&prompt),

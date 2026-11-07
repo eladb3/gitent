@@ -36,9 +36,11 @@ and when you **move work between diverged branches**.
 
 ## Over HTTP (`gitent serve`)
 - Send `Authorization: Bearer <token>` on every request: the token is `GITENT_TOKEN`, or the
-  one `gitent serve` printed on stderr at start-up. Use `localhost`/`127.0.0.1` as the host.
+  one `gitent serve` wrote to `.git/gitent/serve-token`. Use `localhost`/`127.0.0.1` as the host.
 - Tool arguments cannot set `test_command`, `test_selector`, `executor_command` or `provider`;
-  those come from `.gitent/config.toml`. Never edit files under `.git/` (hooks, config): an
+  those come from the committed `.gitent/config.toml` (editing it in the working tree has no
+  effect on tool calls). Command checks you supply in `requirements` are stored but reported
+  `skipped` until the user allows agent commands. Never edit files under `.git/` (hooks, config): an
   attempt that does is rolled back and rejected.
 
 ## Checking

@@ -41,6 +41,22 @@ With the LLM verifier enabled (`claude -p`, Sonnet), the reviewer saw B, E,
 F, K and L rejected and J still verified. The verifier now runs in the result
 tree. Before, it ran in the user's checkout, which skewed its explanations.
 
+**Round 2 (re-evaluation, ADR 0015).** The reviewer found five more bypasses that
+came back verified:
+
+* B2: a weaker assert method with every literal kept;
+* B3: an early `return` in the test;
+* B4: `try/except AssertionError`;
+* X2: `tests/__init__.py` forcing exit code 0;
+* no test command at all.
+
+The round-1 literal heuristic also made the canonical good port (A, with the
+test adapted to the target's API) `unverified`. Gitent now proves the ported
+test on the target, the way `gitent commit` proves it on the source: it must
+fail on `onto` with the result's test files overlaid. B, B2, B3, B4, K and X2
+are rejected. A and H are verified again. A run with no test command is
+`unverified`. All are regression tests in `tests/fault_models.rs`.
+
 These fault models have not yet been added to the live agent runs
 (`evals/run.py --agent …`). Until they are, the live numbers below cover only
 the stale-port fault.

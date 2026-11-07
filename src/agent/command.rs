@@ -31,7 +31,9 @@ impl Executor for CommandExecutor {
             ("GITENT_ATTEMPT", task.attempt.to_string()),
             ("GITENT_ROLE", "executor".to_string()),
         ];
-        let out = crate::proc::run_shell(
+        // Agent CLIs need their own API keys, never GitHub tokens (ADR 0016 §1).
+        let out = crate::proc::run_shell_with(
+            crate::proc::EnvPolicy::LlmCli,
             &cmd,
             &task.worktree,
             Some(&task.brief),

@@ -100,7 +100,7 @@ pub fn verify(s: &Session, o: &VerifyOptions) -> Result<Value> {
     let tmp = TempTree::new(repo, result_commit, "verify")?;
     let mut report = validate_candidate(s, &step, base, result_tree, &tmp.path)?;
     drop(tmp);
-    if let Some(c) = evidence(&step, &report, source) {
+    if let Some(c) = evidence(&step, &report) {
         report.checks.push(c);
         report.passed = report.checks.iter().all(|c| c.passed);
     }
@@ -168,14 +168,10 @@ pub const VERIFY_SCHEMA: &str = "gitent/verify@1";
 
 /// `evidence` (review): a green verdict needs something executable that proves the move
 /// (ADR 0013 §1). Passing tests that never exercised the change prove nothing.
-fn evidence(step: &Step, report: &ValidationReport, source: Oid) -> Option<CheckResult> {
-    let src = source.to_string();
+fn evidence(step: &Step, report: &ValidationReport) -> Option<CheckResult> {
     let n = match &step.kind {
-        StepKind::Apply { .. } => step
-            .requirements
-            .iter()
-            .filter(|l| l.req.kind.executable() && l.commit == src)
-            .count(),
+        // Executed and passed, not merely present (ADR 0015 §3).
+        StepKind::Apply { .. } => report.executed,
         StepKind::Revert { .. } => step
             .retiring
             .iter()
@@ -191,7 +187,7 @@ fn evidence(step: &Step, report: &ValidationReport, source: Oid) -> Option<Check
         CheckResult {
             name: "evidence".into(),
             passed: true,
-            detail: format!("{n} executable requirement(s) of the moved change were checked"),
+            detail: format!("{n} executable requirement(s) of the moved change ran and passed"),
             ..Default::default()
         }
     } else if judged {
@@ -207,7 +203,8 @@ fn evidence(step: &Step, report: &ValidationReport, source: Oid) -> Option<Check
             passed: false,
             review: true,
             detail: "nothing executable proves this move: the moved change has no tests or \
-                     executable requirements, so passing tests say nothing about it"
+                     executable requirements, or none of them actually ran (no test command, \
+                     all skipped)"
                 .into(),
         }
     })

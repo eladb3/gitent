@@ -13,7 +13,7 @@ use crate::store;
 use crate::validate;
 use anyhow::{Context, Result};
 use git2::Oid;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// Records and diffs a step needs (loaded on demand, not persisted).
@@ -374,7 +374,7 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
                                 detail: format!("textual conflicts in: {}", paths.join(", ")),
                                 ..Default::default()
                             }],
-                            warnings: vec![],
+                            ..Default::default()
                         },
                     });
                     starting_point = format!(
@@ -733,7 +733,17 @@ pub(crate) fn validate_candidate(
     }
     // The target's own structure must survive (ADR 0010), and its tests must keep testing
     // (ADR 0013 §2, §6). A guard that cannot run is a review failure, not a warning.
-    let guards: [(&str, Result<Option<CheckResult>>); 4] = [
+    if let StepKind::Apply { source } = &step.kind {
+        report.executed = results
+            .iter()
+            .filter(|r| &r.introduced_by == source && r.status == "pass")
+            .count();
+    }
+    let guards: [(&str, Result<Option<CheckResult>>); 6] = [
+        (
+            "ported_test_discriminates",
+            discriminates(s, step, tip, snap, d.files.is_empty()),
+        ),
         (
             "target_preserved",
             crate::preserve::check(&s.repo, &step.kind, tip, snap).map(Some),
@@ -749,6 +759,10 @@ pub(crate) fn validate_candidate(
         (
             "no_orphan_copy",
             crate::integrity::no_orphan_copy(&s.repo, &step.kind, tip, snap),
+        ),
+        (
+            "harness_unchanged",
+            crate::integrity::harness_unchanged(&s.repo, &step.kind, tip, snap).map(Some),
         ),
     ];
     for (name, g) in guards {
@@ -807,6 +821,115 @@ pub(crate) fn validate_candidate(
         }
     }
     Ok(report)
+}
+
+/// ADR 0015 §1: the moved change's requirements must FAIL on the target before the move
+/// with the result's test files overlaid. A ported test that passes there cannot tell
+/// fixed from unfixed, however it was neutered.
+fn discriminates(
+    s: &Session,
+    step: &Step,
+    tip: Oid,
+    snap: Oid,
+    unchanged: bool,
+) -> Result<Option<CheckResult>> {
+    let StepKind::Apply { source } = &step.kind else {
+        return Ok(None);
+    };
+    let reqs: Vec<requirements::LiveReq> = step
+        .requirements
+        .iter()
+        .filter(|l| &l.commit == source && l.req.kind.executable())
+        .cloned()
+        .collect();
+    if reqs.is_empty() || unchanged {
+        return Ok(None);
+    }
+    let snap_commit = s
+        .repo
+        .commit(None, "gitent: proof snapshot", snap, &[tip])?;
+    let tmp = requirements::TempTree::new(&s.repo, tip, "proof")?;
+    requirements::overlay_test_files(&s.repo, tip, snap_commit, &tmp.path)?;
+    let results = requirements::Runner::new(&tmp.path, &s.cfg).run_all(&reqs);
+    // A requirement that passes without the port only proves the port useless if it
+    // discriminated on the SOURCE (failed before the change). Use the recorded proof;
+    // without one (plain-git commits, --no-prove), prove it on the source now.
+    let mut source_proof: Option<HashMap<String, String>> = None;
+    let mut source_discriminates = |id: &str| -> Result<bool> {
+        let l = reqs.iter().find(|l| l.req.id == id).unwrap();
+        if let Some(p) = &l.req.proof {
+            if p.before == "fail" || p.before == "pass" {
+                return Ok(p.before == "fail");
+            }
+        }
+        if source_proof.is_none() {
+            let src = s.repo.git.find_commit(Oid::from_str(source)?)?;
+            let mut m = HashMap::new();
+            if src.parent_count() > 0 {
+                let t = requirements::TempTree::new(&s.repo, src.parent_id(0)?, "source-proof")?;
+                requirements::overlay_test_files(&s.repo, src.parent_id(0)?, src.id(), &t.path)?;
+                for r in requirements::Runner::new(&t.path, &s.cfg).run_all(&reqs) {
+                    m.insert(r.id.clone(), r.status.clone());
+                }
+            }
+            source_proof = Some(m);
+        }
+        Ok(source_proof
+            .as_ref()
+            .unwrap()
+            .get(id)
+            .map(|st| st == "fail")
+            .unwrap_or(false))
+    };
+    let mut passing: Vec<String> = vec![];
+    let mut moot: Vec<String> = vec![];
+    for r in results.iter().filter(|r| r.status == "pass") {
+        let label = format!("{} \"{}\"", r.id, r.statement);
+        if source_discriminates(&r.id)? {
+            passing.push(label);
+        } else {
+            moot.push(label);
+        }
+    }
+    let failed = results.iter().filter(|r| r.status == "fail").count();
+    Ok(Some(if !passing.is_empty() {
+        CheckResult {
+            name: "ported_test_discriminates".into(),
+            passed: false,
+            detail: format!(
+                "the ported test passes on the target WITHOUT the port, so it cannot tell fixed \
+                 from unfixed (weakened, skipped, short-circuited or harness-forced): {}",
+                passing.join(", ")
+            ),
+            ..Default::default()
+        }
+    } else if failed == 0 && !moot.is_empty() {
+        CheckResult {
+            name: "ported_test_discriminates".into(),
+            passed: true,
+            detail: format!(
+                "not applicable: the requirement(s) did not discriminate on the source either (a test-only change): {}",
+                moot.join(", ")
+            ),
+            ..Default::default()
+        }
+    } else if failed == 0 {
+        CheckResult {
+            name: "ported_test_discriminates".into(),
+            passed: true,
+            detail: "not proved: the requirements could not be run on the target (no selector or test command)".into(),
+            ..Default::default()
+        }
+    } else {
+        CheckResult {
+            name: "ported_test_discriminates".into(),
+            passed: true,
+            detail: format!(
+                "{failed} requirement(s) fail on the target without the port and pass with it"
+            ),
+            ..Default::default()
+        }
+    }))
 }
 
 /// Run the reverted requirements on the result with the reverted change's test files overlaid.

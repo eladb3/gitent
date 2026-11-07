@@ -47,13 +47,15 @@ impl ExecutorChoice {
 }
 
 /// One-line warning for executor commands known to run an agent with every
-/// tool auto-approved and no sandbox (the `gemini` and `kiro` presets).
+/// tool auto-approved and no sandbox (the `gemini`, `kiro` and `aider` presets).
 pub fn unsandboxed_warning(command: &str) -> Option<String> {
     let c = command.trim_start();
     let (agent, flag) = if c.starts_with("gemini") && c.contains("--yolo") {
         ("gemini", "--yolo")
     } else if c.starts_with("kiro-cli") && c.contains("--trust-all-tools") {
         ("kiro", "--trust-all-tools")
+    } else if c.starts_with("aider") && c.contains("--yes-always") {
+        ("aider", "--yes-always")
     } else {
         return None;
     };
@@ -62,16 +64,34 @@ pub fn unsandboxed_warning(command: &str) -> Option<String> {
     ))
 }
 
+/// The builtin agent's `run` tool executes shell commands the LLM chooses (ADR 0016 §6).
+pub const BUILTIN_WARNING: &str = "the builtin executor's `run` tool executes shell commands chosen by the LLM, unsandboxed (with a scrubbed environment): use it only on code you trust";
+
+/// The warning for an executor configuration, if it runs unsandboxed.
+pub fn executor_warning(cfg: &crate::config::ExecutorConfig) -> Option<String> {
+    match cfg.kind.as_str() {
+        "builtin" => Some(BUILTIN_WARNING.to_string()),
+        "command" => unsandboxed_warning(&cfg.command),
+        _ => None,
+    }
+}
+
+fn warn_once(w: &str) {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| eprintln!("gitent: warning: {w}"));
+}
+
 pub fn from_config(cfg: &Config, provider: Option<Arc<dyn Provider>>) -> Result<ExecutorChoice> {
     Ok(match cfg.executor.kind.as_str() {
         "" | "host" => ExecutorChoice::Host,
         "command" => {
             if cfg.executor.command.trim().is_empty() {
-                bail!("executor.kind = \"command\" requires executor.command");
+                bail!(
+                    "executor.kind = \"command\" requires executor.command (if .gitent/config.toml sets it, review it and run `gitent trust`)"
+                );
             }
-            if let Some(w) = unsandboxed_warning(&cfg.executor.command) {
-                static ONCE: std::sync::Once = std::sync::Once::new();
-                ONCE.call_once(|| eprintln!("gitent: warning: {w}"));
+            if let Some(w) = executor_warning(&cfg.executor) {
+                warn_once(&w);
             }
             ExecutorChoice::Run(Box::new(command::CommandExecutor {
                 command: cfg.executor.command.clone(),
@@ -82,6 +102,7 @@ pub fn from_config(cfg: &Config, provider: Option<Arc<dyn Provider>>) -> Result<
             let Some(p) = provider else {
                 bail!("executor.kind = \"builtin\" requires an LLM provider (llm.provider)");
             };
+            warn_once(BUILTIN_WARNING);
             ExecutorChoice::Run(Box::new(builtin::BuiltinAgent {
                 provider: p,
                 max_steps: cfg.executor.max_steps,
@@ -101,13 +122,15 @@ mod tests {
         for (p, warn) in [
             ("gemini", true),
             ("kiro", true),
+            ("aider", true),
+            ("builtin", true),
+            ("openai", true),
             ("claude-code", false),
             ("codex", false),
-            ("aider", false),
-            ("builtin", false),
+            ("host", false),
         ] {
             let c = Config::preset(p).unwrap();
-            let w = unsandboxed_warning(&c.executor.command);
+            let w = executor_warning(&c.executor);
             assert_eq!(w.is_some(), warn, "{p}: {w:?}");
             if let Some(w) = w {
                 assert!(w.contains("unsandboxed") && !w.contains('\n'), "{w}");
