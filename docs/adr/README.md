@@ -16,4 +16,7 @@ Short, numbered, immutable once accepted (supersede instead of editing).
 | [0010](0010-target-preservation-guards.md) | Results must not resurrect deleted paths or drop target definitions (found by fault injection) |
 | [0011](0011-verify.md) | `gitent verify`: validate any agent's/bot's/human's result without driving the agent |
 | [0012](0012-github-action.md) | GitHub Action: `gitent verify-pr` on backport PRs; release binaries; self-test on real runners |
+| [0013](0013-verification-integrity.md) | Three verdicts; test integrity, qualified test identity, zero-tests, revert evidence (external review, round 1) |
+| [0014](0014-trust-boundaries.md) | Trust boundaries: serve token, tool surfaces cannot choose commands, op_id, process groups, containment |
+| [0015](0015-proof-on-the-target.md) | Prove the ported test on the target; heuristics advisory; runner summaries read (round 2) |
 | [0016](0016-trust-boundaries-round-2.md) | Scrubbed child environments, isolated Action builds, agent commands need consent, `gitent trust`, remote `serve` opt-in (extends 0014) |
