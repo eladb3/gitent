@@ -21,9 +21,10 @@ fn skip_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| {
         Regex::new(concat!(
-            r"@unittest\.skip|@pytest\.mark\.(?:skip|xfail)|\.skipTest\(|\bpytest\.(?:skip|xfail)\(",
-            r"|#\[ignore|\b(?:it|test|describe)\.(?:skip|todo)\b|\bx(?:it|test|describe)\s*\(",
-            r"|\bt\.Skip(?:Now|f)?\(|@Disabled\b|@Ignore\b|\[Ignore\b|Skip\s*=|\bXCTSkip"
+            r"@(?:unittest\.)?skip(?:If|Unless)?\b|@(?:unittest\.)?expectedFailure\b|@pytest\.mark\.(?:skip|skipif|xfail)",
+            r"|\.skipTest\(|\bpytest\.(?:skip|xfail|importorskip)\(|\braise\s+(?:unittest\.)?SkipTest\b",
+            r"|#\[ignore|#\[should_panic|\b(?:it|test|describe)\.(?:skip|todo|failing)\b|\bx(?:it|test|describe)\s*\(",
+            r"|\bt\.Skip(?:Now|f)?\(|@Disabled\b|@Ignore\b|\[Ignore\b|\[(?:Fact|Theory)\(\s*Skip\s*=|\bXCTSkip"
         ))
         .unwrap()
     })
@@ -141,7 +142,7 @@ pub fn compare(reference: &str, result: &str) -> Option<(String, bool)> {
     }
     let (ra, na) = (assertions(reference), assertions(result));
     if ra > 0 && na == 0 {
-        return Some(("every assertion was removed".into(), false));
+        return Some(("every assertion was removed".into(), true));
     }
     if na < ra {
         return Some((format!("fewer assertions ({ra} → {na})"), true));
@@ -242,6 +243,7 @@ pub fn tests_intact(
     };
 
     let mut findings = vec![];
+    let mut notes: Vec<String> = vec![];
     for f in &moved.files {
         if f.status == "deleted" {
             continue;
@@ -263,6 +265,12 @@ pub fn tests_intact(
             };
             let Some(reference) = reference else { continue };
             if let Some((reason, review)) = compare(&reference, &block) {
+                if review && touched.contains_key(&name) {
+                    // The moved change's own tests are proved on the target
+                    // (`ported_test_discriminates`, ADR 0015); heuristics are notes.
+                    notes.push(format!("{}::{name}: {reason} (advisory)", f.path));
+                    continue;
+                }
                 findings.push(Finding {
                     test: name,
                     file: f.path.clone(),
@@ -278,13 +286,133 @@ pub fn tests_intact(
         passed: findings.is_empty(),
         review: !findings.is_empty() && findings.iter().all(|f| f.review),
         detail: if findings.is_empty() {
-            "no test was skipped, stripped of assertions or given new expected values".into()
+            if notes.is_empty() {
+                "no test was skipped; no target test was weakened".into()
+            } else {
+                format!("no test was skipped; notes: {}", notes.join("; "))
+            }
         } else {
             findings
                 .iter()
                 .map(|f| format!("{}::{}: {}", f.file, f.test, f.reason))
+                .chain(notes.iter().cloned())
                 .collect::<Vec<_>>()
                 .join("; ")
+        },
+    })
+}
+
+/// Files that can change how tests run or what they exit with (ADR 0015 §5).
+pub fn is_harness_file(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    let in_test_dir = path
+        .split('/')
+        .rev()
+        .skip(1)
+        .any(|s| matches!(s, "test" | "tests" | "spec" | "__tests__" | "testing"));
+    name == "conftest.py"
+        || (name == "__init__.py" && in_test_dir)
+        || matches!(
+            name,
+            "pytest.ini" | "tox.ini" | "setup.cfg" | "pyproject.toml" | "package.json"
+        )
+        || name.starts_with("jest.config")
+        || name.starts_with("vitest.config")
+        || name.starts_with(".mocharc")
+        || name.starts_with("karma.conf")
+        || path.starts_with(".cargo/config")
+        || path == ".gitent/config.toml"
+        || name.ends_with("_test.go")
+}
+
+/// Which changed lines of a harness file matter. Ordinary dependency bumps in
+/// `package.json`/`pyproject.toml` and ordinary Go tests do not.
+fn harness_relevant(path: &str, patch_lines: &[&str]) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match name {
+        "package.json" => patch_lines.iter().any(|l| {
+            l.contains("\"test")
+                || l.contains("\"jest\"")
+                || l.contains("\"scripts\"")
+                || l.contains("testFailureExitCode")
+                || l.contains("\"mocha\"")
+                || l.contains("\"vitest\"")
+        }),
+        "pyproject.toml" | "setup.cfg" | "tox.ini" => patch_lines.iter().any(|l| {
+            l.contains("pytest")
+                || l.contains("addopts")
+                || l.contains("testpaths")
+                || l.contains("unittest")
+        }),
+        _ if name.ends_with("_test.go") => patch_lines.iter().any(|l| l.contains("TestMain")),
+        _ => true,
+    }
+}
+
+/// `harness_unchanged` (review): the move changes a test-harness file the moved change did not.
+pub fn harness_unchanged(
+    repo: &Repo,
+    kind: &StepKind,
+    base: Oid,
+    result_tree: Oid,
+) -> Result<CheckResult> {
+    let base_t = repo.git.find_commit(base)?.tree()?;
+    let res_t = repo.git.find_tree(result_tree)?;
+    let moved = repo.diff_trees(Some(&base_t), &res_t)?;
+    let mut by_change: BTreeSet<String> = BTreeSet::new();
+    if let Some((from, to, _)) = change_of(repo, kind)? {
+        let (ft, tt) = (
+            repo.git.find_commit(from)?.tree()?,
+            repo.git.find_commit(to)?.tree()?,
+        );
+        by_change.extend(
+            repo.diff_trees(Some(&ft), &tt)?
+                .files
+                .into_iter()
+                .map(|f| f.path),
+        );
+    }
+    // Changed lines per file, from the move's patch.
+    let mut lines: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut cur = String::new();
+    for l in moved.patch.lines() {
+        if let Some(p) = l
+            .strip_prefix("+++ b/")
+            .or_else(|| l.strip_prefix("--- a/"))
+        {
+            cur = p.trim().to_string();
+        } else if (l.starts_with('+') || l.starts_with('-'))
+            && !l.starts_with("+++")
+            && !l.starts_with("---")
+        {
+            lines.entry(cur.clone()).or_default().push(l.to_string());
+        }
+    }
+    let mut changed: Vec<String> = moved
+        .files
+        .iter()
+        .filter(|f| is_harness_file(&f.path) && !by_change.contains(&f.path))
+        .filter(|f| {
+            let ls: Vec<&str> = lines
+                .get(&f.path)
+                .map(|v| v.iter().map(|s| s.as_str()).collect())
+                .unwrap_or_default();
+            harness_relevant(&f.path, &ls)
+        })
+        .map(|f| f.path.clone())
+        .collect();
+    changed.sort();
+    Ok(CheckResult {
+        name: "harness_unchanged".into(),
+        passed: changed.is_empty(),
+        review: !changed.is_empty(),
+        detail: if changed.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "changes test-harness file(s) that can alter how tests run or exit: {}",
+                changed.join(", ")
+            )
         },
     })
 }
@@ -310,8 +438,20 @@ fn def_blocks(path: &str, text: &str) -> HashMap<String, String> {
                 break;
             }
         }
-        out.entry(name)
-            .or_insert_with(|| lines[i + 1..end].join("\n"));
+        // A body on the header line: `def f(x): return x * 2`, `fn f() -> u8 { 2 }`.
+        let header = l.trim_end();
+        let inline = if header.ends_with(':') || header.ends_with('{') {
+            ""
+        } else if let Some((_, rest)) = header.split_once("):") {
+            rest
+        } else if let Some((_, rest)) = header.split_once('{') {
+            rest.trim_end_matches('}')
+        } else {
+            ""
+        };
+        let mut body = vec![inline.trim().to_string()];
+        body.extend(lines[i + 1..end].iter().map(|x| x.to_string()));
+        out.entry(name).or_insert_with(|| body.join("\n"));
     }
     out
 }
@@ -443,6 +583,29 @@ pub fn no_orphan_copy(
         .filter(|f| res_t.get_path(std::path::Path::new(&f.path)).is_ok())
         .map(|f| f.path.clone())
         .collect();
+    // Also: the source fixed existing code, but the port changes none of the target's
+    // existing code files, only adds new ones (e.g. a copy as `cart_v2.py`).
+    let mut orphans = orphans;
+    let src_fixes_code = sd.files.iter().any(|f| {
+        f.status == "modified"
+            && crate::preserve::is_code(&f.path)
+            && !crate::requirements::is_test_file(&f.path)
+    });
+    let moved = repo.diff_trees(Some(&base_t), &res_t)?;
+    let code = |f: &&crate::repo::FileChange| {
+        crate::preserve::is_code(&f.path) && !crate::requirements::is_test_file(&f.path)
+    };
+    let touches_existing = moved.files.iter().filter(code).any(|f| f.status != "added");
+    let adds: Vec<String> = moved
+        .files
+        .iter()
+        .filter(code)
+        .filter(|f| f.status == "added")
+        .map(|f| f.path.clone())
+        .collect();
+    if orphans.is_empty() && src_fixes_code && !touches_existing && !adds.is_empty() {
+        orphans = adds;
+    }
     Ok(Some(CheckResult {
         name: "no_orphan_copy".into(),
         passed: orphans.is_empty(),
@@ -451,8 +614,8 @@ pub fn no_orphan_copy(
             String::new()
         } else {
             format!(
-                "creates {} which the source change only modified and the target does not have: \
-                 the port may copy the source branch's code instead of fixing the target's",
+                "creates {} while the source change modified existing code: the port may copy \
+                 the source branch's code instead of fixing the target's",
                 orphans.join(", ")
             )
         },
@@ -487,13 +650,61 @@ mod tests {
         );
         let emptied =
             "class T(unittest.TestCase):\n    def test_clamp(self):\n        total(150)\n";
-        assert!(!compare(&r, &block(emptied)).unwrap().1);
+        assert!(
+            compare(&r, &block(emptied)).unwrap().1,
+            "advisory: the proof on the target decides"
+        );
         let rewritten = REF.replace("total(150), 0)", "total(150), 150)");
         let (why, review) = compare(&r, &block(&rewritten)).unwrap();
         assert!(review && why.contains("0"), "{why}");
         // Renaming the API under test is fine.
         let renamed = REF.replace("total(", "cart_total(");
         assert!(compare(&r, &block(&renamed)).is_none());
+    }
+
+    #[test]
+    fn skip_markers_are_precise() {
+        let r = "    def test_rows(self):\n        self.assertEqual(f(), 1)\n";
+        let n =
+            "    def test_rows(self):\n        rowsToSkip = 3\n        self.assertEqual(f(), 1)\n";
+        assert!(
+            compare(&block_of(r), &block_of(n))
+                .map(|x| x.1)
+                .unwrap_or(true),
+            "not a skip"
+        );
+        for marker in [
+            "@skip(\"x\")",
+            "@unittest.expectedFailure",
+            "@pytest.mark.skipif(True, reason=\"\")",
+        ] {
+            let m = format!("    {marker}\n{r}");
+            assert_eq!(
+                compare(&block_of(r), &block_of(&m)).map(|x| x.1),
+                Some(false),
+                "{marker}"
+            );
+        }
+        let raise = r.replace(
+            "        self.assertEqual",
+            "        raise unittest.SkipTest(\"x\")\n        self.assertEqual",
+        );
+        assert_eq!(
+            compare(&block_of(r), &block_of(&raise)).map(|x| x.1),
+            Some(false)
+        );
+    }
+
+    fn block_of(t: &str) -> String {
+        test_blocks(t).remove("test_rows").unwrap()
+    }
+
+    #[test]
+    fn one_line_bodies_are_not_stubs() {
+        let b = def_blocks("a.py", "def double(x): return x * 2\n");
+        assert_eq!(substance(&b["double"]), 1, "{b:?}");
+        let b = def_blocks("a.rs", "fn two() -> u8 { 2 }\n");
+        assert_eq!(substance(&b["two"]), 1, "{b:?}");
     }
 
     #[test]

@@ -21,8 +21,8 @@ id=$(gh api "repos/$repo/issues/$PR_NUMBER/comments" --paginate \
 # The report is gitent's own Markdown; the PR title is attacker-controlled text
 # and is escaped (no formatting, links, HTML or mentions).
 title=""
-[ -n "${PR_TITLE:-}" ] && title=$(python3 "$here/md.py" inline "$PR_TITLE" 200)
-body=$(python3 -c '
+[ -n "${PR_TITLE:-}" ] && title=$(python3 -I "$here/md.py" inline "$PR_TITLE" 200)
+body=$(python3 -I -c '
 import json, sys
 text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 if sys.argv[2]:

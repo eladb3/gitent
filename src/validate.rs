@@ -192,6 +192,7 @@ pub fn validate(ctx: &Ctx) -> ValidationReport {
         passed: checks.iter().all(|c| c.passed),
         checks,
         warnings,
+        executed: 0,
     }
 }
 
@@ -201,9 +202,24 @@ fn verify(
     test_summary: &str,
 ) -> anyhow::Result<(bool, f64, Vec<String>)> {
     let patch = crate::proc::tail(&ctx.diff.patch, 40_000);
-    let prompt = format!("## Goal\n{}\n\n## Test result\n{test_summary}\n\n## Resulting change (diff against the starting point)\n```diff\n{patch}```\n\nThe resulting tree is the current directory; judge the code there.", ctx.goal);
+    // Changed files' content goes into the prompt; the CLI itself runs in an empty dir.
+    let mut files = String::new();
+    for f in ctx.diff.files.iter().filter(|f| f.status != "deleted") {
+        if let Ok(t) = std::fs::read_to_string(ctx.worktree.join(&f.path)) {
+            files.push_str(&format!(
+                "### {}\n```\n{}\n```\n",
+                f.path,
+                crate::proc::tail(&t, 6000)
+            ));
+        }
+        if files.len() > 40_000 {
+            break;
+        }
+    }
+    let prompt = format!("## Goal\n{}\n\n## Test result\n{test_summary}\n\n## Resulting change (diff against the starting point)\n```diff\n{patch}```\n\n## Changed files after the change\n{files}", ctx.goal);
+    let empty = tempfile::tempdir()?;
     let v =
-        extract_json(&p.complete_in(VERIFIER_SYSTEM, &[Message::user(prompt)], ctx.worktree)?)?;
+        extract_json(&p.complete_in(VERIFIER_SYSTEM, &[Message::user(prompt)], empty.path())?)?;
     let sat = v["satisfied"].as_bool().unwrap_or(false);
     let conf = v["confidence"].as_f64().unwrap_or(0.5);
     let concerns = v["concerns"]

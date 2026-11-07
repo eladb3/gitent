@@ -1,7 +1,20 @@
 # Changelog
 
 
-## Unreleased
+## Unreleased (round 2)
+
+Addresses the external re-evaluation (ADR 0015, ADR 0016).
+
+- **Proof on the target:** the moved change's requirements must fail on the target without the port. This catches weakened, short-circuited, swallowed and harness-forced tests without listing them.
+- **Heuristics advisory:** the literal and assertion-count heuristics are now notes for the moved change's tests, so good ports with an adapted call shape are verified again.
+- **Evidence:** only requirements that actually ran and passed count; no test command means `unverified`.
+- **Runner summaries are read:** failures with exit 0, all-skipped runs, Go multi-package runs, cargo output.
+- **`harness_unchanged`:** a new review check.
+- **Placeholders:** expanded in one pass, with a new `{test_esc}`.
+- **Fixes:** the skip regex (no more `rowsToSkip` false reject), one-line bodies, `cart_v2.py`-style copies, and backport sources already on the base.
+- **LLM verifier:** runs in an empty directory. Markdown escaping is hardened.
+
+## 0.1.x (round 1)
 
 Addresses the external hands-on evaluation of 2026-11-07 (ADR 0013, ADR 0014).
 
@@ -24,6 +37,15 @@ Addresses the external hands-on evaluation of 2026-11-07 (ADR 0013, ADR 0014).
 - `init` detects pytest, vitest and mocha, and its selectors run exactly one test.
 - The `Gitent-Intent:` trailer is optional (`[commit] intent_trailer = false`).
 - Experimental subcommands are labelled in `--help`.
+
+### Trust boundaries, round 2 (ADR 0016)
+- **Scrubbed child environments:** test commands, selectors and checks get an allowlist; agent/LLM CLIs also get their provider keys; GitHub tokens, `ACTIONS_*` and `$GITHUB_ENV`-style files never; `GITENT_PASS_ENV` passes extra variables.
+- **Agent commands need consent:** command requirements from an agent or LLM report `skipped` unless `requirements.trust_agent_commands` (local config) or `--trust-agent-commands`.
+- **MCP/HTTP read command keys from HEAD**, not the working tree.
+- **`gitent trust`:** the shared config's `executor.command`, `llm.command` and `llm.base_url` are ignored until trusted (by content hash).
+- **`serve`:** non-loopback binds need `--allow-remote` and an explicit `GITENT_TOKEN`; a generated token goes to `.git/gitent/serve-token`.
+- **Warnings:** the `aider` preset and the `builtin` executor are flagged as unsandboxed.
+- **Action:** isolated source build, no GitHub token in the verify step, Python run with `-I`, `persist-credentials: false` in examples.
 
 ## v0.1.0 (unreleased)
 
