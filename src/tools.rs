@@ -142,7 +142,9 @@ impl Workspace {
                 Ok(format!("replaced 1 occurrence in {}", s("path")))
             }
             "run" => {
-                let o = crate::proc::run_shell(
+                // A command the LLM chose, run on repository code: no keys, no tokens.
+                let o = crate::proc::run_shell_with(
+                    crate::proc::EnvPolicy::RepoCode,
                     &s("command"),
                     &self.root,
                     None,

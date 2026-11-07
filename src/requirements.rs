@@ -569,6 +569,20 @@ impl<'a> Runner<'a> {
                 "command requirement from notes not run (untrusted here; pass --trust-notes)"
                     .into(),
             ),
+            // ADR 0016 §3: commands an agent or LLM wrote run only with the user's consent.
+            ReqKind::Command
+                if matches!(r.origin.as_str(), "agent" | "llm")
+                    && !self.cfg.requirements.trust_agent_commands =>
+            {
+                (
+                    "skipped".into(),
+                    format!(
+                        "command requirement written by an {} not run; review its check and pass --trust-agent-commands \
+                         (or set requirements.trust_agent_commands = true in .git/gitent/config.toml)",
+                        r.origin
+                    ),
+                )
+            }
             ReqKind::Command => match &r.check {
                 Some(c) => match crate::proc::run_shell(
                     &c.run,

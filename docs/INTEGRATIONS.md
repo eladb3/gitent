@@ -12,6 +12,23 @@ There are two directions of integration, and they compose:
 `gitent init --agent <preset>` writes the matching config. You can also edit
 `.gitent/config.toml` (shared) or `.git/gitent/config.toml` (local, wins).
 
+**Trust (ADR 0016).** A shared config is part of the repository, so anyone who
+can commit can edit it. Gitent ignores `executor.command`, `llm.command` and
+`llm.base_url` from `.gitent/config.toml` (with a warning) until you review the
+file and run `gitent trust`, which records its sha256 in `.git/gitent/trusted`;
+any later change needs `gitent trust` again. `gitent init` trusts the file it
+writes. `validation.test_command` needs no trust: running a repository's tests
+runs its code anyway. Local config, environment variables and CLI flags are
+yours and never need trust.
+
+**Environment.** Commands Gitent starts get an allowlisted environment (`PATH`,
+`HOME`, locale, `TMPDIR`, `CI`, toolchain variables). Agent and LLM CLIs also
+get their provider's variables (`ANTHROPIC_*`, `OPENAI_*`, `CLAUDE_*`,
+`CODEX_*`, `GEMINI_*`); test commands do not. Secret-named variables and GitHub
+tokens are never passed. Name anything else a command needs in
+`GITENT_PASS_ENV` (comma list, `PREFIX_*` allowed), e.g.
+`GITENT_PASS_ENV="AWS_*"` for an agent that authenticates through AWS.
+
 ```toml
 [llm]                       # used for analysis / compatibility / verification
 provider = "command"        # anthropic | openai | command | scripted | none
@@ -88,29 +105,39 @@ knows why it made the change); Gitent checks it against the diff.
 ### HTTP
 
 ```bash
-export GITENT_TOKEN="$(openssl rand -hex 32)"   # or omit: serve generates one and prints it once on stderr
+export GITENT_TOKEN="$(openssl rand -hex 32)"   # or omit: serve writes one to .git/gitent/serve-token
 gitent serve --addr 127.0.0.1:7341
 curl -s -H "Authorization: Bearer $GITENT_TOKEN" localhost:7341/v1/tools        # tools + JSON schemas
 curl -s -H "Authorization: Bearer $GITENT_TOKEN" -XPOST localhost:7341/v1/tools/gitent_log -d '{"limit":5}'
 ```
 
-Same tool names and arguments as MCP. Security (ADR 0014):
+Same tool names and arguments as MCP. Security (ADR 0014, ADR 0016):
 
 * Every request needs `Authorization: Bearer <token>`, where the token is
-  `GITENT_TOKEN` or, if that is unset, a random token printed once on stderr
-  at start-up. Missing or wrong token: `401` with a JSON error.
+  `GITENT_TOKEN` or, if that is unset, a random token written at start-up to
+  `.git/gitent/serve-token` (mode 0600; stderr shows only the path). Missing
+  or wrong token: `401` with a JSON error.
 * The `Host` header must be a loopback name (`localhost`, `127.0.0.1`,
   `[::1]`), and a request with a non-loopback `Origin` is refused (`403`):
   web pages cannot reach the API through DNS rebinding or CSRF.
-* Binds to localhost by default; do not expose it publicly.
+* Binds to localhost by default. A non-loopback `--addr` is refused unless
+  you pass `--allow-remote`, which also requires `GITENT_TOKEN` to be set
+  explicitly (and then accepts any `Host`).
 
 ### What tool arguments cannot do
 
 MCP and HTTP tool arguments cannot choose commands: `test_command`,
 `test_selector`, `executor_command` and `provider` are refused (they come only
 from `.gitent/config.toml`, environment variables and CLI flags).
-`gitent_commit` stores command checks an agent supplies with origin `agent`.
-Operation ids must match `^op_[A-Za-z0-9_-]{1,64}$`. The tool input schemas
+`gitent_commit` stores command checks an agent supplies with origin `agent`,
+and Gitent does not run them (reported `skipped`) until you consent with
+`requirements.trust_agent_commands = true` in `.git/gitent/config.toml` or
+`--trust-agent-commands` on the CLI; tool arguments cannot pass either flag
+(nor `trust_notes`). For MCP/HTTP calls the command keys
+(`validation.test_command`, `validation.test_selector`, `executor.command`,
+`llm.command`, `llm.base_url`) come from the committed HEAD's
+`.gitent/config.toml`, so an agent cannot change them by editing the working
+tree (ADR 0016). Operation ids must match `^op_[A-Za-z0-9_-]{1,64}$`. The tool input schemas
 are versioned (`gitent/tools@2`; `_meta` of `tools/list`, `schema` of
 `GET /v1/tools`, `x-gitent-tools` of `gitent schema`).
 
@@ -119,8 +146,10 @@ are versioned (`gitent/tools@2`; `_meta` of `tools/list`, `schema` of
 Operation worktrees live in `$TMPDIR/gitent-<uid>/<repo-hash>/` (mode 0700).
 Before each executor attempt Gitent snapshots the repository's `.git/hooks/`
 and `.git/config`; an attempt that changes them is rolled back and failed
-(`git_dir_integrity`). The `gemini` and `kiro` presets run their agents with
-every tool auto-approved and no sandbox, and say so on stderr.
+(`git_dir_integrity`). The `gemini`, `kiro` and `aider` presets run their
+agents with every tool auto-approved and no sandbox, and the `builtin`
+executor's `run` tool executes shell commands the LLM chooses; all of them say
+so on stderr.
 
 ### CLI with `--json`
 

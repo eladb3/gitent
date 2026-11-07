@@ -33,13 +33,16 @@ fn arg_bool(a: &Value, k: &str) -> bool {
 /// @2: command-selecting arguments removed from agent surfaces (ADR 0014 §2).
 pub const TOOLS_SCHEMA: &str = "gitent/tools@2";
 
-/// Arguments that select a command (or the program that runs one). Only the CLI
-/// may set them; MCP/HTTP callers get them from config (ADR 0014 §2).
+/// Arguments that select a command (or the program that runs one), or allow
+/// stored commands to run. Only the CLI may set them; MCP/HTTP callers get
+/// them from config (ADR 0014 §2, ADR 0016 §3).
 pub const CLI_ONLY_ARGS: &[&str] = &[
     "executor_command",
     "test_command",
     "test_selector",
     "provider",
+    "trust_agent_commands",
+    "trust_notes",
 ];
 
 fn overrides(a: &Value, surface: Surface) -> Overrides {
@@ -60,6 +63,7 @@ fn overrides(a: &Value, surface: Surface) -> Overrides {
             .get("max_attempts")
             .and_then(|v| v.as_u64())
             .map(|v| v as u32),
+        trust_agent_commands: surface == Surface::Cli && arg_bool(a, "trust_agent_commands"),
     };
     if surface == Surface::Agent
         && ov.executor.is_none()
@@ -92,7 +96,11 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
             );
         }
     }
-    let s = Session::open(path, &overrides(args, surface))?;
+    let s = match surface {
+        Surface::Cli => Session::open(path, &overrides(args, surface))?,
+        // Command keys from HEAD, not the working tree the agent edits (ADR 0016 §3).
+        Surface::Agent => Session::open_for_agent(path, &overrides(args, surface))?,
+    };
     match tool {
         "status" => status(&s),
         "log" => log(

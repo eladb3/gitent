@@ -37,6 +37,9 @@ struct Cli {
     /// Override validation.max_attempts
     #[arg(long, global = true, help_heading = "Overrides")]
     max_attempts: Option<u32>,
+    /// Run `command` requirements written by an agent or LLM (origin agent/llm); review them first
+    #[arg(long, global = true, help_heading = "Overrides")]
+    trust_agent_commands: bool,
     #[command(subcommand)]
     cmd: Cmd,
 }
@@ -55,6 +58,10 @@ enum Cmd {
         #[arg(long)]
         force: bool,
     },
+    /// Allow this repository's shared config (.gitent/config.toml) to set
+    /// executor.command, llm.command and llm.base_url (stores its sha256 in
+    /// .git/gitent/trusted; any change to the file needs trusting again)
+    Trust,
     /// Record a semantic commit of all changes (or --staged)
     Commit {
         #[arg(short, long)]
@@ -213,10 +220,13 @@ enum Cmd {
     Mcp,
     /// [experimental] Serve the tool API over HTTP (loopback only). Clients must send
     /// `Authorization: Bearer $GITENT_TOKEN`; without GITENT_TOKEN a random token
-    /// is generated and printed once on stderr.
+    /// is generated and written to .git/gitent/serve-token (mode 0600).
     Serve {
         #[arg(long, default_value = "127.0.0.1:7341")]
         addr: String,
+        /// Allow a non-loopback address (requires GITENT_TOKEN to be set explicitly)
+        #[arg(long)]
+        allow_remote: bool,
     },
     /// Print the JSON schema of semantic records
     Schema,
@@ -282,6 +292,9 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
     if let Some(m) = cli.max_attempts {
         args["max_attempts"] = json!(m);
     }
+    if cli.trust_agent_commands {
+        args["trust_agent_commands"] = json!(true);
+    }
     let path = cli.path.clone();
     let human = !cli.json;
     let op_flags = |a: &mut Value, o: &OpFlags| {
@@ -304,9 +317,16 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             gitent::mcp::serve_stdio(&path)?;
             return Ok((json!({}), 0));
         }
-        Cmd::Serve { addr } => {
-            gitent::http::serve(&path, addr)?;
+        Cmd::Serve { addr, allow_remote } => {
+            gitent::http::serve(&path, addr, *allow_remote)?;
             return Ok((json!({}), 0));
+        }
+        Cmd::Trust => {
+            let v = trust(&path)?;
+            if human {
+                println!("{}", v["message"].as_str().unwrap_or(""));
+            }
+            return Ok((v, 0));
         }
         Cmd::Commit {
             message,
@@ -518,13 +538,51 @@ fn init(path: &std::path::Path, agent: Option<&str>, local: bool, force: bool) -
         "# Gitent configuration (preset: {preset}). See docs/INTEGRATIONS.md.\n\
          # Local overrides: .git/gitent/config.toml. Env overrides: GITENT_EXECUTOR, GITENT_PROVIDER, ...\n\n"
     );
-    std::fs::write(&target, header + &cfg.to_toml())?;
+    let text = header + &cfg.to_toml();
+    std::fs::write(&target, &text)?;
+    if !local {
+        // The user just chose this content (ADR 0016 §4).
+        gitent::config::trust(&text, &repo.git_dir)?;
+    }
     Ok(
         json!({"initialized": true, "config": target, "preset": preset, "message": format!(
         "Initialized gitent in {} (preset: {preset}, config: {}){}",
         repo.workdir.display(), target.display(),
         if cfg.validation.test_command.is_empty() { "\nhint: set validation.test_command so operations can be validated".to_string() } else { format!("\ntest command: {}", cfg.validation.test_command) })}),
     )
+}
+
+/// `gitent trust`: record the shared config's current content as trusted (ADR 0016 §4).
+fn trust(path: &std::path::Path) -> Result<Value> {
+    let repo = Repo::discover(path)?;
+    let file = repo.workdir.join(".gitent/config.toml");
+    let text = std::fs::read_to_string(&file)
+        .with_context(|| format!("no shared config to trust ({})", file.display()))?;
+    let t: toml::Table = toml::from_str(&text).context("parsing .gitent/config.toml")?;
+    let hash = gitent::config::trust(&text, &repo.git_dir)?;
+    let mut sets = serde_json::Map::new();
+    for (s, k) in gitent::config::COMMAND_KEYS {
+        if let Some(toml::Value::String(v)) = t.get(*s).and_then(|x| x.get(*k)) {
+            if !v.trim().is_empty() {
+                sets.insert(format!("{s}.{k}"), json!(v));
+            }
+        }
+    }
+    let mut msg = format!(
+        "Trusted {} (sha256 {})",
+        file.display(),
+        &hash[..12.min(hash.len())]
+    );
+    for (k, v) in &sets {
+        msg.push_str(&format!("\n  {k} = {}", v.as_str().unwrap_or("")));
+    }
+    Ok(json!({
+        "trusted": true,
+        "config": file,
+        "sha256": hash,
+        "sets": sets,
+        "message": msg,
+    }))
 }
 
 /// (test_command, test_selector) defaults for common project layouts. Selectors run one test

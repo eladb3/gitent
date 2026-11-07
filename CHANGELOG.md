@@ -38,6 +38,15 @@ Addresses the external hands-on evaluation of 2026-11-07 (ADR 0013, ADR 0014).
 - The `Gitent-Intent:` trailer is optional (`[commit] intent_trailer = false`).
 - Experimental subcommands are labelled in `--help`.
 
+### Trust boundaries, round 2 (ADR 0016)
+- **Scrubbed child environments:** test commands, selectors and checks get an allowlist; agent/LLM CLIs also get their provider keys; GitHub tokens, `ACTIONS_*` and `$GITHUB_ENV`-style files never; `GITENT_PASS_ENV` passes extra variables.
+- **Agent commands need consent:** command requirements from an agent or LLM report `skipped` unless `requirements.trust_agent_commands` (local config) or `--trust-agent-commands`.
+- **MCP/HTTP read command keys from HEAD**, not the working tree.
+- **`gitent trust`:** the shared config's `executor.command`, `llm.command` and `llm.base_url` are ignored until trusted (by content hash).
+- **`serve`:** non-loopback binds need `--allow-remote` and an explicit `GITENT_TOKEN`; a generated token goes to `.git/gitent/serve-token`.
+- **Warnings:** the `aider` preset and the `builtin` executor are flagged as unsandboxed.
+- **Action:** isolated source build, no GitHub token in the verify step, Python run with `-I`, `persist-credentials: false` in examples.
+
 ## v0.1.0 (unreleased)
 
 First release. Gitent is a Git companion that records what each change is for

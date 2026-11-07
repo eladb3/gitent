@@ -38,7 +38,9 @@ impl Provider for CommandProvider {
 
     fn complete_in(&self, system: &str, messages: &[Message], dir: &Path) -> Result<String> {
         let prompt = flatten(system, messages);
-        let out = crate::proc::run_shell(
+        // The CLI needs its own API key, never GitHub tokens (ADR 0016 §1).
+        let out = crate::proc::run_shell_with(
+            crate::proc::EnvPolicy::LlmCli,
             &self.command,
             dir,
             Some(&prompt),

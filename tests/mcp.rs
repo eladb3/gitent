@@ -152,8 +152,9 @@ fn mcp_stdio_end_to_end() {
     assert_eq!(res["isError"], false, "{res}");
     let rec = &res["structuredContent"]["record"];
     assert_eq!(rec["provenance"]["analysis"]["method"], "host");
-    assert_eq!(rec["requirements"][0]["proof"]["before"], "fail");
-    assert_eq!(rec["requirements"][0]["proof"]["after"], "pass");
+    // S11: the agent's command is not run (not even to prove it) without the user's consent.
+    assert_eq!(rec["requirements"][0]["proof"]["before"], "skipped");
+    assert_eq!(rec["requirements"][0]["proof"]["after"], "skipped");
     // S3: a command check supplied by an agent is never stored as the author's.
     assert_eq!(rec["requirements"][0]["origin"], "agent", "{rec}");
     assert_eq!(
@@ -164,7 +165,20 @@ fn mcp_stdio_end_to_end() {
 
     let res = m.call("gitent_check", json!({}));
     assert_eq!(res["structuredContent"]["passed"], true, "{res}");
-    assert_eq!(res["structuredContent"]["counts"]["pass"], 2);
+    assert_eq!(res["structuredContent"]["counts"]["pass"], 1, "{res}");
+    assert_eq!(res["structuredContent"]["counts"]["skipped"], 1, "{res}");
+    let text = res["structuredContent"]["results"].to_string();
+    assert!(text.contains("--trust-agent-commands"), "{text}");
+    // The agent cannot grant itself consent through the tool API.
+    let res = m.call("gitent_check", json!({"trust_agent_commands": true}));
+    assert_eq!(res["isError"], true, "{res}");
+    // The user can, in local config (or with the CLI flag).
+    r.local_config("[requirements]\ntrust_agent_commands = true\n");
+    let res = m.call("gitent_check", json!({}));
+    assert_eq!(res["structuredContent"]["counts"]["pass"], 2, "{res}");
+    std::fs::remove_file(r.path.join(".git/gitent/config.toml")).unwrap();
+    let (_, v) = r.gitent(&["--trust-agent-commands", "check"]);
+    assert_eq!(v["counts"]["pass"], 2, "{v}");
 
     let res = m.call("gitent_log", json!({"limit": 3}));
     let entries = res["structuredContent"]["entries"].as_array().unwrap();
@@ -322,22 +336,29 @@ fn http_refuses_unauthenticated_rebinding_and_cross_origin_requests() {
     assert_eq!(code, 200);
 }
 
-/// S1: without GITENT_TOKEN, a random token is generated and printed once.
+/// S1/S16: without GITENT_TOKEN, a random token is generated and written to
+/// `.git/gitent/serve-token` (mode 0600); stderr names the file, never the token.
 #[test]
 fn http_generates_a_token_when_none_is_configured() {
     let r = TestRepo::users();
     let (srv, stderr) = serve(&r, None);
     let mut lines = BufReader::new(stderr).lines();
-    let mut token = String::new();
-    for _ in 0..10 {
-        let l = lines.next().unwrap().unwrap();
-        let t = l.trim();
-        if t.len() == 64 && t.bytes().all(|b| b.is_ascii_hexdigit()) {
-            token = t.to_string();
-            break;
-        }
+    let mut said = String::new();
+    for _ in 0..2 {
+        said.push_str(&lines.next().unwrap().unwrap());
+        said.push('\n');
     }
-    assert!(!token.is_empty(), "no generated token on stderr");
+    let file = r.path.join(".git/gitent/serve-token");
+    assert!(said.contains("serve-token"), "{said}");
+    let token = std::fs::read_to_string(&file).unwrap().trim().to_string();
+    assert!(token.len() == 64 && token.bytes().all(|b| b.is_ascii_hexdigit()));
+    assert!(!said.contains(&token), "token printed on stderr: {said}");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&file).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
     let (code, _) = http(srv.port, "GET", "/v1/tools", "");
     assert_eq!(code, 401, "the test token must not work");
     let (code, v) = http_raw(
@@ -348,6 +369,31 @@ fn http_generates_a_token_when_none_is_configured() {
         &format!("Host: localhost\r\nAuthorization: Bearer {token}\r\n"),
     );
     assert_eq!(code, 200, "{v}");
+    drop(lines);
+}
+
+/// S16: a non-loopback bind is refused without --allow-remote, and
+/// --allow-remote refuses a generated token.
+#[test]
+fn http_refuses_remote_binds_without_consent_and_explicit_token() {
+    let r = TestRepo::users();
+    let o = r
+        .gitent_cmd()
+        .args(["serve", "--addr", "0.0.0.0:0"])
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(!o.status.success());
+    assert!(err.contains("--allow-remote"), "{err}");
+    let o = r
+        .gitent_cmd()
+        .args(["serve", "--addr", "0.0.0.0:0", "--allow-remote"])
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(!o.status.success());
+    assert!(err.contains("GITENT_TOKEN"), "{err}");
+    assert!(!r.path.join(".git/gitent/serve-token").exists());
 }
 
 /// S2: MCP/HTTP tool arguments cannot choose commands; the CLI still can.
@@ -405,6 +451,41 @@ fn tool_arguments_cannot_choose_commands() {
     let (code, v) = r.gitent(&["--test-command", &evil, "status"]);
     assert_eq!(code, 0, "{v}");
     assert_eq!(v["config"]["test_command"], evil.as_str());
+}
+
+/// S14: an agent that edits `.gitent/config.toml` in the working tree does not
+/// choose the commands MCP/HTTP calls run: command keys come from HEAD.
+#[test]
+fn agent_surfaces_take_command_keys_from_head() {
+    let r = TestRepo::users();
+    let committed = r.gitent(&["status"]).1["config"]["test_command"].clone();
+    let evil = format!("touch {}", r.tools.join("pwned").display());
+    r.write(
+        ".gitent/config.toml",
+        &format!(
+            "[validation]\ntest_command = \"{evil}\"\nmax_attempts = 5\n[executor]\nkind = \"command\"\ncommand = \"{evil}\"\n"
+        ),
+    );
+    // The working tree config is also untrusted: `gitent trust` it, as a user would
+    // for their own edit, to show HEAD wins for agents regardless.
+    let (code, _) = r.gitent(&["trust"]);
+    assert_eq!(code, 0);
+    let mut m = Mcp::start(&r);
+    let v = m.call("gitent_status", json!({}))["structuredContent"].clone();
+    assert_eq!(v["config"]["test_command"], committed, "{v}");
+    assert_eq!(v["config"]["executor_command"], "", "{v}");
+    assert_eq!(
+        v["config"]["max_attempts"], 5,
+        "non-command keys: working tree"
+    );
+    let (srv, _e) = serve(&r, Some(TOKEN));
+    let (code, v) = http(srv.port, "POST", "/v1/tools/gitent_status", "{}");
+    assert_eq!(code, 200);
+    assert_eq!(v["config"]["test_command"], committed, "{v}");
+    // The CLI user's own working tree config applies to the CLI.
+    let (_, v) = r.gitent(&["status"]);
+    assert_eq!(v["config"]["test_command"], evil.as_str());
+    assert_eq!(v["config"]["executor_command"], evil.as_str());
 }
 
 /// S4: crafted operation ids are refused and never touch the filesystem.
