@@ -46,12 +46,32 @@ impl ExecutorChoice {
     }
 }
 
+/// One-line warning for executor commands known to run an agent with every
+/// tool auto-approved and no sandbox (the `gemini` and `kiro` presets).
+pub fn unsandboxed_warning(command: &str) -> Option<String> {
+    let c = command.trim_start();
+    let (agent, flag) = if c.starts_with("gemini") && c.contains("--yolo") {
+        ("gemini", "--yolo")
+    } else if c.starts_with("kiro-cli") && c.contains("--trust-all-tools") {
+        ("kiro", "--trust-all-tools")
+    } else {
+        return None;
+    };
+    Some(format!(
+        "the {agent} executor runs with all tools auto-approved ({flag}) and unsandboxed: it can run any command as you; use it only on code you trust"
+    ))
+}
+
 pub fn from_config(cfg: &Config, provider: Option<Arc<dyn Provider>>) -> Result<ExecutorChoice> {
     Ok(match cfg.executor.kind.as_str() {
         "" | "host" => ExecutorChoice::Host,
         "command" => {
             if cfg.executor.command.trim().is_empty() {
                 bail!("executor.kind = \"command\" requires executor.command");
+            }
+            if let Some(w) = unsandboxed_warning(&cfg.executor.command) {
+                static ONCE: std::sync::Once = std::sync::Once::new();
+                ONCE.call_once(|| eprintln!("gitent: warning: {w}"));
             }
             ExecutorChoice::Run(Box::new(command::CommandExecutor {
                 command: cfg.executor.command.clone(),
@@ -70,4 +90,28 @@ pub fn from_config(cfg: &Config, provider: Option<Arc<dyn Provider>>) -> Result<
         }
         other => bail!("unknown executor kind '{other}' (expected builtin|command|host)"),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unsandboxed_presets_warn() {
+        for (p, warn) in [
+            ("gemini", true),
+            ("kiro", true),
+            ("claude-code", false),
+            ("codex", false),
+            ("aider", false),
+            ("builtin", false),
+        ] {
+            let c = Config::preset(p).unwrap();
+            let w = unsandboxed_warning(&c.executor.command);
+            assert_eq!(w.is_some(), warn, "{p}: {w:?}");
+            if let Some(w) = w {
+                assert!(w.contains("unsandboxed") && !w.contains('\n'), "{w}");
+            }
+        }
+    }
 }

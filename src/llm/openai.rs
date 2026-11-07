@@ -17,15 +17,21 @@ impl OpenAi {
         if cfg.model.is_empty() {
             bail!("llm.provider = \"openai\" requires llm.model");
         }
-        let base = if cfg.base_url.is_empty() {
-            "https://api.openai.com/v1".to_string()
-        } else {
-            cfg.base_url.clone()
-        };
+        let base = super::resolve_base_url(
+            super::env_base_url("OPENAI_BASE_URL"),
+            &cfg.base_url,
+            "https://api.openai.com/v1",
+        );
+        let key = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .filter(|k| !k.is_empty());
+        if key.is_some() {
+            super::check_key_destination(&base)?;
+        }
         Ok(OpenAi {
-            key: std::env::var("OPENAI_API_KEY").ok(),
+            key,
             model: cfg.model.clone(),
-            base_url: base.trim_end_matches('/').to_string(),
+            base_url: base,
             timeout: cfg.timeout_secs,
         })
     }

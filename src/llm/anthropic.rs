@@ -17,12 +17,12 @@ impl Anthropic {
     pub fn new(cfg: &LlmConfig) -> Result<Self> {
         let key = std::env::var("ANTHROPIC_API_KEY")
             .map_err(|_| anyhow!("llm.provider = \"anthropic\" requires ANTHROPIC_API_KEY"))?;
-        let base_url = if !cfg.base_url.is_empty() {
-            cfg.base_url.clone()
-        } else {
-            std::env::var("ANTHROPIC_BASE_URL")
-                .unwrap_or_else(|_| "https://api.anthropic.com".into())
-        };
+        let base_url = super::resolve_base_url(
+            super::env_base_url("ANTHROPIC_BASE_URL"),
+            &cfg.base_url,
+            "https://api.anthropic.com",
+        );
+        super::check_key_destination(&base_url)?;
         Ok(Anthropic {
             key,
             model: if cfg.model.is_empty() {
@@ -30,7 +30,7 @@ impl Anthropic {
             } else {
                 cfg.model.clone()
             },
-            base_url: base_url.trim_end_matches('/').to_string(),
+            base_url,
             max_tokens: cfg.max_tokens,
             timeout: cfg.timeout_secs,
         })
