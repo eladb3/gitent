@@ -1,6 +1,9 @@
 <div align="center">
 
-# gitent
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
+  <img src="docs/assets/wordmark-light.svg" alt="gitent" width="300">
+</picture>
 
 ### Did that backport *actually* carry the fix?
 
