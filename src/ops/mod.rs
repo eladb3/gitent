@@ -35,8 +35,25 @@ pub struct Overrides {
 
 impl Session {
     pub fn open(path: &Path, ov: &Overrides) -> Result<Session> {
+        Session::open_with_config_from(path, ov, None)
+    }
+
+    /// Like `open`, but the shared config is read from `rev`'s tree when given
+    /// (`verify-pr` uses the PR base, so a PR cannot choose the commands it is checked with).
+    pub fn open_with_config_from(
+        path: &Path,
+        ov: &Overrides,
+        rev: Option<&str>,
+    ) -> Result<Session> {
         let repo = Repo::discover(path)?;
-        let mut cfg = Config::load(&repo.workdir, &repo.git_dir)?;
+        let mut cfg = match rev {
+            None => Config::load(&repo.workdir, &repo.git_dir)?,
+            Some(r) => {
+                let tree = repo.git.find_commit(repo.resolve(r)?)?.tree()?;
+                let text = crate::preserve::file_text(&repo, &tree, ".gitent/config.toml");
+                Config::load_with_shared(text.as_deref(), &repo.git_dir)?
+            }
+        };
         if let Some(e) = &ov.executor {
             cfg.executor.kind = e.clone();
         }

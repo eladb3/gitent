@@ -8,7 +8,7 @@ use crate::repo::{DiffInfo, Repo};
 use crate::store;
 use anyhow::Result;
 use git2::Oid;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -25,6 +25,11 @@ pub fn collect(
     warnings: &mut Vec<String>,
 ) -> Vec<Requirement> {
     let added = diff::tests_added_in_patch(&d.patch);
+    let added_paths: HashMap<String, String> = diff::tests_added_with_paths(&d.patch)
+        .into_iter()
+        .map(|(p, t)| (t, p))
+        .rev()
+        .collect();
     let mut touched: BTreeSet<String> = added.iter().cloned().collect();
     for s in symbols {
         if s.name.starts_with("test") || s.name.starts_with("Test") {
@@ -49,6 +54,7 @@ pub fn collect(
             category: "behavior".into(),
             kind: ReqKind::Test,
             test: t.clone(),
+            test_path: added_paths.get(t).cloned().unwrap_or_default(),
             origin: "auto".into(),
             ..Default::default()
         });
@@ -166,6 +172,11 @@ pub fn collect(
             },
             category,
             kind,
+            test_path: if kind == ReqKind::Test {
+                added_paths.get(&test).cloned().unwrap_or_default()
+            } else {
+                String::new()
+            },
             test: if kind == ReqKind::Test {
                 test
             } else {
@@ -203,12 +214,147 @@ pub struct ReqResult {
     pub duration_ms: u128,
 }
 
+/// Where a requirement test lives in a tree (ADR 0013 §3).
+#[derive(Debug, Clone, Default)]
+pub struct TestLocator {
+    /// test name → files defining it
+    pub index: BTreeMap<String, BTreeSet<String>>,
+    /// (path, name) definitions the move under validation added; `None` outside a move.
+    pub added: Option<BTreeSet<(String, String)>>,
+}
+
+impl TestLocator {
+    pub fn from_dir(dir: &Path) -> Self {
+        let mut index: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for rel in diff::source_files(dir) {
+            if let Ok(text) = std::fs::read_to_string(dir.join(&rel)) {
+                for (t, _) in diff::tests_in_text(&text) {
+                    index
+                        .entry(t)
+                        .or_default()
+                        .insert(rel.to_string_lossy().replace('\\', "/"));
+                }
+            }
+        }
+        TestLocator { index, added: None }
+    }
+
+    /// The file holding requirement test `name` (introduced in `test_path`), or why there is none.
+    pub fn locate(&self, name: &str, test_path: &str) -> std::result::Result<String, String> {
+        let Some(paths) = self.index.get(name) else {
+            return Err(format!("test `{name}` does not exist"));
+        };
+        if !test_path.is_empty() && paths.contains(test_path) {
+            return Ok(test_path.to_string());
+        }
+        match &self.added {
+            Some(added) => {
+                if let Some(p) = paths
+                    .iter()
+                    .find(|p| added.contains(&((*p).clone(), name.to_string())))
+                {
+                    return Ok(p.clone());
+                }
+                if test_path.is_empty() {
+                    // `@2` record: no location to compare with.
+                    return Ok(paths.iter().next().cloned().unwrap_or_default());
+                }
+                Err(format!(
+                    "test `{name}` was not ported: the only test of that name is a pre-existing one in {}",
+                    paths.iter().cloned().collect::<Vec<_>>().join(", ")
+                ))
+            }
+            None => Ok(paths.iter().next().cloned().unwrap_or_default()),
+        }
+    }
+}
+
+pub fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+/// Expand `{test}`, `{test_re}` (`^name$`), `{file}` and `{module}` in a selector, each
+/// shell-quoted (ADR 0014 §6). Quotes a user already put around a placeholder are absorbed.
+pub fn expand_selector(sel: &str, test: &str, file: &str) -> String {
+    let module = file
+        .trim_end_matches(".py")
+        .trim_start_matches("./")
+        .replace('/', ".");
+    let test_re = format!("^{}$", regex::escape(test));
+    let mut out = sel.to_string();
+    for (ph, val) in [
+        ("{test_re}", test_re.as_str()),
+        ("{test}", test),
+        ("{file}", file),
+        ("{module}", module.as_str()),
+    ] {
+        let q = shell_quote(val);
+        out = out
+            .replace(&format!("\"{ph}\""), &q)
+            .replace(&format!("'{ph}'"), &q)
+            .replace(ph, &q);
+    }
+    out
+}
+
+/// Did a successful test run actually run zero tests? (ADR 0013 §4)
+pub fn zero_tests_ran(output: &str) -> bool {
+    use std::sync::OnceLock;
+    static RE: OnceLock<Vec<regex::Regex>> = OnceLock::new();
+    let res = RE.get_or_init(|| {
+        [
+            r"(?m)^Ran 0 tests? in",
+            r"(?mi)\bno tests ran\b",
+            r"(?m)no tests to run",
+            r"(?m)^\s*0 passing\b",
+            r"(?mi)^No tests found",
+            r"(?m)^\s*collected 0 items",
+        ]
+        .iter()
+        .map(|p| regex::Regex::new(p).unwrap())
+        .collect()
+    });
+    if res.iter().any(|r| r.is_match(output)) {
+        return true;
+    }
+    // cargo test: every "running N tests" section ran 0.
+    let running: Vec<&str> = output
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| l.starts_with("running ") && (l.ends_with(" tests") || l.ends_with(" test")))
+        .collect();
+    if !running.is_empty() && running.iter().all(|l| *l == "running 0 tests") {
+        return true;
+    }
+    // jest/vitest: "Tests:  5 skipped, 5 total" with nothing passed
+    for l in output.lines() {
+        let t = l.trim();
+        if (t.starts_with("Tests:") || t.starts_with("Tests "))
+            && t.contains("total")
+            && !t.contains("passed")
+            && !t.contains("failed")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// Result of running the full test command once.
+#[derive(Debug, Clone)]
+pub struct SuiteRun {
+    pub ok: bool,
+    pub tail: String,
+    pub duration_ms: u128,
+    pub timed_out: bool,
+}
+
 /// Runs requirement checks in one directory (memoizing test discovery and the full suite).
 pub struct Runner<'a> {
     pub dir: PathBuf,
     pub cfg: &'a Config,
-    tests: Option<BTreeSet<String>>,
-    suite: Option<(bool, String)>,
+    locator: Option<TestLocator>,
+    pub suite: Option<SuiteRun>,
 }
 
 impl<'a> Runner<'a> {
@@ -216,28 +362,75 @@ impl<'a> Runner<'a> {
         Runner {
             dir: dir.to_path_buf(),
             cfg,
-            tests: None,
+            locator: None,
             suite: None,
         }
     }
 
-    fn tests_present(&mut self) -> &BTreeSet<String> {
-        if self.tests.is_none() {
-            self.tests = Some(diff::tests_in_tree(&self.dir));
-        }
-        self.tests.as_ref().unwrap()
+    pub fn with_locator(mut self, l: TestLocator) -> Self {
+        self.locator = Some(l);
+        self
     }
 
+    fn locator(&mut self) -> &TestLocator {
+        if self.locator.is_none() {
+            self.locator = Some(TestLocator::from_dir(&self.dir));
+        }
+        self.locator.as_ref().unwrap()
+    }
+
+    /// Run the full test command once (memoized).
+    pub fn suite(&mut self) -> Option<SuiteRun> {
+        let cmd = self.cfg.validation.test_command.trim().to_string();
+        if cmd.is_empty() {
+            return None;
+        }
+        if self.suite.is_none() {
+            self.suite = Some(
+                match crate::proc::run_shell(
+                    &cmd,
+                    &self.dir,
+                    None,
+                    &[],
+                    Duration::from_secs(self.cfg.validation.timeout_secs),
+                ) {
+                    Ok(o) => SuiteRun {
+                        ok: o.success(),
+                        tail: o.combined_tail(4000),
+                        duration_ms: o.duration_ms,
+                        timed_out: o.timed_out,
+                    },
+                    Err(e) => SuiteRun {
+                        ok: false,
+                        tail: format!("could not run tests: {e:#}"),
+                        duration_ms: 0,
+                        timed_out: false,
+                    },
+                },
+            );
+        }
+        self.suite.clone()
+    }
+
+    /// (passed, detail); a run that succeeded but ran zero tests fails.
     fn sh(&self, cmd: &str, timeout: u64) -> (bool, String) {
         match crate::proc::run_shell(cmd, &self.dir, None, &[], Duration::from_secs(timeout)) {
-            Ok(o) => (
-                o.success(),
-                if o.success() {
-                    String::new()
+            Ok(o) => {
+                let out = o.combined_tail(4000);
+                if o.success() && zero_tests_ran(&out) {
+                    (
+                        false,
+                        format!(
+                            "ran 0 tests (the selector matched nothing)\n{}",
+                            crate::proc::tail(&out, 800)
+                        ),
+                    )
+                } else if o.success() {
+                    (true, String::new())
                 } else {
-                    o.combined_tail(1500)
-                },
-            ),
+                    (false, o.combined_tail(1500))
+                }
+            }
             Err(e) => (false, format!("{e:#}")),
         }
     }
@@ -250,11 +443,10 @@ impl<'a> Runner<'a> {
                 "skipped".to_string(),
                 "judged requirement (not executable)".to_string(),
             ),
-            ReqKind::Test => {
-                if !self.tests_present().contains(&r.test) {
-                    ("fail".into(), format!("test `{}` does not exist", r.test))
-                } else if !self.cfg.validation.test_selector.trim().is_empty() {
-                    let cmd = self.cfg.validation.test_selector.replace("{test}", &r.test);
+            ReqKind::Test => match self.locator().locate(&r.test, &r.test_path) {
+                Err(why) => ("fail".into(), why),
+                Ok(file) if !self.cfg.validation.test_selector.trim().is_empty() => {
+                    let cmd = expand_selector(&self.cfg.validation.test_selector, &r.test, &file);
                     let (ok, out) = self.sh(&cmd, self.cfg.validation.timeout_secs);
                     (
                         if ok { "pass" } else { "fail" }.into(),
@@ -264,27 +456,30 @@ impl<'a> Runner<'a> {
                             format!("`{cmd}` failed\n{out}")
                         },
                     )
-                } else if !self.cfg.validation.test_command.trim().is_empty() {
-                    if self.suite.is_none() {
-                        let cmd = self.cfg.validation.test_command.clone();
-                        self.suite = Some(self.sh(&cmd, self.cfg.validation.timeout_secs));
-                    }
-                    let (ok, out) = self.suite.clone().unwrap();
-                    (
-                        if ok { "pass" } else { "fail" }.into(),
-                        if ok {
+                }
+                Ok(_) => match self.suite() {
+                    Some(su) => (
+                        if su.ok { "pass" } else { "fail" }.into(),
+                        if su.ok {
                             "no test_selector: test exists and the full suite passes".into()
                         } else {
-                            format!("no test_selector: full suite failed\n{out}")
+                            format!(
+                                "no test_selector: full suite failed\n{}",
+                                crate::proc::tail(&su.tail, 1500)
+                            )
                         },
-                    )
-                } else {
-                    (
+                    ),
+                    None => (
                         "skipped".into(),
                         "no test_selector or test_command configured".into(),
-                    )
-                }
-            }
+                    ),
+                },
+            },
+            ReqKind::Command if !self.cfg.requirements.trust_note_commands => (
+                "skipped".into(),
+                "command requirement from notes not run (untrusted here; pass --trust-notes)"
+                    .into(),
+            ),
             ReqKind::Command => match &r.check {
                 Some(c) => match crate::proc::run_shell(
                     &c.run,
@@ -349,24 +544,22 @@ pub struct LiveReq {
     pub commit: String,
 }
 
-/// Live requirements at `tip`: introduced in its ancestry, minus retired (spec §5). Oldest first.
+/// Live requirements at `tip`: introduced in its ancestry, minus retired (spec §5),
+/// where the newest event per requirement wins (ADR 0013 §9). Oldest first.
 pub fn ledger(repo: &Repo, tip: Oid) -> Result<Vec<LiveReq>> {
     let mut walk = repo.git.revwalk()?;
     walk.push(tip)?;
     walk.set_sorting(git2::Sort::TOPOLOGICAL | git2::Sort::TIME)?;
-    let mut seen: HashSet<String> = HashSet::new();
-    let mut retired: HashSet<String> = HashSet::new();
+    let mut decided: HashSet<String> = HashSet::new();
     let mut out = vec![];
     for oid in walk {
         let oid = oid?;
         let Some(rec) = store::get(repo, oid) else {
             continue;
         };
-        for r in &rec.retires {
-            retired.insert(r.id.clone());
-        }
+        // Within one commit, a requirement it both retires and (re)introduces is live.
         for req in &rec.requirements {
-            if seen.insert(req.id.clone()) {
+            if decided.insert(req.id.clone()) {
                 out.push(LiveReq {
                     req: req.clone(),
                     intent_id: rec.intent_id.clone(),
@@ -375,10 +568,43 @@ pub fn ledger(repo: &Repo, tip: Oid) -> Result<Vec<LiveReq>> {
                 });
             }
         }
+        for r in &rec.retires {
+            decided.insert(r.id.clone());
+        }
     }
-    out.retain(|l| !retired.contains(&l.req.id));
     out.reverse();
     Ok(out)
+}
+
+/// Requirement ids retired / introduced by commits in `base..tip`.
+pub fn events_since(
+    repo: &Repo,
+    base: Oid,
+    tip: Oid,
+) -> Result<(HashSet<String>, HashSet<String>)> {
+    let (mut retired, mut introduced) = (HashSet::new(), HashSet::new());
+    for c in repo.commits_between(base, tip)? {
+        if let Some(rec) = store::get(repo, c) {
+            retired.extend(rec.retires.iter().map(|r| r.id.clone()));
+            introduced.extend(rec.requirements.iter().map(|r| r.id.clone()));
+        }
+    }
+    Ok((retired, introduced))
+}
+
+/// Ledger of a merge of `ours` and `theirs`: the union, except requirements one side
+/// retired since the merge base and the other did not re-introduce (ADR 0013 §9).
+pub fn merge_ledger(repo: &Repo, ours: Oid, theirs: Oid) -> Result<Vec<LiveReq>> {
+    let base = repo.merge_base(ours, theirs)?;
+    let (ret_o, intro_o) = events_since(repo, base, ours)?;
+    let (ret_t, intro_t) = events_since(repo, base, theirs)?;
+    let gone = |id: &String| {
+        (ret_o.contains(id) && !intro_t.contains(id))
+            || (ret_t.contains(id) && !intro_o.contains(id))
+    };
+    let mut u = union(ledger(repo, ours)?, ledger(repo, theirs)?);
+    u.retain(|l| !gone(&l.req.id));
+    Ok(u)
 }
 
 /// Union of ledgers (merge), de-duplicated by id.
@@ -645,6 +871,58 @@ pub fn judge(
             )
         }
         Err(e) => ("uncertain".into(), format!("judge unavailable: {e:#}")),
+    }
+}
+
+#[cfg(test)]
+mod selector_tests {
+    use super::*;
+
+    #[test]
+    fn selectors_are_quoted() {
+        assert_eq!(
+            expand_selector("npx jest -t \"{test}\"", "x; curl e|sh #", "a.test.js"),
+            "npx jest -t 'x; curl e|sh #'"
+        );
+        assert_eq!(
+            expand_selector(
+                "python3 -m pytest -q {file} -k {test}",
+                "test_a",
+                "tests/test_x.py"
+            ),
+            "python3 -m pytest -q 'tests/test_x.py' -k 'test_a'"
+        );
+        assert_eq!(
+            expand_selector(
+                "python3 -m unittest -q {module} -k {test}",
+                "test_a",
+                "tests/test_x.py"
+            ),
+            "python3 -m unittest -q 'tests.test_x' -k 'test_a'"
+        );
+        assert_eq!(
+            expand_selector("go test ./... -run {test_re}", "TestA", "a_test.go"),
+            "go test ./... -run '^TestA$'"
+        );
+        assert_eq!(shell_quote("it's"), "'it'\\''s'");
+    }
+
+    #[test]
+    fn detects_zero_tests() {
+        assert!(zero_tests_ran("\n----\nRan 0 tests in 0.000s\n\nOK\n"));
+        assert!(zero_tests_ran(
+            "running 0 tests\n\ntest result: ok. 0 passed\n\nrunning 0 tests\n"
+        ));
+        assert!(!zero_tests_ran(
+            "running 0 tests\nrunning 1 test\ntest t ... ok\n"
+        ));
+        assert!(zero_tests_ran("ok  \tpkg\t0.01s [no tests to run]\n"));
+        assert!(zero_tests_ran("Tests:       5 skipped, 5 total\n"));
+        assert!(!zero_tests_ran(
+            "Tests:       1 passed, 4 skipped, 5 total\n"
+        ));
+        assert!(zero_tests_ran("\n  0 passing (2ms)\n"));
+        assert!(!zero_tests_ran("Ran 3 tests in 0.01s\n\nOK\n"));
     }
 }
 

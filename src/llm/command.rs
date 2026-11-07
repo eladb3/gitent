@@ -28,10 +28,14 @@ impl Provider for CommandProvider {
     }
 
     fn complete(&self, system: &str, messages: &[Message]) -> Result<String> {
+        self.complete_in(system, messages, &self.cwd.clone())
+    }
+
+    fn complete_in(&self, system: &str, messages: &[Message], dir: &Path) -> Result<String> {
         let prompt = flatten(system, messages);
         let out = crate::proc::run_shell(
             &self.command,
-            &self.cwd,
+            dir,
             Some(&prompt),
             &[("GITENT_ROLE", "llm".to_string())],
             Duration::from_secs(self.timeout),

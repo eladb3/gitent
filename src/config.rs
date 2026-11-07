@@ -95,6 +95,22 @@ pub struct Config {
     pub executor: ExecutorConfig,
     pub validation: ValidationConfig,
     pub requirements: RequirementsConfig,
+    pub commit: CommitConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct CommitConfig {
+    /// Add a `Gitent-Intent:` trailer to `gitent commit` messages (the note links them anyway).
+    pub intent_trailer: bool,
+}
+
+impl Default for CommitConfig {
+    fn default() -> Self {
+        CommitConfig {
+            intent_trailer: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -104,6 +120,14 @@ pub struct RequirementsConfig {
     pub prove: String,
     pub check_ledger_on_commit: bool,
     pub judge_in_operations: bool,
+    /// Run `command` requirements read from notes. `verify-pr` turns this off unless
+    /// `--trust-notes` (ADR 0014 §4): notes refs are not covered by branch protection.
+    #[serde(skip, default = "yes")]
+    pub trust_note_commands: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 impl Default for RequirementsConfig {
@@ -112,6 +136,7 @@ impl Default for RequirementsConfig {
             prove: "warn".into(),
             check_ledger_on_commit: false,
             judge_in_operations: true,
+            trust_note_commands: true,
         }
     }
 }
@@ -119,17 +144,29 @@ impl Default for RequirementsConfig {
 impl Config {
     /// Load config for a repository rooted at `workdir` with git dir `git_dir`.
     pub fn load(workdir: &Path, git_dir: &Path) -> Result<Config> {
+        let shared = workdir.join(".gitent/config.toml");
+        let text = if shared.exists() {
+            Some(std::fs::read_to_string(&shared)?)
+        } else {
+            None
+        };
+        Config::load_with_shared(text.as_deref(), git_dir)
+    }
+
+    /// Load with the shared (committed) config given as text, e.g. read from the base
+    /// commit of a PR instead of the checked-out head (ADR 0014 §4).
+    pub fn load_with_shared(shared: Option<&str>, git_dir: &Path) -> Result<Config> {
         let mut merged = toml::Table::new();
-        for p in [
-            workdir.join(".gitent/config.toml"),
-            git_dir.join("gitent/config.toml"),
-        ] {
-            if p.exists() {
-                let text = std::fs::read_to_string(&p)?;
-                let t: toml::Table =
-                    toml::from_str(&text).with_context(|| format!("parsing {}", p.display()))?;
-                merge(&mut merged, t);
-            }
+        if let Some(text) = shared {
+            let t: toml::Table = toml::from_str(text).context("parsing .gitent/config.toml")?;
+            merge(&mut merged, t);
+        }
+        let local = git_dir.join("gitent/config.toml");
+        if local.exists() {
+            let text = std::fs::read_to_string(&local)?;
+            let t: toml::Table =
+                toml::from_str(&text).with_context(|| format!("parsing {}", local.display()))?;
+            merge(&mut merged, t);
         }
         let mut cfg: Config = toml::Value::Table(merged)
             .try_into()

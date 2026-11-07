@@ -12,7 +12,7 @@ use crate::ops::StepKind;
 use crate::repo::Repo;
 use anyhow::Result;
 use git2::{Oid, Tree};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 fn walk(repo: &Repo, tree: &Tree, mut f: impl FnMut(&str, &[u8])) {
     let _ = tree.walk(git2::TreeWalkMode::PreOrder, |root, entry| {
@@ -69,18 +69,31 @@ pub fn defs(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
 
 /// Test identifiers defined in a tree (like `diff::tests_in_tree`, but from git objects).
 pub fn test_names(repo: &Repo, tree: &Tree) -> BTreeSet<String> {
-    let mut out = BTreeSet::new();
-    walk(repo, tree, |_, content| {
+    test_index(repo, tree).into_keys().collect()
+}
+
+/// Test name → files defining it, from git objects (ADR 0013 §3, §8).
+pub fn test_index(repo: &Repo, tree: &Tree) -> BTreeMap<String, BTreeSet<String>> {
+    let mut out: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    walk(repo, tree, |path, content| {
         if content.len() > 1_000_000 || content.contains(&0) {
             return;
         }
-        for line in String::from_utf8_lossy(content).lines() {
-            if let Some(t) = diff::test_in_line(line) {
-                out.insert(t);
-            }
+        for (t, _) in diff::tests_in_text(&String::from_utf8_lossy(content)) {
+            out.entry(t).or_default().insert(path.to_string());
         }
     });
     out
+}
+
+/// Text of a file in a tree, if present and textual.
+pub fn file_text(repo: &Repo, tree: &Tree, path: &str) -> Option<String> {
+    let e = tree.get_path(std::path::Path::new(path)).ok()?;
+    let b = repo.git.find_blob(e.id()).ok()?;
+    if b.content().contains(&0) {
+        return None;
+    }
+    Some(String::from_utf8_lossy(b.content()).to_string())
 }
 
 fn tree_of(repo: &Repo, commit: Oid) -> Result<Tree<'_>> {
@@ -184,6 +197,7 @@ pub fn check(repo: &Repo, kind: &StepKind, tip: Oid, result: Oid) -> Result<Chec
         } else {
             problems.join("; ")
         },
+        ..Default::default()
     })
 }
 
@@ -192,6 +206,7 @@ fn ok(detail: &str) -> CheckResult {
         name: "target_preserved".into(),
         passed: true,
         detail: detail.into(),
+        ..Default::default()
     }
 }
 

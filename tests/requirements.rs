@@ -190,3 +190,73 @@ fn retire_and_check_ledger() {
         "caching moved to the db layer"
     );
 }
+
+#[test]
+fn ledger_newest_event_wins_and_merges_keep_retirements() {
+    // ADR 0013 §9: retire, then re-apply → live again.
+    let r = TestRepo::users();
+    r.write("app/users.py", USERS_CACHED_PY);
+    r.write("tests/test_cache.py", TEST_CACHE_PY);
+    let v = r.commit("feat: cache user lookups", &[]);
+    let feat = r.head();
+    let id = v["record"]["requirements"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    r.write("app/users.py", USERS_PY);
+    r.rm("tests/test_cache.py");
+    r.commit(
+        "drop cache",
+        &["--retire", &id, "caching moved", "--no-prove"],
+    );
+    let dropped = r.head();
+    let (_, v) = r.gitent(&["check"]);
+    assert_eq!(v["results"].as_array().unwrap().len(), 0, "{v}");
+
+    // A side branch from before the retirement keeps the requirement; merging it must
+    // not bring the retired requirement back.
+    r.git(&["checkout", "-q", "-b", "side", &feat]);
+    r.write("NOTES.md", "side\n");
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-qm", "side work"]);
+    let side = r.head();
+    r.git(&["checkout", "-q", "main"]);
+    let (code, v) = r.gitent(&["merge", "side"]);
+    assert_eq!(code, 0, "{v}");
+    let reqs = v["steps"][0]["requirements"].to_string();
+    assert!(
+        reqs.starts_with('['),
+        "merge step lists its requirements: {v}"
+    );
+    assert!(!reqs.contains(&id), "retired on main stays retired: {reqs}");
+    let _ = (dropped, side);
+
+    // Re-applying the change makes the requirement live again (newest event wins).
+    r.git(&["cherry-pick", "-x", &feat]);
+    let (code, v) = r.gitent(&["verify", &feat, "--record"]);
+    assert_eq!(code, 0, "{v}");
+    let (code, v) = r.gitent(&["check"]);
+    assert_eq!(code, 0, "{v}");
+    assert!(
+        v["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|x| x["id"] == id.as_str()),
+        "re-applied requirement is live again: {v}"
+    );
+}
+
+#[test]
+fn a_selector_that_runs_zero_tests_does_not_prove_a_requirement() {
+    // ADR 0013 §4: pytest-style functions under a unittest selector run 0 tests.
+    let r = TestRepo::users();
+    r.write("app/users.py", USERS_CACHED_PY);
+    r.write(
+        "tests/test_plain.py",
+        "from app import users\n\n\ndef test_plain_cache():\n    assert users.get_user(1) == users.get_user(1)\n",
+    );
+    let (code, v) = r.gitent(&["commit", "-m", "cache (pytest-style test)"]);
+    assert_ne!(code, 0, "a vacuous requirement must not pass its proof: {v}");
+    assert!(v.to_string().contains("ran 0 tests") || v.to_string().contains("NO TESTS RAN"), "{v}");
+}

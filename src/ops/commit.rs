@@ -92,7 +92,16 @@ pub fn commit(s: &Session, o: &CommitOptions) -> Result<CommitResult> {
         });
     }
 
-    let msg = analyze::commit_message(&rec, o.message.as_deref());
+    let mut msg = analyze::commit_message(&rec, o.message.as_deref());
+    if !s.cfg.commit.intent_trailer {
+        // The note already links commit and record; some teams keep messages clean.
+        msg = msg
+            .trim_end()
+            .trim_end_matches(&format!("Gitent-Intent: {}", rec.intent_id))
+            .trim_end()
+            .to_string()
+            + "\n";
+    }
     let parents: Vec<git2::Oid> = head_id.into_iter().collect();
     // Create the commit object first; the branch only moves if proofs pass.
     let oid = repo.commit(None, &msg, tree_oid, &parents)?;

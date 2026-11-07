@@ -43,6 +43,12 @@ pub trait Provider: Send + Sync {
     /// Human-readable identity, recorded in provenance (e.g. "anthropic:claude-opus-5-5").
     fn name(&self) -> String;
     fn complete(&self, system: &str, messages: &[Message]) -> Result<String>;
+    /// Like `complete`, for a provider that can look at files (an agentic CLI): run it in
+    /// `dir`, the tree being judged, not the user's checkout. API providers ignore `dir`.
+    fn complete_in(&self, system: &str, messages: &[Message], dir: &Path) -> Result<String> {
+        let _ = dir;
+        self.complete(system, messages)
+    }
 }
 
 /// Build the configured provider; `Ok(None)` when provider = "none".

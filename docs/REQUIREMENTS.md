@@ -4,7 +4,7 @@ Design rationale: ADR 0008. This document is normative for the implementation.
 
 ## 1. The requirement object
 
-Stored inside the semantic record (`requirements[]`), schema `gitent/semantic-change@2`:
+Stored inside the semantic record (`requirements[]`), schema `gitent/semantic-change@3` (`@3` adds the optional `test_path`, ADR 0013):
 
 ```json
 {

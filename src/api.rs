@@ -146,7 +146,11 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
         }
         "verify_pr" => {
             let base = arg_str(args, "base").ok_or_else(|| anyhow!("`base` is required"))?;
-            let mut s2 = s;
+            // Config (test command, selector, …) comes from the base, not the PR (ADR 0014 §4).
+            let mut s2 =
+                Session::open_with_config_from(path, &overrides(args, surface), Some(&base))?;
+            drop(s);
+            s2.cfg.requirements.trust_note_commands = arg_bool(args, "trust_notes");
             if arg_bool(args, "no_llm") {
                 s2.provider = None;
             }
