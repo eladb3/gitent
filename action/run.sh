@@ -5,6 +5,9 @@
 #   0 = verified or neutral, 2 = rejected, 3 = unverified (nothing proved the
 #   fix; needs human review), anything else = error.
 set -uo pipefail
+# This step runs the PR's code (its tests). GitHub tokens belong to the comment
+# step only (ADR 0016 section 1); gitent also scrubs its children's environment.
+unset GH_TOKEN GITHUB_TOKEN GITENT_TOKEN
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 out="${RUNNER_TEMP:-/tmp}"
 report="$out/gitent-report.md"
@@ -24,13 +27,19 @@ emit() {
 fail_early() {
   echo "::error::gitent: $1"
   printf '%s\n' "$1" > "$errlog"
-  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify\n\n'; python3 "$here/md.py" fence "$errlog"; } > "$report"
+  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify\n\n'; python3 -I "$here/md.py" fence "$errlog"; } > "$report"
   cat "$report" >> "$GITHUB_STEP_SUMMARY"
   emit error
   exit 0
 }
 
 cd "${INPUT_WORKING_DIRECTORY:-.}" || fail_early "working-directory not found"
+
+# actions/checkout persists the job token in .git/config unless told not to;
+# the PR's tests can read it from there.
+if git config --get-regexp '^http\..*\.extraheader$' >/dev/null 2>&1; then
+  echo "::warning::gitent: the checkout persisted credentials in .git/config, where the PR's tests can read them; use actions/checkout with 'persist-credentials: false'"
+fi
 
 base="${INPUT_BASE:-}"
 if [ -z "$base" ]; then
@@ -87,7 +96,7 @@ args+=(verify-pr --base "$base" --head "${INPUT_HEAD:-HEAD}" --markdown "$report
 echo "gitent ${args[*]}"
 gitent "${args[@]}" > "$json" 2> "$errlog"
 code=$?
-reported=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("result",""))' "$json" 2>/dev/null || true)
+reported=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("result",""))' "$json" 2>/dev/null || true)
 
 case "$code" in
   0)
@@ -101,10 +110,10 @@ case "$code" in
 esac
 
 if [ ! -s "$report" ]; then
-  err=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("error",""))' "$json" 2>/dev/null || true)
+  err=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("error",""))' "$json" 2>/dev/null || true)
   if [ -n "$err" ]; then printf '%s\n' "$err" > "$out/gitent-error.txt"
   else cat "$json" "$errlog" 2>/dev/null | tail -40 > "$out/gitent-error.txt"; fi
-  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify (exit code %s)\n\n' "$code"; python3 "$here/md.py" fence "$out/gitent-error.txt"; } > "$report"
+  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify (exit code %s)\n\n' "$code"; python3 -I "$here/md.py" fence "$out/gitent-error.txt"; } > "$report"
 fi
 cat "$report" >> "$GITHUB_STEP_SUMMARY"
 case "$result" in

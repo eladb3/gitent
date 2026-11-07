@@ -75,7 +75,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with: { fetch-depth: 0, persist-credentials: false }
       - uses: Swatinem/rust-cache@v2
       - id: gitent
         uses: ./

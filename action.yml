@@ -43,7 +43,7 @@ inputs:
     required: false
     default: "false"
   llm-provider:
-    description: "Opt-in LLM verifier: anthropic | openai. Empty (default) = off (--no-llm). Pass the API key via the step's env (ANTHROPIC_API_KEY / OPENAI_API_KEY)."
+    description: "Opt-in LLM verifier: anthropic | openai. Empty (default) = off (--no-llm). Pass the API key via the step's env (ANTHROPIC_API_KEY / OPENAI_API_KEY); gitent uses it for the provider's HTTPS API only and never passes it to the PR's tests."
     required: false
     default: ""
   llm-model:
@@ -100,6 +100,10 @@ runs:
         INPUT_LLM_PROVIDER: ${{ inputs.llm-provider }}
         INPUT_LLM_MODEL: ${{ inputs.llm-model }}
         GITENT_BASE_REF: ${{ github.base_ref }}
+        # This step runs the PR's tests: no GitHub token here, even if the job sets one
+        # (only the comment step gets it). run.sh also unsets them. ADR 0016.
+        GH_TOKEN: ""
+        GITHUB_TOKEN: ""
       run: bash "$GITHUB_ACTION_PATH/action/run.sh"
 
     - name: Comment on the pull request
