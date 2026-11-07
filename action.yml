@@ -1,5 +1,5 @@
 name: "Gitent verify backports"
-description: "Verify that a backport / cherry-pick / revert PR correctly carries the original change onto its target branch (no AI involved)."
+description: "Verify that a backport / cherry-pick / revert PR correctly carries the original change onto its target branch (no AI involved unless you opt in)."
 author: "eladb3"
 branding:
   icon: "check-circle"
@@ -38,6 +38,18 @@ inputs:
     description: "Fail when the PR does not reference an original change."
     required: false
     default: "false"
+  allow-unverified:
+    description: "When nothing proved the change (result `unverified`, needs human review): 'false' fails the job, 'true' passes it with a warning."
+    required: false
+    default: "false"
+  llm-provider:
+    description: "Opt-in LLM verifier: anthropic | openai. Empty (default) = off (--no-llm). Pass the API key via the step's env (ANTHROPIC_API_KEY / OPENAI_API_KEY)."
+    required: false
+    default: ""
+  llm-model:
+    description: "Model for the LLM verifier (optional; provider default otherwise)."
+    required: false
+    default: ""
   comment:
     description: "Maintain one sticky PR comment with the report (needs pull-requests: write)."
     required: false
@@ -53,7 +65,7 @@ inputs:
 
 outputs:
   result:
-    description: "verified | rejected | neutral | error"
+    description: "verified | rejected | unverified | neutral | error"
     value: ${{ steps.verify.outputs.result }}
   report:
     description: "Path to the Markdown report"
@@ -85,6 +97,8 @@ runs:
         INPUT_TEST_COMMAND: ${{ inputs.test-command }}
         INPUT_TEST_SELECTOR: ${{ inputs.test-selector }}
         INPUT_REQUIRE_SOURCE: ${{ inputs.require-source }}
+        INPUT_LLM_PROVIDER: ${{ inputs.llm-provider }}
+        INPUT_LLM_MODEL: ${{ inputs.llm-model }}
         GITENT_BASE_REF: ${{ github.base_ref }}
       run: bash "$GITHUB_ACTION_PATH/action/run.sh"
 
@@ -94,6 +108,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
         REPORT: ${{ steps.verify.outputs.report }}
       run: bash "$GITHUB_ACTION_PATH/action/comment.sh"
 
@@ -101,9 +116,17 @@ runs:
       shell: bash
       env:
         RESULT: ${{ steps.verify.outputs.result }}
+        ALLOW_UNVERIFIED: ${{ inputs.allow-unverified }}
       run: |
         echo "gitent: $RESULT"
         case "$RESULT" in
           verified|neutral) exit 0 ;;
+          unverified)
+            if [ "$ALLOW_UNVERIFIED" = "true" ]; then
+              echo "::warning::gitent: unverified (allowed by allow-unverified); needs human review"
+              exit 0
+            fi
+            echo "::error::gitent: unverified: nothing proved the change (set allow-unverified: 'true' to pass with a warning)"
+            exit 1 ;;
           *) exit 1 ;;
         esac
