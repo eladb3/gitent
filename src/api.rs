@@ -29,13 +29,33 @@ fn arg_bool(a: &Value, k: &str) -> bool {
     a.get(k).and_then(|v| v.as_bool()).unwrap_or(false)
 }
 
+/// Version of the tool input schemas (`tools/list`, `GET /v1/tools`, `gitent schema`).
+/// @2: command-selecting arguments removed from agent surfaces (ADR 0014 §2).
+pub const TOOLS_SCHEMA: &str = "gitent/tools@2";
+
+/// Arguments that select a command (or the program that runs one). Only the CLI
+/// may set them; MCP/HTTP callers get them from config (ADR 0014 §2).
+pub const CLI_ONLY_ARGS: &[&str] = &[
+    "executor_command",
+    "test_command",
+    "test_selector",
+    "provider",
+];
+
 fn overrides(a: &Value, surface: Surface) -> Overrides {
+    let cli = |k: &str| {
+        if surface == Surface::Cli {
+            arg_str(a, k)
+        } else {
+            None
+        }
+    };
     let mut ov = Overrides {
         executor: arg_str(a, "executor"),
-        executor_command: arg_str(a, "executor_command"),
-        provider: arg_str(a, "provider"),
-        test_command: arg_str(a, "test_command"),
-        test_selector: arg_str(a, "test_selector"),
+        executor_command: cli("executor_command"),
+        provider: cli("provider"),
+        test_command: cli("test_command"),
+        test_selector: cli("test_selector"),
         max_attempts: a
             .get("max_attempts")
             .and_then(|v| v.as_u64())
@@ -61,7 +81,16 @@ fn op_options(a: &Value) -> OpOptions {
 pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<Value> {
     let tool = tool.strip_prefix("gitent_").unwrap_or(tool);
     if tool == "schema" {
-        return Ok(crate::model::json_schema());
+        let mut v = crate::model::json_schema();
+        v["x-gitent-tools"] = json!({"schema": TOOLS_SCHEMA, "tools": tool_defs()});
+        return Ok(v);
+    }
+    if surface == Surface::Agent {
+        if let Some(k) = CLI_ONLY_ARGS.iter().find(|k| args.get(**k).is_some()) {
+            bail!(
+                "`{k}` cannot be set through the tool API (ADR 0014): configure it in .gitent/config.toml or pass it on the CLI"
+            );
+        }
     }
     let s = Session::open(path, &overrides(args, surface))?;
     match tool {
@@ -114,6 +143,7 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
                                 .collect()
                         })
                         .unwrap_or_default(),
+                    agent_supplied: surface == Surface::Agent,
                 },
             )?;
             let mut v = json!({"commit": r.commit, "record": r.record});

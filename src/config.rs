@@ -43,8 +43,9 @@ pub struct ExecutorConfig {
     pub timeout_secs: u64,
     /// Builtin agent: maximum tool steps per attempt.
     pub max_steps: u32,
-    /// Where operation worktrees are created. Empty = `<tmp>/gitent-worktrees/<repo-id>`.
-    /// Must be outside `.git/`: coding agents refuse to edit files under `.git` (ADR 0009).
+    /// Where operation worktrees are created. Empty = `$TMPDIR/gitent-<uid>/<repo-hash>/`
+    /// (per user, mode 0700; ADR 0014). Must be outside `.git/`: coding agents
+    /// refuse to edit files under `.git` (ADR 0009).
     pub worktree_root: String,
 }
 
@@ -186,6 +187,11 @@ impl Config {
         if let Some(v) = env("GITENT_MODEL") {
             self.llm.model = v;
         }
+        // ADR 0014 §5: where API keys go is the environment's decision, not the
+        // (possibly PR-controlled) config file's.
+        if let Some(v) = env("GITENT_LLM_BASE_URL") {
+            self.llm.base_url = v;
+        }
         if let Some(v) = env("GITENT_EXECUTOR") {
             self.executor.kind = v;
         }
@@ -244,6 +250,9 @@ impl Config {
             }
             "host" | "none" => {}
             _ => return None,
+        }
+        if let Some(w) = crate::agent::unsandboxed_warning(&c.executor.command) {
+            eprintln!("gitent: warning: {w}");
         }
         Some(c)
     }

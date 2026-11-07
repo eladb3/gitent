@@ -78,11 +78,17 @@ pub fn abort(s: &Session, id: Option<&str>) -> Result<Operation> {
     if op.state == OpState::Succeeded {
         anyhow::bail!("operation {} already succeeded", op.id);
     }
-    s.repo.remove_worktree(Path::new(&op.worktree))?;
+    s.repo
+        .remove_worktree_in(&op_worktree_root(s), Path::new(&op.worktree))?;
     op.state = OpState::Aborted;
     op.error = Some("aborted by user".into());
     s.save_op(&op)?;
     Ok(op)
+}
+
+/// Where this repository's operation worktrees live (only these are ever deleted).
+fn op_worktree_root(s: &Session) -> PathBuf {
+    s.repo.worktree_root(&s.cfg.executor.worktree_root)
 }
 
 fn drive(s: &Session, op: &mut Operation, mut resuming: bool) {
@@ -132,7 +138,13 @@ fn finalize(s: &Session, op: &mut Operation) -> Result<()> {
     }
     let expected = op.start_head.as_deref().map(Oid::from_str).transpose()?;
     s.repo.finalize_branch(&op.branch_ref, expected, tip)?;
-    s.repo.remove_worktree(Path::new(&op.worktree))?;
+    // The branch already moved: a cleanup refusal must not fail the operation.
+    if let Err(e) = s
+        .repo
+        .remove_worktree_in(&op_worktree_root(s), Path::new(&op.worktree))
+    {
+        op.warnings.push(format!("{e:#}"));
+    }
     op.state = OpState::Succeeded;
     op.result_commit = Some(op.tip.clone());
     Ok(())
@@ -447,8 +459,46 @@ fn run_step(s: &Session, op: &mut Operation, i: usize, resuming: bool) -> Result
             brief: std::fs::read_to_string(&brief_path)?,
             brief_path,
         };
-        let report = exec.execute(&task)?;
-        let (snap, mut validation) = evaluate(s, op, i, &wt)?;
+        // ADR 0014 §8: the agent must not touch the shared hooks/ or config.
+        let gitdir_before = super::containment::GitDirSnapshot::take(&s.repo.git_dir);
+        let report = exec.execute(&task);
+        let mut tampered = gitdir_before.changes();
+        if !tampered.is_empty() {
+            gitdir_before
+                .restore()
+                .context("restoring .git/hooks and .git/config after the agent changed them")?;
+        }
+        let report = report?;
+        let evaluated = evaluate(s, op, i, &wt);
+        // Validation runs the agent's code (its tests) too.
+        let during_tests = gitdir_before.changes();
+        if !during_tests.is_empty() {
+            gitdir_before
+                .restore()
+                .context("restoring .git/hooks and .git/config after validation changed them")?;
+            tampered.extend(
+                during_tests
+                    .into_iter()
+                    .map(|c| format!("{c} (during validation)")),
+            );
+        }
+        let (snap, mut validation) = evaluated?;
+        if !tampered.is_empty() {
+            validation.passed = false;
+            validation.checks.insert(
+                0,
+                CheckResult {
+                    name: "git_dir_integrity".into(),
+                    passed: false,
+                    detail: format!(
+                        "agent modified .git/hooks or .git/config; restored ({}). \
+                         Never change files in the repository's git directory.",
+                        tampered.join(", ")
+                    ),
+                    ..Default::default()
+                },
+            );
+        }
         if !report.success {
             validation.passed = false;
             validation.checks.insert(

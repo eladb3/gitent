@@ -211,7 +211,9 @@ enum Cmd {
     },
     /// Serve the tool API over MCP (stdio)
     Mcp,
-    /// [experimental] Serve the tool API over HTTP (token required)
+    /// [experimental] Serve the tool API over HTTP (loopback only). Clients must send
+    /// `Authorization: Bearer $GITENT_TOKEN`; without GITENT_TOKEN a random token
+    /// is generated and printed once on stderr.
     Serve {
         #[arg(long, default_value = "127.0.0.1:7341")]
         addr: String,

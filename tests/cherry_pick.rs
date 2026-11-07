@@ -566,3 +566,68 @@ fn dropping_target_definitions_is_rejected() {
         "{checks}"
     );
 }
+
+/// S5 (ADR 0014 §8): an agent that plants a hook or rewrites the shared git
+/// config through the worktree's common dir has the change undone and that
+/// attempt failed, even if its code is otherwise right.
+#[test]
+fn agent_tampering_with_git_hooks_or_config_is_restored_and_fails_the_attempt() {
+    let r = TestRepo::users();
+    let feature = r.add_cache_feature();
+    r.rename_on_current();
+    let target = r.head();
+    let common = r.path.join(".git");
+    let config_before = std::fs::read_to_string(common.join("config")).unwrap();
+    let hooks_before: Vec<_> = std::fs::read_dir(common.join("hooks"))
+        .map(|d| d.flatten().map(|e| e.file_name()).collect())
+        .unwrap_or_default();
+    let pwned = r.tools.join("pwned");
+    let agent = r.script(
+        "tampering_agent.sh",
+        &format!(
+            "cat > /dev/null\n\
+             if [ \"$GITENT_ATTEMPT\" = 1 ]; then\n\
+               gd=$(git rev-parse --git-common-dir)\n\
+               mkdir -p \"$gd/hooks\"\n\
+               printf '#!/bin/sh\\ntouch {p}\\n' > \"$gd/hooks/post-checkout\"\n\
+               chmod +x \"$gd/hooks/post-checkout\"\n\
+               git config core.fsmonitor 'touch {p}'\n\
+             fi\n{}{}echo 'ported caching'",
+            heredoc("app/accounts.py", ACCOUNTS_CACHED_PY),
+            heredoc("tests/test_cache.py", TEST_CACHE_ACCOUNTS_PY),
+            p = pwned.display()
+        ),
+    );
+    let (code, v) = pick(&r, &feature, &agent, &["--max-attempts", "2"]);
+    // Attempt 1 tampered: rejected with clear feedback. Attempt 2 is clean.
+    assert_eq!(code, 0, "{v}");
+    let atts = v["steps"][0]["attempts"].as_array().unwrap();
+    let first = atts.iter().find(|a| a["n"] == 1).unwrap();
+    assert_eq!(first["validation"]["passed"], false, "{first}");
+    let check = &first["validation"]["checks"][0];
+    assert_eq!(check["name"], "git_dir_integrity");
+    let detail = check["detail"].as_str().unwrap();
+    assert!(
+        detail.contains("agent modified .git/hooks or .git/config; restored")
+            && detail.contains("hooks/post-checkout")
+            && detail.contains("config"),
+        "{detail}"
+    );
+    let second = atts.iter().find(|a| a["n"] == 2).unwrap();
+    assert_eq!(second["validation"]["passed"], true, "{second}");
+    assert_eq!(r.rev("HEAD~1"), target);
+
+    // Restored exactly; nothing planted ran on the user's next git command.
+    assert!(!common.join("hooks/post-checkout").exists());
+    assert_eq!(
+        std::fs::read_to_string(common.join("config")).unwrap(),
+        config_before
+    );
+    let hooks_after: Vec<_> = std::fs::read_dir(common.join("hooks"))
+        .map(|d| d.flatten().map(|e| e.file_name()).collect())
+        .unwrap_or_default();
+    assert_eq!(hooks_after.len(), hooks_before.len());
+    r.git(&["checkout", "-q", "-b", "after"]);
+    r.git(&["status"]);
+    assert!(!pwned.exists(), "a planted hook ran");
+}

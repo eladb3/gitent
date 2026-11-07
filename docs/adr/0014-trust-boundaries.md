@@ -69,3 +69,16 @@ plant a hook that runs on the user's next git command.
 * `gitent serve` users must pass a token. The integration docs show how.
 * Gitent still runs the repository's own test command; running a repository's
   tests runs its code. This ADR keeps *other* parties from choosing the commands.
+
+## Known limits (after implementation)
+
+* **Ctrl-C.** Commands run in their own process group, so Ctrl-C in a terminal
+  no longer reaches them directly. Gitent kills the group when it times out or
+  exits. Background processes that a command leaves running are killed 2 s
+  after it exits.
+* **Host mode.** Containment does not cover edits a *host* agent makes between
+  `awaiting_host` and `gitent continue`. Covering them would need a snapshot
+  stored in the op journal.
+* **GitHub App tokens.** With an App installation token, `gh api user` fails
+  and the sticky comment's author falls back to `github-actions[bot]`. The
+  Action then posts a new comment on each run instead of updating its own.

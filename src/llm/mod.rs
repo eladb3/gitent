@@ -149,6 +149,55 @@ pub fn flatten(system: &str, messages: &[Message]) -> String {
     s
 }
 
+/// Resolve the API base URL: the environment (`GITENT_LLM_BASE_URL` via
+/// `Config::apply_env`, or the vendor variable) beats the config file
+/// (ADR 0014 §5), then the vendor default.
+pub(crate) fn resolve_base_url(
+    vendor_env: Option<String>,
+    configured: &str,
+    default: &str,
+) -> String {
+    let u = match vendor_env.filter(|v| !v.trim().is_empty()) {
+        Some(v) => v,
+        None if !configured.trim().is_empty() => configured.to_string(),
+        None => default.to_string(),
+    };
+    u.trim().trim_end_matches('/').to_string()
+}
+
+/// `GITENT_LLM_BASE_URL`, else the vendor variable (e.g. `ANTHROPIC_BASE_URL`).
+pub(crate) fn env_base_url(vendor_var: &str) -> Option<String> {
+    ["GITENT_LLM_BASE_URL", vendor_var]
+        .iter()
+        .find_map(|k| std::env::var(k).ok().filter(|v| !v.trim().is_empty()))
+}
+
+/// Refuse to send an API key anywhere but `https://`, or plain `http://` on loopback.
+pub(crate) fn check_key_destination(url: &str) -> Result<()> {
+    let lower = url.trim().to_ascii_lowercase();
+    if lower.starts_with("https://") {
+        return Ok(());
+    }
+    if let Some(rest) = lower.strip_prefix("http://") {
+        let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+        let authority = authority.rsplit('@').next().unwrap_or(authority);
+        if crate::http::is_loopback_host(host_only(authority)) {
+            return Ok(());
+        }
+        bail!(
+            "refusing to send an API key over plain http to {url}: use https, or a loopback address for a local proxy"
+        );
+    }
+    bail!("unsupported LLM base URL {url:?} (expected https://…)")
+}
+
+fn host_only(authority: &str) -> &str {
+    if let Some(rest) = authority.strip_prefix('[') {
+        return rest.split(']').next().unwrap_or("");
+    }
+    authority.split(':').next().unwrap_or("")
+}
+
 pub(crate) fn http_agent(timeout_secs: u64) -> ureq::Agent {
     ureq::AgentBuilder::new()
         .try_proxy_from_env(true)
@@ -172,6 +221,49 @@ mod tests {
             extract_json("bad {oops} then {\"ok\":true}").unwrap()["ok"],
             true
         );
+    }
+
+    #[test]
+    fn env_base_url_beats_config() {
+        assert_eq!(
+            resolve_base_url(
+                Some("https://proxy.corp/".into()),
+                "https://evil.example",
+                "https://d"
+            ),
+            "https://proxy.corp"
+        );
+        assert_eq!(
+            resolve_base_url(None, "https://cfg", "https://d"),
+            "https://cfg"
+        );
+        assert_eq!(
+            resolve_base_url(Some(" ".into()), "", "https://d"),
+            "https://d"
+        );
+    }
+
+    #[test]
+    fn api_keys_only_go_to_https_or_loopback() {
+        for ok in [
+            "https://api.anthropic.com",
+            "HTTPS://x.example/v1",
+            "http://localhost:11434/v1",
+            "http://127.0.0.1:8080",
+            "http://[::1]:9000/v1",
+        ] {
+            assert!(check_key_destination(ok).is_ok(), "{ok}");
+        }
+        for bad in [
+            "http://evil.example",
+            "http://10.0.0.5:8000/v1",
+            "http://localhost.evil.example",
+            "http://localhost@evil.example/",
+            "ftp://x",
+            "evil.example",
+        ] {
+            assert!(check_key_destination(bad).is_err(), "{bad}");
+        }
     }
 
     #[test]

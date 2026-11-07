@@ -83,6 +83,8 @@ impl Repo {
     }
 
     /// Root for operation/temporary worktrees: outside `.git/` (ADR 0009).
+    /// Default: `$TMPDIR/gitent-<uid>/<repo-hash>/`, private to the user
+    /// (mode 0700, created by [`Repo::add_worktree`]; ADR 0014 §8).
     pub fn worktree_root(&self, configured: &str) -> PathBuf {
         if !configured.trim().is_empty() {
             let p = PathBuf::from(configured);
@@ -97,16 +99,24 @@ impl Repo {
             .canonicalize()
             .unwrap_or_else(|_| self.git_dir.clone());
         let id = Oid::hash_object(git2::ObjectType::Blob, canon.to_string_lossy().as_bytes())
-            .map(|o| o.to_string()[..12].to_string())
+            .map(|o| o.to_string()[..16].to_string())
             .unwrap_or_else(|_| "repo".into());
-        let name = self
-            .workdir
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
-        std::env::temp_dir()
-            .join("gitent-worktrees")
-            .join(format!("{name}-{id}"))
+        user_tmp_base().join(id)
+    }
+
+    /// Whether `git worktree list` (libgit2's view of it) knows `path` as a
+    /// linked worktree of this repository.
+    pub fn is_known_worktree(&self, path: &Path) -> bool {
+        let want = canonical(path);
+        let Ok(names) = self.git.worktrees() else {
+            return false;
+        };
+        names.iter().flatten().any(|n| {
+            self.git
+                .find_worktree(n)
+                .map(|w| canonical(w.path()) == want)
+                .unwrap_or(false)
+        })
     }
 
     pub fn signature(&self) -> Signature<'static> {
@@ -346,7 +356,17 @@ impl Repo {
 
     pub fn add_worktree(&self, path: &Path, commit: Oid) -> Result<()> {
         if let Some(p) = path.parent() {
-            std::fs::create_dir_all(p)?;
+            let base = user_tmp_base();
+            if let Ok(rest) = p.strip_prefix(&base) {
+                ensure_private_dir(&base)?;
+                let mut d = base.clone();
+                for c in rest.components() {
+                    d.push(c);
+                    ensure_private_dir(&d)?;
+                }
+            } else {
+                std::fs::create_dir_all(p)?;
+            }
         }
         run_git(
             &self.workdir,
@@ -361,8 +381,27 @@ impl Repo {
         )
     }
 
+    /// Remove a temporary worktree under the default worktree root.
     pub fn remove_worktree(&self, path: &Path) -> Result<()> {
+        self.remove_worktree_in(&self.worktree_root(""), path)
+    }
+
+    /// Remove the worktree at `path`, which must lie under `root` and be known
+    /// to `git worktree list` (ADR 0014 §3). Anything else is refused, so a
+    /// crafted path in the op journal can never delete arbitrary directories.
+    /// Empty parent directories below `root` (and a default root itself) are
+    /// removed too, so nothing is left behind in the temp directory.
+    pub fn remove_worktree_in(&self, root: &Path, path: &Path) -> Result<()> {
         if path.exists() {
+            let under_root = is_strictly_under(root, path);
+            let known = self.is_known_worktree(path);
+            if !under_root || !known || canonical(path) == canonical(&self.workdir) {
+                bail!(
+                    "refusing to remove {}: not a gitent worktree of this repository under {}",
+                    path.display(),
+                    root.display()
+                );
+            }
             let _ = run_git(
                 &self.workdir,
                 &["worktree", "remove", "--force", &path.to_string_lossy()],
@@ -372,6 +411,17 @@ impl Repo {
             }
         }
         let _ = run_git(&self.workdir, &["worktree", "prune"]);
+        // Tidy empty parents (remove_dir only removes empty directories).
+        let remove_root = is_strictly_under(&user_tmp_base(), root);
+        let mut d = path.parent().map(Path::to_path_buf);
+        while let Some(p) = d {
+            let inside =
+                is_strictly_under(root, &p) || (remove_root && canonical(&p) == canonical(root));
+            if !inside || std::fs::remove_dir(&p).is_err() {
+                break;
+            }
+            d = p.parent().map(Path::to_path_buf);
+        }
         Ok(())
     }
 
@@ -477,6 +527,83 @@ fn render(diff: &mut git2::Diff) -> Result<DiffInfo> {
     Ok(DiffInfo { patch, files })
 }
 
+/// `$TMPDIR/gitent-<uid>`: the per-user parent of default worktree roots.
+pub fn user_tmp_base() -> PathBuf {
+    std::env::temp_dir().join(format!("gitent-{}", user_id()))
+}
+
+#[cfg(unix)]
+fn user_id() -> String {
+    // SAFETY: getuid has no preconditions and cannot fail.
+    unsafe { libc::getuid() }.to_string()
+}
+
+#[cfg(not(unix))]
+fn user_id() -> String {
+    std::env::var("USERNAME")
+        .unwrap_or_else(|_| "user".into())
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .collect()
+}
+
+/// Create `dir` (one level) as a private directory, or check that an existing
+/// one is a real directory owned by us; tighten its mode to 0700.
+fn ensure_private_dir(dir: &Path) -> Result<()> {
+    match std::fs::symlink_metadata(dir) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let mut b = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::DirBuilderExt;
+                b.mode(0o700);
+            }
+            match b.create(dir) {
+                Ok(()) => return Ok(()),
+                // Lost a race: fall through to the ownership check.
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(e) => return Err(e).with_context(|| format!("creating {}", dir.display())),
+            }
+        }
+        Err(e) => return Err(e).with_context(|| format!("inspecting {}", dir.display())),
+        Ok(_) => {}
+    }
+    let m = std::fs::symlink_metadata(dir)?;
+    if !m.file_type().is_dir() {
+        bail!(
+            "refusing to use {}: not a directory (or a symlink)",
+            dir.display()
+        );
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        // SAFETY: see user_id.
+        let me = unsafe { libc::getuid() };
+        if m.uid() != me {
+            bail!(
+                "refusing to use {}: owned by uid {}, not {me}",
+                dir.display(),
+                m.uid()
+            );
+        }
+        if m.mode() & 0o077 != 0 {
+            std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+        }
+    }
+    Ok(())
+}
+
+fn canonical(p: &Path) -> PathBuf {
+    p.canonicalize().unwrap_or_else(|_| p.to_path_buf())
+}
+
+/// `path` is inside `root` (and not `root` itself), after resolving symlinks.
+fn is_strictly_under(root: &Path, path: &Path) -> bool {
+    let (r, p) = (canonical(root), canonical(path));
+    p != r && p.starts_with(&r)
+}
+
 pub fn run_git(cwd: &Path, args: &[&str]) -> Result<()> {
     let out = Command::new("git")
         .current_dir(cwd)
@@ -491,4 +618,74 @@ pub fn run_git(cwd: &Path, args: &[&str]) -> Result<()> {
         );
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn repo_with_commit(dir: &Path) -> (Repo, Oid) {
+        let r = Repo::init(&dir.join("repo")).unwrap();
+        std::fs::write(r.workdir.join("a.txt"), "a\n").unwrap();
+        let tree = r.stage_all().unwrap();
+        let c = r.commit(Some("HEAD"), "init", tree, &[]).unwrap();
+        (r, c)
+    }
+
+    #[test]
+    fn cleanup_only_removes_known_worktrees_under_the_root() {
+        let d = tempfile::tempdir().unwrap();
+        let (r, c) = repo_with_commit(d.path());
+        let root = d.path().join("wt");
+        let wt = root.join("tmp").join("op_x");
+        r.add_worktree(&wt, c).unwrap();
+        assert!(r.is_known_worktree(&wt));
+
+        // A directory under the root that git does not know: refused, kept.
+        let stray = root.join("op_stray");
+        std::fs::create_dir_all(&stray).unwrap();
+        assert!(r.remove_worktree_in(&root, &stray).is_err());
+        assert!(stray.exists());
+        // Outside the root (even the main working tree): refused, kept.
+        let outside = d.path().join("precious");
+        std::fs::create_dir_all(&outside).unwrap();
+        assert!(r.remove_worktree_in(&root, &outside).is_err());
+        assert!(outside.exists());
+        assert!(r.remove_worktree_in(d.path(), &r.workdir).is_err());
+        assert!(r.workdir.join("a.txt").exists());
+        // A known worktree outside the given root: refused.
+        assert!(r.remove_worktree_in(&outside, &wt).is_err());
+        assert!(wt.exists());
+
+        // The real one goes, with its now-empty parent; the root stays.
+        r.remove_worktree_in(&root, &wt).unwrap();
+        assert!(!wt.exists() && !root.join("tmp").exists());
+        assert!(root.exists() && stray.exists());
+        assert!(!r.is_known_worktree(&wt));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_dirs_are_0700_and_must_be_ours() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join("gitent-x");
+        ensure_private_dir(&p).unwrap();
+        let mode = std::fs::metadata(&p).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o700);
+        // An existing, too-open directory is tightened.
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o777)).unwrap();
+        ensure_private_dir(&p).unwrap();
+        assert_eq!(
+            std::fs::metadata(&p).unwrap().permissions().mode() & 0o777,
+            0o700
+        );
+        // A symlink planted in its place is refused.
+        let link = d.path().join("gitent-link");
+        std::os::unix::fs::symlink(&p, &link).unwrap();
+        assert!(ensure_private_dir(&link).is_err());
+        assert!(user_tmp_base()
+            .to_string_lossy()
+            .ends_with(&format!("gitent-{}", user_id())));
+    }
 }
