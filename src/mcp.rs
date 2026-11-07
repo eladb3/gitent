@@ -25,7 +25,9 @@ pub fn handle(repo: &Path, req: &Value) -> Option<Value> {
                 given worktree, then call gitent_continue."
         })),
         "ping" => Ok(json!({})),
-        "tools/list" => Ok(json!({"tools": api::tool_defs()})),
+        "tools/list" => {
+            Ok(json!({"tools": api::tool_defs(), "_meta": {"gitent/schema": api::TOOLS_SCHEMA}}))
+        }
         "tools/call" => {
             let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
             let args = params.get("arguments").cloned().unwrap_or(json!({}));

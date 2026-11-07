@@ -392,7 +392,7 @@ pub fn json_schema() -> serde_json::Value {
                 "kind":{"enum":["test","command","judged"]},
                 "test":{"type":"string"},
                 "check":{"type":"object","properties":{"run":{"type":"string"},"expect_exit":{"type":"integer"},"timeout_secs":{"type":"integer"}}},
-                "origin":{"enum":["auto","author","llm","migrated"]},
+                "origin":{"enum":["auto","author","agent","llm","migrated"],"description":"agent = supplied by an agent over MCP/HTTP (its check.run is not author-trusted)"},
                 "proof":{"type":"object","properties":{"before":{"enum":["pass","fail","skipped"]},"after":{"enum":["pass","fail","skipped"]},"commit":{"type":"string"}}},
                 "rebound_from":{"type":"string"}}},
             "validation": {"type":"object","properties":{"passed":{"type":"boolean"},
