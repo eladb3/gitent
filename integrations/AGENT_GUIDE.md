@@ -34,6 +34,13 @@ and when you **move work between diverged branches**.
 - For a commit or PR branch: `gitent_verify {"source": "...", "result": "HEAD", "onto": "<target branch before your work>"}`.
 - Add `"record": true` on a verified commit to attach provenance and requirements to it.
 
+## Over HTTP (`gitent serve`)
+- Send `Authorization: Bearer <token>` on every request: the token is `GITENT_TOKEN`, or the
+  one `gitent serve` printed on stderr at start-up. Use `localhost`/`127.0.0.1` as the host.
+- Tool arguments cannot set `test_command`, `test_selector`, `executor_command` or `provider`;
+  those come from `.gitent/config.toml`. Never edit files under `.git/` (hooks, config): an
+  attempt that does is rolled back and rejected.
+
 ## Checking
 - `gitent_check` runs every live requirement and names the intention behind any failure.
 - `gitent_log` / `gitent_show` explain why code exists and what it must keep doing.

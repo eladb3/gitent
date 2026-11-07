@@ -88,13 +88,39 @@ knows why it made the change); Gitent checks it against the diff.
 ### HTTP
 
 ```bash
+export GITENT_TOKEN="$(openssl rand -hex 32)"   # or omit: serve generates one and prints it once on stderr
 gitent serve --addr 127.0.0.1:7341
-curl -s localhost:7341/v1/tools                       # list tools + JSON schemas
-curl -s -XPOST localhost:7341/v1/tools/gitent_log -d '{"limit":5}'
+curl -s -H "Authorization: Bearer $GITENT_TOKEN" localhost:7341/v1/tools        # tools + JSON schemas
+curl -s -H "Authorization: Bearer $GITENT_TOKEN" -XPOST localhost:7341/v1/tools/gitent_log -d '{"limit":5}'
 ```
 
-Same tool names and arguments as MCP. Binds to localhost by default; there is
-no authentication — do not expose it publicly.
+Same tool names and arguments as MCP. Security (ADR 0014):
+
+* Every request needs `Authorization: Bearer <token>`, where the token is
+  `GITENT_TOKEN` or, if that is unset, a random token printed once on stderr
+  at start-up. Missing or wrong token: `401` with a JSON error.
+* The `Host` header must be a loopback name (`localhost`, `127.0.0.1`,
+  `[::1]`), and a request with a non-loopback `Origin` is refused (`403`):
+  web pages cannot reach the API through DNS rebinding or CSRF.
+* Binds to localhost by default; do not expose it publicly.
+
+### What tool arguments cannot do
+
+MCP and HTTP tool arguments cannot choose commands: `test_command`,
+`test_selector`, `executor_command` and `provider` are refused (they come only
+from `.gitent/config.toml`, environment variables and CLI flags).
+`gitent_commit` stores command checks an agent supplies with origin `agent`.
+Operation ids must match `^op_[A-Za-z0-9_-]{1,64}$`. The tool input schemas
+are versioned (`gitent/tools@2`; `_meta` of `tools/list`, `schema` of
+`GET /v1/tools`, `x-gitent-tools` of `gitent schema`).
+
+### Containment
+
+Operation worktrees live in `$TMPDIR/gitent-<uid>/<repo-hash>/` (mode 0700).
+Before each executor attempt Gitent snapshots the repository's `.git/hooks/`
+and `.git/config`; an attempt that changes them is rolled back and failed
+(`git_dir_integrity`). The `gemini` and `kiro` presets run their agents with
+every tool auto-approved and no sandbox, and say so on stderr.
 
 ### CLI with `--json`
 
