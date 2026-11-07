@@ -652,14 +652,30 @@ fn requirement_drafts(m: &clap::ArgMatches) -> Vec<Value> {
     drafts
 }
 
+/// ANSI colour for human output on a terminal (off for pipes, files and NO_COLOR).
+fn paint(text: &str, code: &str) -> String {
+    use std::io::IsTerminal;
+    if std::env::var_os("NO_COLOR").is_none() && std::io::stdout().is_terminal() {
+        format!("\x1b[{code}m{text}\x1b[0m")
+    } else {
+        text.to_string()
+    }
+}
+fn ok(t: &str) -> String {
+    paint(t, "1;32")
+}
+fn bad(t: &str) -> String {
+    paint(t, "1;31")
+}
+
 fn render_verify(v: &Value) {
     let result = s(v, "result");
     println!(
         "{} {} of {} onto {} → {}",
         if v["verified"] == true {
-            "✓ verified:"
+            ok("✓ verified:")
         } else {
-            "✗ rejected:"
+            bad("✗ rejected:")
         },
         s(v, "kind"),
         short(s(v, "source")),
@@ -671,7 +687,11 @@ fn render_verify(v: &Value) {
         }
     );
     for c in v["validation"]["checks"].as_array().into_iter().flatten() {
-        let mark = if c["passed"] == true { "✓" } else { "✗" };
+        let mark = if c["passed"] == true {
+            ok("✓")
+        } else {
+            bad("✗")
+        };
         let d = s(c, "detail");
         let first = d
             .lines()
@@ -695,10 +715,10 @@ fn render_verify(v: &Value) {
 fn render_check(v: &Value) {
     for r in v["results"].as_array().into_iter().flatten() {
         let mark = match s(r, "status") {
-            "pass" => "✓",
-            "fail" => "✗",
-            "uncertain" => "?",
-            _ => "-",
+            "pass" => ok("✓"),
+            "fail" => bad("✗"),
+            "uncertain" => paint("?", "1;33"),
+            _ => "-".to_string(),
         };
         println!(
             "{mark} {} \"{}\" — from \"{}\" ({})",
@@ -867,7 +887,8 @@ fn render_op(v: &Value) {
     }
     match state {
         "succeeded" => println!(
-            "✓ {} updated to {}",
+            "{} {} updated to {}",
+            ok("✓"),
             s(v, "branch_ref").trim_start_matches("refs/heads/"),
             short(s(v, "result_commit"))
         ),
@@ -876,7 +897,7 @@ fn render_op(v: &Value) {
             println!("worktree: {}", s(v, "worktree"));
             println!("{}", s(v, "next"));
         }
-        "failed" => println!("✗ {}", s(v, "error")),
+        "failed" => println!("{} {}", bad("✗"), s(v, "error")),
         _ => {}
     }
 }

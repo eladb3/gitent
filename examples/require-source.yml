@@ -1,0 +1,23 @@
+# Strict mode for a release branch: every PR must name the change it ports
+# (via `git cherry-pick -x`, "Backport of <sha>", or a revert), or the check fails.
+name: release branch gate
+on:
+  pull_request:
+    branches: ["release/**"]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: pip install -e . pytest
+      - id: gitent
+        uses: eladb3/gitent@v0
+        with:
+          test-command: "python -m pytest -q"
+          require-source: "true"
+      - if: always()
+        run: echo "gitent result = ${{ steps.gitent.outputs.result }}"

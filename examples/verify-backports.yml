@@ -1,0 +1,23 @@
+# Verify every backport / cherry-pick / revert PR into a release branch.
+# Copy to .github/workflows/verify-backports.yml and adjust the setup + test commands.
+name: verify backports
+on:
+  pull_request:
+    branches: ["stable/**", "release/**"]
+permissions:
+  contents: read
+  pull-requests: write   # for the sticky PR comment
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitent needs the original commit
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e . pytest
+      - uses: eladb3/gitent@v0
+        with:
+          test-command: "python -m pytest -q"
+          test-selector: "python -m pytest -q -k {test}"
