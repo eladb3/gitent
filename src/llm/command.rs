@@ -27,8 +27,13 @@ impl Provider for CommandProvider {
         format!("command:{}", self.command)
     }
 
+    /// The CLI runs in an EMPTY temporary directory: the repository (possibly a PR
+    /// checkout) may carry `.claude/settings.json`, `.mcp.json` or `AGENTS.md` that would
+    /// configure an agentic CLI (ADR 0015 §6). Everything it needs is in the prompt.
     fn complete(&self, system: &str, messages: &[Message]) -> Result<String> {
-        self.complete_in(system, messages, &self.cwd.clone())
+        let _ = &self.cwd;
+        let empty = tempfile::tempdir()?;
+        self.complete_in(system, messages, empty.path())
     }
 
     fn complete_in(&self, system: &str, messages: &[Message], dir: &Path) -> Result<String> {

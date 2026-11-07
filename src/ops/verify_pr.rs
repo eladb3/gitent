@@ -146,6 +146,31 @@ pub fn verify_pr(s: &Session, o: &PrOptions) -> Result<Value> {
         "base": base_tip.to_string(), "onto": onto.to_string(), "head": head.to_string(),
         "commits": commits.len(), "detected": found,
     });
+    // ...nor a commit that is already on the base branch: there is nothing to move (ADR 0015 §6).
+    let on_base: Vec<String> = found
+        .iter()
+        .filter(|d| d.kind == "apply") // a revert's subject is on the base by definition
+        .filter(|d| {
+            Oid::from_str(&d.source)
+                .map(|o| {
+                    o == base_tip || repo.git.graph_descendant_of(base_tip, o).unwrap_or(false)
+                })
+                .unwrap_or(false)
+        })
+        .map(|d| short(&d.source))
+        .collect();
+    if own.is_empty() && !on_base.is_empty() {
+        base_json["result"] = json!("rejected");
+        base_json["state"] = json!("failed");
+        base_json["verifications"] = json!([]);
+        base_json["note"] = json!(format!(
+            "the cited original commit(s) {} are already on the base branch; a backport must bring a change the base does not have",
+            on_base.join(", ")
+        ));
+        base_json["error"] = json!("source commit is already on the base branch");
+        base_json["markdown"] = json!(markdown(&base_json));
+        return Ok(base_json);
+    }
     if !own.is_empty() {
         base_json["result"] = json!("rejected");
         base_json["state"] = json!("failed");
@@ -300,7 +325,10 @@ pub fn markdown(v: &Value) -> String {
             }
         }
         for w in x["validation"]["warnings"].as_array().into_iter().flatten() {
-            m.push_str(&format!("\n> ⚠️ {}\n", w.as_str().unwrap_or("")));
+            m.push_str(&format!(
+                "\n> ⚠️ {}\n",
+                md_inline(&crate::proc::tail(w.as_str().unwrap_or(""), 500))
+            ));
         }
         for (name, detail) in failures {
             let fence = fence_for(&detail);
@@ -316,11 +344,24 @@ pub fn markdown(v: &Value) -> String {
 
 /// Text from commits/tests going into a Markdown line: no HTML, no code spans, no table breaks.
 fn md_inline(t: &str) -> String {
-    t.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('`', "'")
-        .replace('|', "\\|")
+    let mut out = String::with_capacity(t.len());
+    for ch in t.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '`' => out.push('\''),
+            '@' => out.push_str("&#64;"), // no mentions
+            '\n' | '\r' => out.push(' '),
+            '|' | '*' | '_' | '[' | ']' | '(' | ')' | '#' | '!' | '~' | '\\' => {
+                out.push('\\');
+                out.push(ch);
+            }
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// A code fence longer than any backtick run in `t`, so `t` cannot close it.
@@ -340,7 +381,17 @@ fn fence_for(t: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::detect;
+    use super::{detect, md_inline};
+
+    #[test]
+    fn md_inline_neutralises_markup() {
+        let s = md_inline("x](http://evil) <img> @team `code` | *b*\nnext");
+        assert!(
+            !s.contains("](") && !s.contains('<') && !s.contains('@') && !s.contains('`'),
+            "{s}"
+        );
+        assert!(!s.contains('\n'));
+    }
 
     #[test]
     fn detects_markers() {

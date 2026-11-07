@@ -31,7 +31,7 @@ struct Cli {
     /// Override validation.test_command
     #[arg(long, global = true, help_heading = "Overrides")]
     test_command: Option<String>,
-    /// Override validation.test_selector (`{test}`, `{test_re}`, `{file}`, `{module}` are replaced, shell-quoted)
+    /// Override validation.test_selector (`{test}`, `{test_re}`, `{test_esc}`, `{file}`, `{module}` are replaced, shell-quoted)
     #[arg(long, global = true, help_heading = "Overrides")]
     test_selector: Option<String>,
     /// Override validation.max_attempts
@@ -537,11 +537,11 @@ fn detect_test_command(dir: &std::path::Path) -> (String, String) {
     } else if dir.join("package.json").exists() {
         let pkg = read("package.json");
         if pkg.contains("\"vitest\"") {
-            p("npx vitest run", "npx vitest run -t {test}")
+            p("npx vitest run", "npx vitest run -t {test_esc}")
         } else if pkg.contains("\"mocha\"") {
-            p("npm test --silent", "npx mocha -g {test}")
+            p("npm test --silent", "npx mocha -g {test_esc}")
         } else {
-            p("npm test --silent", "npx jest -t {test}")
+            p("npm test --silent", "npx jest -t {test_esc}")
         }
     } else if dir.join("go.mod").exists() {
         p("go test ./...", "go test ./... -run {test_re}")

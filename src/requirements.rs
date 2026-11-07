@@ -273,49 +273,105 @@ pub fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-/// Expand `{test}`, `{test_re}` (`^name$`), `{file}` and `{module}` in a selector, each
-/// shell-quoted (ADR 0014 §6). Quotes a user already put around a placeholder are absorbed.
+/// Expand `{test}`, `{test_re}` (`^name$`), `{test_esc}` (regex-escaped), `{file}` and
+/// `{module}` in a selector, each shell-quoted (ADR 0014 §6). One pass over the template,
+/// so placeholder-like text inside a value is never expanded (ADR 0015 §6). Quotes a user
+/// already put around a placeholder are absorbed.
 pub fn expand_selector(sel: &str, test: &str, file: &str) -> String {
     let module = file
         .trim_end_matches(".py")
         .trim_start_matches("./")
         .replace('/', ".");
-    let test_re = format!("^{}$", regex::escape(test));
-    let mut out = sel.to_string();
-    for (ph, val) in [
-        ("{test_re}", test_re.as_str()),
-        ("{test}", test),
-        ("{file}", file),
-        ("{module}", module.as_str()),
-    ] {
-        let q = shell_quote(val);
-        out = out
-            .replace(&format!("\"{ph}\""), &q)
-            .replace(&format!("'{ph}'"), &q)
-            .replace(ph, &q);
+    let value = |name: &str| -> Option<String> {
+        Some(match name {
+            "test" => test.to_string(),
+            "test_re" => format!("^{}$", regex::escape(test)),
+            "test_esc" => regex::escape(test),
+            "file" => file.to_string(),
+            "module" => module.clone(),
+            _ => return None,
+        })
+    };
+    let re = regex::Regex::new(r#"(["']?)\{(test|test_re|test_esc|file|module)\}(["']?)"#).unwrap();
+    let mut out = String::new();
+    let mut last = 0;
+    for c in re.captures_iter(sel) {
+        let m = c.get(0).unwrap();
+        out.push_str(&sel[last..m.start()]);
+        let (open, close) = (&c[1], &c[3]);
+        let q = shell_quote(&value(&c[2]).unwrap_or_default());
+        if !open.is_empty() && open == close {
+            out.push_str(&q); // the user's own quotes are absorbed
+        } else {
+            out.push_str(open);
+            out.push_str(&q);
+            out.push_str(close);
+        }
+        last = m.end();
     }
+    out.push_str(&sel[last..]);
     out
 }
 
-/// Did a successful test run actually run zero tests? (ADR 0013 §4)
+fn res(pats: &[&str]) -> Vec<regex::Regex> {
+    pats.iter().map(|p| regex::Regex::new(p).unwrap()).collect()
+}
+
+/// Did a successful test run actually run zero tests, or skip all of them? (ADR 0013 §4, 0015 §4)
 pub fn zero_tests_ran(output: &str) -> bool {
     use std::sync::OnceLock;
     static RE: OnceLock<Vec<regex::Regex>> = OnceLock::new();
-    let res = RE.get_or_init(|| {
-        [
+    let r = RE.get_or_init(|| {
+        res(&[
             r"(?m)^Ran 0 tests? in",
             r"(?mi)\bno tests ran\b",
-            r"(?m)no tests to run",
             r"(?m)^\s*0 passing\b",
             r"(?mi)^No tests found",
             r"(?m)^\s*collected 0 items",
-        ]
-        .iter()
-        .map(|p| regex::Regex::new(p).unwrap())
-        .collect()
+        ])
     });
-    if res.iter().any(|r| r.is_match(output)) {
+    if r.iter().any(|r| r.is_match(output)) {
         return true;
+    }
+    // unittest: "Ran N tests" and "OK (skipped=N)" with the same N.
+    static UT: OnceLock<(regex::Regex, regex::Regex)> = OnceLock::new();
+    let (ran, skipped) = UT.get_or_init(|| {
+        (
+            regex::Regex::new(r"(?m)^Ran (\d+) tests? in").unwrap(),
+            regex::Regex::new(r"(?m)^OK \(skipped=(\d+)\)").unwrap(),
+        )
+    });
+    if let (Some(a), Some(b)) = (ran.captures(output), skipped.captures(output)) {
+        if a[1] == b[1] {
+            return true;
+        }
+    }
+    // pytest: "== 2 skipped in 0.01s ==" with nothing passed
+    for l in output.lines() {
+        let t = l.trim().trim_matches('=').trim();
+        if t.contains(" skipped")
+            && t.contains(" in ")
+            && !t.contains("passed")
+            && !t.contains("failed")
+            && !t.contains("error")
+        {
+            return true;
+        }
+    }
+    // go: "[no tests to run]" counts only if no package ran a test.
+    if output.contains("[no tests to run]") || output.contains("testing: warning: no tests to run")
+    {
+        let ran_some = output.lines().any(|l| {
+            let t = l.trim();
+            (t.starts_with("ok ")
+                && !t.contains("[no tests to run]")
+                && !t.contains("[no test files]"))
+                || t.starts_with("--- PASS")
+                || t.starts_with("=== RUN")
+        });
+        if !ran_some {
+            return true;
+        }
     }
     // cargo test: every "running N tests" section ran 0.
     let running: Vec<&str> = output
@@ -326,11 +382,11 @@ pub fn zero_tests_ran(output: &str) -> bool {
     if !running.is_empty() && running.iter().all(|l| *l == "running 0 tests") {
         return true;
     }
-    // jest/vitest: "Tests:  5 skipped, 5 total" with nothing passed
+    // jest ("Tests:  5 skipped, 5 total") / vitest ("Tests  3 skipped (3)"): nothing passed
     for l in output.lines() {
         let t = l.trim();
         if (t.starts_with("Tests:") || t.starts_with("Tests "))
-            && t.contains("total")
+            && (t.contains("total") || t.contains('('))
             && !t.contains("passed")
             && !t.contains("failed")
         {
@@ -338,6 +394,53 @@ pub fn zero_tests_ran(output: &str) -> bool {
         }
     }
     false
+}
+
+/// Does the runner's summary report failures, whatever the exit code? (ADR 0015 §4)
+pub fn failures_reported(output: &str) -> bool {
+    use std::sync::OnceLock;
+    static RE: OnceLock<Vec<regex::Regex>> = OnceLock::new();
+    let r = RE.get_or_init(|| {
+        res(&[
+            r"(?m)^FAILED \((?:failures|errors)=\d+",
+            r"(?m)^=+ .*\b\d+ (?:failed|errors?)\b.* in [\d.]+s",
+            r"(?m)^\s*Tests:\s+\d+ failed",
+            r"(?m)^\s*Tests\s+\d+ failed",
+            r"(?m)^--- FAIL:",
+            r"(?m)^FAIL\s",
+            r"(?m)^test result: FAILED",
+            r"(?m)^\s*\d+ failing\b",
+        ])
+    });
+    r.iter().any(|r| r.is_match(output))
+}
+
+/// Judge a finished test process: exit code, failure summary, zero-tests (ADR 0015 §4).
+pub fn judge_run(o: &crate::proc::ProcOutput) -> (bool, String) {
+    // stdout in full (cargo puts compile noise on stderr), stderr's tail.
+    let out = format!("{}\n{}", o.stdout, crate::proc::tail(&o.stderr, 4000));
+    if !o.success() {
+        return (false, o.combined_tail(1500));
+    }
+    if failures_reported(&out) {
+        return (
+            false,
+            format!(
+                "exited 0 but the runner reported failures\n{}",
+                crate::proc::tail(&out, 1500)
+            ),
+        );
+    }
+    if zero_tests_ran(&out) {
+        return (
+            false,
+            format!(
+                "ran 0 tests or skipped all of them (the selector matched nothing)\n{}",
+                crate::proc::tail(&out, 800)
+            ),
+        );
+    }
+    (true, String::new())
 }
 
 /// Result of running the full test command once.
@@ -395,7 +498,8 @@ impl<'a> Runner<'a> {
                     Duration::from_secs(self.cfg.validation.timeout_secs),
                 ) {
                     Ok(o) => SuiteRun {
-                        ok: o.success(),
+                        ok: o.success()
+                            && !failures_reported(&format!("{}\n{}", o.stdout, o.stderr)),
                         tail: o.combined_tail(4000),
                         duration_ms: o.duration_ms,
                         timed_out: o.timed_out,
@@ -412,25 +516,10 @@ impl<'a> Runner<'a> {
         self.suite.clone()
     }
 
-    /// (passed, detail); a run that succeeded but ran zero tests fails.
+    /// (passed, detail): exit 0, no failures reported, and at least one test ran.
     fn sh(&self, cmd: &str, timeout: u64) -> (bool, String) {
         match crate::proc::run_shell(cmd, &self.dir, None, &[], Duration::from_secs(timeout)) {
-            Ok(o) => {
-                let out = o.combined_tail(4000);
-                if o.success() && zero_tests_ran(&out) {
-                    (
-                        false,
-                        format!(
-                            "ran 0 tests (the selector matched nothing)\n{}",
-                            crate::proc::tail(&out, 800)
-                        ),
-                    )
-                } else if o.success() {
-                    (true, String::new())
-                } else {
-                    (false, o.combined_tail(1500))
-                }
-            }
+            Ok(o) => judge_run(&o),
             Err(e) => (false, format!("{e:#}")),
         }
     }
@@ -641,6 +730,7 @@ pub fn is_test_file(path: &str) -> bool {
         .iter()
         .any(|s| matches!(*s, "test" | "tests" | "spec" | "__tests__"))
         || name.starts_with("test_")
+        || name == "conftest.py"
         || name.contains("_test.")
         || name.contains(".test.")
         || name.contains(".spec.")
@@ -923,6 +1013,54 @@ mod selector_tests {
         ));
         assert!(zero_tests_ran("\n  0 passing (2ms)\n"));
         assert!(!zero_tests_ran("Ran 3 tests in 0.01s\n\nOK\n"));
+        // all skipped
+        assert!(zero_tests_ran("Ran 1 test in 0.000s\n\nOK (skipped=1)\n"));
+        assert!(!zero_tests_ran("Ran 2 tests in 0.000s\n\nOK (skipped=1)\n"));
+        assert!(zero_tests_ran(
+            "============ 1 skipped in 0.01s ============\n"
+        ));
+        assert!(!zero_tests_ran(
+            "====== 1 passed, 1 skipped in 0.01s ======\n"
+        ));
+        assert!(zero_tests_ran(" Tests  3 skipped (3)\n"));
+        // go: other packages had nothing to run, one did
+        assert!(!zero_tests_ran(
+            "ok  \tex/a\t0.01s [no tests to run]\nok  \tex/b\t0.02s\n"
+        ));
+        assert!(zero_tests_ran(
+            "ok  \tex/a\t0.01s [no tests to run]\n?   \tex/c\t[no test files]\n"
+        ));
+    }
+
+    #[test]
+    fn reads_failure_summaries() {
+        assert!(failures_reported(
+            "Ran 1 test in 0.0s\n\nFAILED (failures=1)\n"
+        ));
+        assert!(failures_reported(
+            "=========== 1 failed, 2 passed in 0.12s ===========\n"
+        ));
+        assert!(failures_reported(
+            "Tests:       1 failed, 3 passed, 4 total\n"
+        ));
+        assert!(failures_reported("--- FAIL: TestX (0.00s)\n"));
+        assert!(failures_reported(
+            "test result: FAILED. 0 passed; 1 failed\n"
+        ));
+        assert!(!failures_reported("Ran 3 tests in 0.01s\n\nOK\n"));
+        assert!(!failures_reported("===== 3 passed in 0.1s =====\n"));
+    }
+
+    #[test]
+    fn placeholders_expand_once() {
+        assert_eq!(
+            expand_selector("run {test} {file}", "x{file}y", "a.py"),
+            "run 'x{file}y' 'a.py'"
+        );
+        assert_eq!(
+            expand_selector("npx jest -t {test_esc}", "total (cents)", "a.test.js"),
+            "npx jest -t 'total \\(cents\\)'"
+        );
     }
 }
 

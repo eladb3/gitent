@@ -111,17 +111,17 @@ fn a_proper_port_is_verified() {
 }
 
 #[test]
-fn b_weakened_asserts_without_the_fix_are_not_verified() {
+fn b_weakened_asserts_without_the_fix_are_rejected_by_the_proof() {
+    // ADR 0015: the weakened test passes on the unfixed target, so it proves nothing.
     let s = scenario();
     let body =
         "    def test_discount_clamped(self):\n        self.assertIsNotNone(total([100], 150))\n";
     let (code, v) = port(&s, &[("tests/test_discount.py", &ported_test(body))]);
-    assert_eq!(code, 3, "{v}");
-    assert_eq!(v["verdict"], "unverified");
-    let c = check(&v, "tests_intact");
-    assert!(
-        c["review"] == true && c["detail"].as_str().unwrap().contains("fewer assertions"),
-        "{c}"
+    assert_eq!(code, 2, "{v}");
+    assert_eq!(
+        check(&v, "ported_test_discriminates")["passed"],
+        false,
+        "{v}"
     );
 }
 
@@ -214,16 +214,14 @@ fn j_copying_the_source_branch_code_is_not_verified() {
 }
 
 #[test]
-fn k_expectations_rewritten_to_match_the_bug_are_not_verified() {
+fn k_expectations_rewritten_to_match_the_bug_are_rejected_by_the_proof() {
     let s = scenario();
     let body = "    def test_discount_clamped(self):\n        self.assertEqual(total([100], 150), -50)\n        self.assertEqual(total([100], -5), 105)\n";
     let (code, v) = port(&s, &[("tests/test_discount.py", &ported_test(body))]);
-    assert_eq!(code, 3, "{v}");
-    assert!(
-        check(&v, "tests_intact")["detail"]
-            .as_str()
-            .unwrap()
-            .contains("expected values changed"),
+    assert_eq!(code, 2, "{v}");
+    assert_eq!(
+        check(&v, "ported_test_discriminates")["passed"],
+        false,
         "{v}"
     );
 }
@@ -368,17 +366,20 @@ fn verify_pr_checks_the_whole_pr_and_refuses_self_citations() {
 }
 
 #[test]
-fn llm_verifier_judges_the_result_tree_not_the_users_checkout() {
+fn llm_verifier_runs_in_an_empty_dir_and_sees_the_result_in_its_prompt() {
+    // ADR 0015 §6: the judged tree may carry .claude/settings.json or .mcp.json; the CLI
+    // must not run inside it. It gets the result (diff + changed files) in the prompt.
     let s = scenario();
     s.r.write("shop/calc.py", CALC_FIXED);
     s.r.write("tests/test_discount.py", &ported_test(GOOD_TEST_BODY));
+    s.r.write(".claude/settings.json", "{\"hooks\": {}}\n");
     s.r.git(&["add", "-A"]);
     s.r.git(&["commit", "-qm", "port"]);
     let port = s.r.head();
-    s.r.git(&["checkout", "-q", "release-1"]); // the user's checkout lacks the port
+    s.r.git(&["checkout", "-q", "release-1"]);
     let judge = s.r.script(
         "judge.sh",
-        "cat > /dev/null\nif [ -f tests/test_discount.py ]; then echo '{\"satisfied\": true, \"confidence\": 0.9, \"concerns\": []}'; else echo '{\"satisfied\": false, \"confidence\": 0.99, \"concerns\": [\"ran in the wrong tree\"]}'; fi",
+        "p=$(cat)\nif [ -z \"$(ls -A)\" ] && printf '%s' \"$p\" | grep -q 'max(0, min(100, discount))'; then echo '{\"satisfied\": true, \"confidence\": 0.9, \"concerns\": []}'; else echo '{\"satisfied\": false, \"confidence\": 0.99, \"concerns\": [\"ran in a repository tree or without the result\"]}'; fi",
     );
     let (code, v) = s.r.gitent_env(
         &["verify", &s.fix, &port],
@@ -387,8 +388,9 @@ fn llm_verifier_judges_the_result_tree_not_the_users_checkout() {
             ("GITENT_LLM_COMMAND", &judge),
         ],
     );
-    assert_eq!(code, 0, "{v}");
     assert_eq!(check(&v, "verifier")["passed"], true, "{v}");
+    // The port also adds .claude/settings.json: not a harness file, so verified.
+    assert_eq!(code, 0, "{v}");
 }
 
 #[test]
@@ -411,5 +413,138 @@ fn stubbing_out_a_target_function_is_not_verified() {
             .unwrap()
             .contains("shop/money.py::round_money"),
         "{c}"
+    );
+}
+
+// ---- round 2 (re-evaluation of 2026-11-07, ADR 0015) ----
+
+#[test]
+fn a2_a_port_that_changes_the_call_shape_is_verified() {
+    // Input literals differ from the source test (no `[...]` list, qty folded in):
+    // round 1 called this "needs review"; the proof on the target settles it.
+    let s = scenario();
+    let body = "    def test_discount_clamped(self):\n        prices = [40, 60]\n        self.assertEqual(total(prices, 150), 0)\n        self.assertEqual(total(prices, -5), 100)\n";
+    let (code, v) = port(
+        &s,
+        &[
+            ("shop/calc.py", CALC_FIXED),
+            ("tests/test_discount.py", &ported_test(body)),
+        ],
+    );
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["verdict"], "verified");
+    assert!(
+        check(&v, "ported_test_discriminates")["detail"]
+            .as_str()
+            .unwrap()
+            .contains("fail on the target without the port"),
+        "{v}"
+    );
+}
+
+fn no_fix_with_test(body: &str) -> (i32, serde_json::Value) {
+    let s = scenario();
+    port(&s, &[("tests/test_discount.py", &ported_test(body))])
+}
+
+#[test]
+fn b2_weaker_assert_method_with_literals_kept_is_rejected() {
+    let (code, v) = no_fix_with_test("    def test_discount_clamped(self):\n        self.assertLessEqual(total([100], 150), 0)\n        self.assertGreaterEqual(total([100], -5), 100)\n");
+    assert_eq!(code, 2, "{v}");
+    assert_eq!(check(&v, "ported_test_discriminates")["passed"], false);
+}
+
+#[test]
+fn b3_early_return_is_rejected() {
+    let (code, v) = no_fix_with_test(&format!(
+        "    def test_discount_clamped(self):\n        return\n{}",
+        GOOD_TEST_BODY
+            .lines()
+            .skip(1)
+            .map(|l| format!("{l}\n"))
+            .collect::<String>()
+    ));
+    assert_eq!(code, 2, "{v}");
+}
+
+#[test]
+fn b4_swallowed_assertion_errors_are_rejected() {
+    let (code, v) = no_fix_with_test("    def test_discount_clamped(self):\n        try:\n            self.assertEqual(total([100], 150), 0)\n            self.assertEqual(total([100], -5), 100)\n        except AssertionError:\n            pass\n");
+    assert_eq!(code, 2, "{v}");
+}
+
+#[test]
+fn x2_a_harness_file_forcing_exit_0_is_rejected() {
+    let s = scenario();
+    let (code, v) = port(
+        &s,
+        &[
+            ("tests/test_discount.py", &ported_test(GOOD_TEST_BODY)),
+            (
+                "tests/__init__.py",
+                "import atexit, os\natexit.register(os._exit, 0)\n",
+            ),
+        ],
+    );
+    assert_eq!(code, 2, "{v}");
+    let failing: Vec<&str> = v["validation"]["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["passed"] == false)
+        .map(|c| c["name"].as_str().unwrap())
+        .collect();
+    assert!(failing.contains(&"harness_unchanged"), "{failing:?}");
+}
+
+#[test]
+fn x_no_test_command_proves_nothing() {
+    let s = scenario();
+    s.r.local_config("[validation]\ntest_command = \"\"\ntest_selector = \"\"\n");
+    let (code, v) = port(
+        &s,
+        &[("tests/test_discount.py", &ported_test(GOOD_TEST_BODY))],
+    );
+    assert_eq!(code, 3, "nothing ran, so nothing is proven: {v}");
+    assert_eq!(check(&v, "evidence")["passed"], false);
+}
+
+#[test]
+fn copying_to_a_new_name_is_not_verified() {
+    let s = scenario();
+    let fixed_cart = s.r.git(&["show", &format!("{}:shop/cart.py", s.fix)]);
+    let test =
+        s.r.git(&["show", &format!("{}:tests/test_cart.py", s.fix)])
+            .replace("shop.cart", "shop.cart_v2");
+    let (code, v) = port(
+        &s,
+        &[
+            ("shop/cart_v2.py", &fixed_cart),
+            ("tests/test_cart.py", &test),
+        ],
+    );
+    assert_eq!(code, 3, "{v}");
+    assert!(check(&v, "no_orphan_copy")["detail"]
+        .as_str()
+        .unwrap()
+        .contains("cart_v2.py"));
+}
+
+#[test]
+fn verify_pr_refuses_a_source_already_on_the_base() {
+    let s = scenario();
+    let on_base = s.r.rev("release-1");
+    s.r.write("x.txt", "x\n");
+    s.r.git(&["add", "-A"]);
+    s.r.git(&[
+        "commit",
+        "-qm",
+        &format!("noop\n\n(cherry picked from commit {on_base})"),
+    ]);
+    let (code, v) = s.r.gitent(&["verify-pr", "release-1"]);
+    assert_eq!(code, 2, "{v}");
+    assert!(
+        v["note"].as_str().unwrap().contains("already on the base"),
+        "{v}"
     );
 }
