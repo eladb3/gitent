@@ -2,9 +2,11 @@
 //! `POST /mcp` (one JSON-RPC message). Binds to localhost by default.
 //!
 //! Every request must carry `Authorization: Bearer <token>` (from `GITENT_TOKEN`,
-//! or generated at start-up and printed once on stderr), a loopback `Host`, and
-//! no foreign `Origin` — so neither other local users' web pages (CSRF) nor DNS
-//! rebinding can drive the tools (ADR 0014 §1).
+//! or generated at start-up and written to `.git/gitent/serve-token`, mode 0600),
+//! a loopback `Host`, and no foreign `Origin` — so neither other local users' web
+//! pages (CSRF) nor DNS rebinding can drive the tools (ADR 0014 §1). A
+//! non-loopback bind needs `--allow-remote` and an explicit `GITENT_TOKEN`
+//! (ADR 0016 §6).
 
 use crate::api::{self, Surface};
 use anyhow::{anyhow, Result};
@@ -50,25 +52,78 @@ pub fn generate_token() -> String {
     buf.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-pub fn serve(repo: &Path, addr: &str) -> Result<()> {
+/// True when every address `addr` resolves to is a loopback address.
+pub fn is_loopback_addr(addr: &str) -> Result<bool> {
+    use std::net::ToSocketAddrs;
+    let addrs: Vec<std::net::SocketAddr> = addr
+        .to_socket_addrs()
+        .map_err(|e| anyhow!("invalid address {addr}: {e}"))?
+        .collect();
+    Ok(!addrs.is_empty() && addrs.iter().all(|a| a.ip().is_loopback()))
+}
+
+/// Write a generated token to `<git_dir>/gitent/serve-token`, readable only by
+/// the user (ADR 0016 §6), replacing any earlier file (never following a link).
+pub fn write_token_file(git_dir: &Path, token: &str) -> Result<std::path::PathBuf> {
+    use std::io::Write;
+    let dir = git_dir.join("gitent");
+    std::fs::create_dir_all(&dir)?;
+    let p = dir.join("serve-token");
+    match std::fs::remove_file(&p) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
+        _ => {}
+    }
+    let mut o = std::fs::OpenOptions::new();
+    o.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        o.mode(0o600);
+    }
+    let mut f = o
+        .open(&p)
+        .map_err(|e| anyhow!("cannot write {}: {e}", p.display()))?;
+    f.write_all(token.as_bytes())?;
+    f.write_all(b"\n")?;
+    Ok(p)
+}
+
+/// Serve the tool API. A non-loopback `addr` needs `allow_remote`, and then an
+/// explicit `GITENT_TOKEN` (a generated one is never used remotely).
+pub fn serve(repo: &Path, addr: &str, allow_remote: bool) -> Result<()> {
+    let remote = !is_loopback_addr(addr)?;
+    if remote && !allow_remote {
+        anyhow::bail!(
+            "refusing to listen on non-loopback address {addr}: pass --allow-remote (and set GITENT_TOKEN) to expose the tool API"
+        );
+    }
     let (token, generated) = token_from_env();
+    if remote && generated {
+        anyhow::bail!(
+            "--allow-remote requires GITENT_TOKEN to be set explicitly (a generated token is not used for remote access)"
+        );
+    }
+    let token_file = if generated {
+        let r = crate::repo::Repo::discover(repo)?;
+        Some(write_token_file(&r.git_dir, &token)?)
+    } else {
+        None
+    };
     let server = tiny_http::Server::http(addr).map_err(|e| anyhow!("cannot bind {addr}: {e}"))?;
     eprintln!(
         "gitent: serving {} on http://{}",
         repo.display(),
         server.server_addr()
     );
-    if generated {
-        eprintln!(
-            "gitent: GITENT_TOKEN is not set; generated token (send `Authorization: Bearer <token>`):\n{token}"
-        );
-    } else {
-        eprintln!("gitent: using the token from GITENT_TOKEN");
+    match &token_file {
+        Some(p) => eprintln!(
+            "gitent: GITENT_TOKEN is not set; generated a token in {} (send `Authorization: Bearer <token>`)",
+            p.display()
+        ),
+        None => eprintln!("gitent: using the token from GITENT_TOKEN"),
     }
-    if let Ok(a) = addr.parse::<std::net::SocketAddr>() {
-        if !a.ip().is_loopback() {
-            eprintln!("gitent: warning: listening on non-loopback {a}; only requests with a loopback Host header are served");
-        }
+    if remote {
+        eprintln!("gitent: warning: listening on non-loopback {addr} (--allow-remote); anyone who can reach it and holds the token can drive the tools");
     }
     for mut req in server.incoming_requests() {
         let headers: Vec<(String, String)> = req
@@ -81,7 +136,7 @@ pub fn serve(repo: &Path, addr: &str) -> Result<()> {
                 )
             })
             .collect();
-        let (code, v) = match authorize(&headers, &token) {
+        let (code, v) = match authorize_for(&headers, &token, remote) {
             Err(denied) => denied,
             Ok(()) => {
                 let mut body = String::new();
@@ -115,9 +170,18 @@ fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
 
 /// Check Host, Origin and the bearer token. `Err` carries the response.
 pub fn authorize(headers: &[(String, String)], token: &str) -> Result<(), (u16, Value)> {
+    authorize_for(headers, token, false)
+}
+
+/// `authorize`; with `remote` (`--allow-remote`, explicit token) any Host is accepted.
+pub fn authorize_for(
+    headers: &[(String, String)],
+    token: &str,
+    remote: bool,
+) -> Result<(), (u16, Value)> {
     let deny = |code: u16, msg: &str| Err((code, json!({"error": msg, "status": code})));
     match header(headers, "host") {
-        Some(h) if is_loopback_host(host_of_authority(h)) => {}
+        Some(h) if remote || is_loopback_host(host_of_authority(h)) => {}
         Some(_) => {
             return deny(
                 403,
@@ -299,6 +363,41 @@ mod tests {
             ]),
             403
         );
+    }
+
+    #[test]
+    fn remote_mode_accepts_any_host_but_still_needs_the_token() {
+        let t = "s3cret";
+        let ok = h(&[
+            ("Host", "gitent.internal:7341"),
+            ("Authorization", "Bearer s3cret"),
+        ]);
+        assert!(authorize_for(&ok, t, true).is_ok());
+        assert_eq!(authorize_for(&ok, t, false).unwrap_err().0, 403);
+        let bad = h(&[("Host", "gitent.internal:7341")]);
+        assert_eq!(authorize_for(&bad, t, true).unwrap_err().0, 401);
+    }
+
+    #[test]
+    fn loopback_addresses() {
+        assert!(is_loopback_addr("127.0.0.1:7341").unwrap());
+        assert!(is_loopback_addr("[::1]:7341").unwrap());
+        assert!(!is_loopback_addr("0.0.0.0:7341").unwrap());
+        assert!(!is_loopback_addr("10.1.2.3:7341").unwrap());
+        assert!(is_loopback_addr("nonsense").is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn token_file_is_private_and_replaced() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let p = write_token_file(d.path(), "one").unwrap();
+        let p2 = write_token_file(d.path(), "two").unwrap();
+        assert_eq!(p, p2);
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), "two\n");
+        let mode = std::fs::metadata(&p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
     }
 
     #[test]

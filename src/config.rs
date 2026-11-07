@@ -418,7 +418,7 @@ impl Config {
             "host" | "none" => {}
             _ => return None,
         }
-        if let Some(w) = crate::agent::unsandboxed_warning(&c.executor.command) {
+        if let Some(w) = crate::agent::executor_warning(&c.executor) {
             eprintln!("gitent: warning: {w}");
         }
         Some(c)

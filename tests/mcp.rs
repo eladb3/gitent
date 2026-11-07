@@ -336,22 +336,29 @@ fn http_refuses_unauthenticated_rebinding_and_cross_origin_requests() {
     assert_eq!(code, 200);
 }
 
-/// S1: without GITENT_TOKEN, a random token is generated and printed once.
+/// S1/S16: without GITENT_TOKEN, a random token is generated and written to
+/// `.git/gitent/serve-token` (mode 0600); stderr names the file, never the token.
 #[test]
 fn http_generates_a_token_when_none_is_configured() {
     let r = TestRepo::users();
     let (srv, stderr) = serve(&r, None);
     let mut lines = BufReader::new(stderr).lines();
-    let mut token = String::new();
-    for _ in 0..10 {
-        let l = lines.next().unwrap().unwrap();
-        let t = l.trim();
-        if t.len() == 64 && t.bytes().all(|b| b.is_ascii_hexdigit()) {
-            token = t.to_string();
-            break;
-        }
+    let mut said = String::new();
+    for _ in 0..2 {
+        said.push_str(&lines.next().unwrap().unwrap());
+        said.push('\n');
     }
-    assert!(!token.is_empty(), "no generated token on stderr");
+    let file = r.path.join(".git/gitent/serve-token");
+    assert!(said.contains("serve-token"), "{said}");
+    let token = std::fs::read_to_string(&file).unwrap().trim().to_string();
+    assert!(token.len() == 64 && token.bytes().all(|b| b.is_ascii_hexdigit()));
+    assert!(!said.contains(&token), "token printed on stderr: {said}");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&file).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
     let (code, _) = http(srv.port, "GET", "/v1/tools", "");
     assert_eq!(code, 401, "the test token must not work");
     let (code, v) = http_raw(
@@ -362,6 +369,31 @@ fn http_generates_a_token_when_none_is_configured() {
         &format!("Host: localhost\r\nAuthorization: Bearer {token}\r\n"),
     );
     assert_eq!(code, 200, "{v}");
+    drop(lines);
+}
+
+/// S16: a non-loopback bind is refused without --allow-remote, and
+/// --allow-remote refuses a generated token.
+#[test]
+fn http_refuses_remote_binds_without_consent_and_explicit_token() {
+    let r = TestRepo::users();
+    let o = r
+        .gitent_cmd()
+        .args(["serve", "--addr", "0.0.0.0:0"])
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(!o.status.success());
+    assert!(err.contains("--allow-remote"), "{err}");
+    let o = r
+        .gitent_cmd()
+        .args(["serve", "--addr", "0.0.0.0:0", "--allow-remote"])
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(!o.status.success());
+    assert!(err.contains("GITENT_TOKEN"), "{err}");
+    assert!(!r.path.join(".git/gitent/serve-token").exists());
 }
 
 /// S2: MCP/HTTP tool arguments cannot choose commands; the CLI still can.

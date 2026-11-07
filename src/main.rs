@@ -220,10 +220,13 @@ enum Cmd {
     Mcp,
     /// [experimental] Serve the tool API over HTTP (loopback only). Clients must send
     /// `Authorization: Bearer $GITENT_TOKEN`; without GITENT_TOKEN a random token
-    /// is generated and printed once on stderr.
+    /// is generated and written to .git/gitent/serve-token (mode 0600).
     Serve {
         #[arg(long, default_value = "127.0.0.1:7341")]
         addr: String,
+        /// Allow a non-loopback address (requires GITENT_TOKEN to be set explicitly)
+        #[arg(long)]
+        allow_remote: bool,
     },
     /// Print the JSON schema of semantic records
     Schema,
@@ -314,8 +317,8 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             gitent::mcp::serve_stdio(&path)?;
             return Ok((json!({}), 0));
         }
-        Cmd::Serve { addr } => {
-            gitent::http::serve(&path, addr)?;
+        Cmd::Serve { addr, allow_remote } => {
+            gitent::http::serve(&path, addr, *allow_remote)?;
             return Ok((json!({}), 0));
         }
         Cmd::Trust => {
