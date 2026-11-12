@@ -117,7 +117,7 @@ Each row is one fault model from the external evaluation of 2026-11-07, checked 
 | P6 | A test that fails before only because the API it calls is missing is `proven_api`. | ✅ `a_new_feature_is_proven_by_its_missing_api`, `ops::prove_pr::tests::classifies_failures` |
 | P7 | Config comes from the base (a PR cannot set the selector to `true`); read-only (no notes); `--working-tree` leaves files and index untouched. | ✅ `the_pr_cannot_choose_how_it_is_proved`, `working_tree_mode_proves_uncommitted_edits_without_touching_them` |
 | P8 | Available over MCP as `gitent_prove_pr`. | ✅ `available_over_mcp` |
-| P9 | `uses: eladb3/gitent/prove@v0`: proven/neutral pass, unproven/rejected fail the job (`allow-unproven` softens it), with its own sticky comment next to verify-pr's. | ✅ locally through `action/run.sh` (all 5 fixture scenarios); ⏳ `prove-scenario` and `pr-comment` jobs in `action-selftest.yml` on GitHub runners |
+| P9 | `uses: eladb3/gitent/prove@v0`: proven/neutral pass, unproven/rejected fail the job (`allow-unproven` softens it), with its own sticky comment next to verify-pr's. | ✅ [action-selftest run](https://github.com/eladb3/gitent/actions/runs/43285049243): `prove-scenario` proven/vacuous/no-test/skip-existing/docs → proven/unproven/unproven/rejected/neutral; `pr-comment` posted one prove comment next to the verify comment on [eladb3/gitent#6](https://github.com/eladb3/gitent/pull/6) |
 
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
 
