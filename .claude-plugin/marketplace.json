@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "gitent",
+  "owner": { "name": "eladb3", "url": "https://github.com/eladb3" },
+  "metadata": {
+    "description": "Gitent for Claude Code: verify that backports, cherry-picks, merges and reverts actually carry the change."
+  },
+  "plugins": [
+    {
+      "name": "gitent",
+      "source": "./integrations/claude-code",
+      "description": "The gitent MCP server and skill: record intent and requirements on commit, verify every port before saying \"done\".",
+      "category": "development"
+    }
+  ]
+}

@@ -105,9 +105,13 @@ optional LLM verifier ([what is checked and what isn't](docs/adr/0013-verificati
 ## Quick start
 
 ```bash
-cargo install --git https://github.com/eladb3/gitent      # prebuilt binaries arrive with the first release
-cd your-repo && gitent init                              # detects your test command
+curl -fsSL https://raw.githubusercontent.com/eladb3/gitent/main/install.sh | sh   # prebuilt binary, Linux and macOS
+cd your-repo && gitent init                                                        # detects your test command
 ```
+
+Or `cargo binstall gitent` / `cargo install gitent`, or download a binary from
+[Releases](https://github.com/eladb3/gitent/releases). The installer checks the
+binary against the release's SHA-256.
 
 **1. Record a fix** (the test you add becomes a proven requirement):
 
@@ -176,11 +180,12 @@ workflows are in [examples/](examples/).
 <tr><th>Your agent drives Gitent</th><th>Gitent drives your agent</th></tr>
 <tr><td>
 
-```bash
-claude mcp add gitent -- gitent mcp
+```text
+/plugin marketplace add eladb3/gitent
+/plugin install gitent@gitent
 ```
 
-The agent calls `gitent_verify` on its own work before saying "done". It calls
+(or `claude mcp add gitent -- gitent mcp`). The agent calls `gitent_verify` on its own work before saying "done". It calls
 `gitent_commit` with its intent, and `gitent_cherry_pick` in *host mode* (it
 edits, Gitent validates). Setups for Claude Code, Codex and Kiro are in
 [integrations/](integrations/).
@@ -225,7 +230,7 @@ conflicts. The hidden oracle is the *human* backport's tests
 Hand-made bad backports from an external review, checked by `gitent verify`
 with no LLM ([tests/fault_models.rs](tests/fault_models.rs)):
 
-| fault | v0.1 | now |
+| fault | before the reviews | now |
 |---|:---:|:---:|
 | test skipped | ❌ verified | ✅ rejected |
 | asserts weakened, made always-true, short-circuited, errors swallowed · expectations rewritten to match the bug · harness forcing exit 0 | ❌ verified | ✅ rejected: the ported test passes on the unfixed target, so it proves nothing |

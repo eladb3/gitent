@@ -116,6 +116,16 @@ Each row is one fault model from the external evaluation of 2026-11-07, checked 
 | G5 | Self-test on real GitHub runners: a good backport passes; a stale port, a half port and a test-deleting port fail; a non-backport PR is neutral. | ✅ [action-selftest run](https://github.com/eladb3/gitent/actions/runs/41783056897): good → verified, stale/half/delete-test → rejected (job fails), no-marker → neutral |
 | G6 | Gitent CI (fmt, clippy, tests) green on GitHub; release workflow builds Linux and macOS binaries. | ✅ [ci run](https://github.com/eladb3/gitent/actions/runs/41783056827): fmt, clippy, tests, offline evals, plus Linux x86_64/arm64 and macOS arm64/x86_64 binaries. ⏳ `release.yml` publishing (no tag pushed yet) |
 | G7 | Usage docs with a copy-paste workflow, inputs, outputs and limits. | ✅ `docs/GITHUB_ACTION.md`, README |
+| G8 | The documented `uses: eladb3/gitent@v0` (or `@v0.1`) installs the release it points at: a moving tag resolves to the action's own version; exact tags, branches and other series are used as given. | ✅ `action/selftest/install-version.sh` (in `action-selftest.yml`; fails on the previous `install.sh`) |
+
+## P. Distribution
+
+| ID | Criterion | Verified by |
+|----|-----------|-------------|
+| P1 | One-line install without Rust (Linux, macOS): `install.sh` downloads the release binary for the platform, refuses it unless it matches the release's `.sha256`, and installs nothing on a mismatch. | ✅ run locally under `dash` against served release assets (latest and pinned; a tampered checksum installs nothing). ⏳ against a real release |
+| P2 | The crate publishes: license files, repository metadata, only the sources and tests packaged; `cargo binstall` finds the release binaries. | ✅ `cargo publish --dry-run` (55 files, 163 KiB). ⏳ binstall against a real release |
+| P3 | Releases carry their `CHANGELOG.md` section as notes. | ✅ the `release.yml` extraction run locally (`v0.1.0` → the `## 0.1.0` section; unknown versions fall back to a link) |
+| P4 | Claude Code plugin: `/plugin marketplace add eladb3/gitent` installs the skill and the MCP server together. | ✅ `claude plugin validate --strict --profile directory integrations/claude-code`; marketplace validated; installed into an isolated profile (`claude plugin details`: 1 skill, 1 MCP server) |
 
 ## E. Agent integration
 

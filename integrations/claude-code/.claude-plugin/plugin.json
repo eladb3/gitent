@@ -1,0 +1,11 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "gitent",
+  "version": "0.1.0",
+  "description": "Verify backports, cherry-picks, merges and reverts before you say \"done\": the gitent MCP server plus a skill that records each change's intent and requirements and checks every port of it.",
+  "author": { "name": "eladb3", "url": "https://github.com/eladb3" },
+  "homepage": "https://github.com/eladb3/gitent",
+  "repository": "https://github.com/eladb3/gitent",
+  "license": "MIT OR Apache-2.0",
+  "keywords": ["git", "backport", "cherry-pick", "merge", "revert", "verification", "mcp"]
+}
