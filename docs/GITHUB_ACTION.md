@@ -1,4 +1,13 @@
-# GitHub Action: verify backport pull requests
+# GitHub Actions
+
+This repository ships two actions that share one binary and the same hardening:
+
+| action | for | checks |
+|---|---|---|
+| `uses: eladb3/gitent/prove@v0` | **every** PR | each test the PR adds or changes fails without the PR's code and passes with it ([below](#prove-every-prs-tests-eladb3gitentprovev0)) |
+| `uses: eladb3/gitent@v0` | backport / cherry-pick / revert PRs | the PR correctly carries the original change (the rest of this page) |
+
+# Verify backport pull requests (`eladb3/gitent@v0`)
 
 The action checks that a backport, cherry-pick or revert PR correctly carries
 the original change onto its target branch:
@@ -183,3 +192,53 @@ gitent verify-pr --base origin/stable/5.2.x --head HEAD --markdown report.md
   on the target branch, and that no test or requirement on that branch covers,
   cannot be caught.
 * The original commit must be in the clone (use `fetch-depth: 0`).
+
+# Prove every PR's tests (`eladb3/gitent/prove@v0`)
+
+`gitent prove-pr` ([ADR 0017](adr/0017-prove-pr.md)) runs every test the PR
+adds or modifies twice:
+
+1. on the base, with the PR's test files overlaid and the PR's code absent;
+2. on the PR.
+
+A test proves the change if it **fails without it and passes with it**. Config
+(test command, selector) is read from the base. Use `persist-credentials: false`;
+the PR's tests run in this step, with a scrubbed environment and no GitHub token.
+
+```yaml
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: eladb3/gitent/prove@v0
+        with:
+          test-command: "python -m pytest -q"
+          test-selector: "python -m pytest -q {file} -k {test}"
+```
+
+| input | default | meaning |
+|---|---|---|
+| `test-command`, `test-selector` | base config | how to run the tests / one test (`{test}`, `{test_re}`, `{test_esc}`, `{file}`, `{module}`) |
+| `base` | `origin/<PR base>` | the branch the PR goes into |
+| `require-all` | `false` | every added or modified test must prove the change |
+| `allow-unproven` | `false` | `unproven` passes the job with a warning instead of failing it |
+| `comment` | `true` | one sticky PR comment (`<!-- gitent-prove-pr -->`), separate from the verify comment |
+| `working-directory`, `head`, `version`, `github-token` | | as for the backport action |
+
+**Outputs:** `result` (`proven`, `unproven`, `rejected`, `neutral`, `error`),
+plus `report` and `json`, the paths to the Markdown report and the JSON.
+
+| result | job | when |
+|---|---|---|
+| `proven` | ✅ | at least one new/changed test fails without the change (every one with `require-all`) |
+| `neutral` | ✅ | no code file changed |
+| `unproven` | ❌ unless `allow-unproven` | code changed, but no test fails without it, or existing tests were deleted |
+| `rejected` | ❌ | a PR test fails on the PR, or an existing test was skipped |
+
+Per test, the report says `proven`, or `proven_api` (it failed before only
+because the code it calls did not exist yet: fine for new features, weak for
+bug fixes), `passes_without_change`, `fails_on_pr` or `not_run`.
+
+**Limits.**
+* A PR whose fix is covered only by tests that *already* existed and failed
+  proves nothing new here; CI covers that case.
+* Hunk-level proof, which reports code hunks no test needs, is the planned
+  next step.

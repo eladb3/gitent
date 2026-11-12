@@ -203,6 +203,21 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
                 },
             )
         }
+        "prove_pr" => {
+            let base = arg_str(args, "base").ok_or_else(|| anyhow!("`base` is required"))?;
+            // Like verify-pr: the base's config decides how the PR is proved (ADR 0017 §6).
+            let s2 = Session::open_with_config_from(path, &overrides(args, surface), Some(&base))?;
+            drop(s);
+            crate::ops::prove_pr::prove_pr(
+                &s2,
+                &crate::ops::prove_pr::ProveOptions {
+                    base,
+                    head: arg_str(args, "head"),
+                    working_tree: arg_bool(args, "working_tree"),
+                    require_all: arg_bool(args, "require_all"),
+                },
+            )
+        }
         "check" => check(
             &s,
             arg_str(args, "rev").as_deref(),
@@ -486,6 +501,10 @@ pub fn tool_defs() -> Vec<Value> {
             "base": {"type": "string", "description": "Target branch (e.g. origin/stable/5.2.x)"},
             "head": {"type": "string"}, "source": {"type": "string"}, "kind": {"type": "string", "enum": ["apply", "revert"]},
             "require_source": {"type": "boolean"}, "no_llm": {"type": "boolean"}}), &["base"])}),
+        json!({"name": "gitent_prove_pr", "description": "Prove that the tests a change adds or modifies actually test it: each must FAIL on the base without the change and PASS with it. Use on your own work before saying done or opening a PR (working_tree=true checks uncommitted edits). Returns result proven|unproven|rejected|neutral with a per-test table.", "inputSchema": obj(json!({
+            "base": {"type": "string", "description": "Branch the change goes into (e.g. main)"},
+            "head": {"type": "string"}, "working_tree": {"type": "boolean"},
+            "require_all": {"type": "boolean", "description": "Every added/modified test must prove the change"}}), &["base"])}),
         json!({"name": "gitent_check", "description": "Run all live requirements (the ledger) on the working tree or a revision; names the intention behind any failure.", "inputSchema": obj(json!({"rev": {"type": "string"}, "intent": {"type": "string"}, "judge": {"type": "boolean"}}), &[])}),
         json!({"name": "gitent_cherry_pick", "description": "Re-implement a commit's intention on the current branch. Tries git first, validates, falls back to an agent. With executor=host returns state=awaiting_host with a worktree and brief: edit there, then call gitent_continue.", "inputSchema": with(json!({"commit": {"type": "string"}, "commits": {"type": "array", "items": {"type": "string"}}}), &[])}),
         json!({"name": "gitent_merge", "description": "Merge a branch by composing intentions from both sides; checks compatibility, validates the result.", "inputSchema": with(json!({"branch": {"type": "string"}, "force": {"type": "boolean", "description": "Proceed even if intentions look incompatible"}}), &["branch"])}),

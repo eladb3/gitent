@@ -4,7 +4,7 @@
 # wrote with the same marker is never edited or mistaken for ours (ADR 0014 section 9).
 set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-marker='<!-- gitent-verify-pr -->'
+marker="${GITENT_MARKER:-<!-- gitent-verify-pr -->}"
 repo="${GITHUB_REPOSITORY}"
 
 # Who are we? A PAT / app user token answers `gh api user`; the default

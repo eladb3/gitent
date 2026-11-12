@@ -1,0 +1,26 @@
+# Prove every PR's tests: each test a PR adds or changes must fail without the
+# PR's code and pass with it (gitent prove-pr, ADR 0017).
+# Copy to .github/workflows/prove-tests.yml and adjust the setup + test commands.
+name: prove tests
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write   # for the sticky PR comment
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0              # the PR's base is needed
+          persist-credentials: false  # the PR's tests run here
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e . pytest
+      - uses: eladb3/gitent/prove@v0
+        with:
+          test-command: "python -m pytest -q"
+          test-selector: "python -m pytest -q {file} -k {test}"
+          # require-all: "true"      # every new/changed test must prove the change
+          # allow-unproven: "true"   # report, but do not fail the job

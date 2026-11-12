@@ -20,3 +20,4 @@ Short, numbered, immutable once accepted (supersede instead of editing).
 | [0014](0014-trust-boundaries.md) | Trust boundaries: serve token, tool surfaces cannot choose commands, op_id, process groups, containment |
 | [0015](0015-proof-on-the-target.md) | Prove the ported test on the target; heuristics advisory; runner summaries read (round 2) |
 | [0016](0016-trust-boundaries-round-2.md) | Scrubbed child environments, isolated Action builds, agent commands need consent, `gitent trust`, remote `serve` opt-in (extends 0014) |
+| [0017](0017-prove-pr.md) | `gitent prove-pr` and `eladb3/gitent/prove`: every test a PR adds must fail without its change and pass with it |
