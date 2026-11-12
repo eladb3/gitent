@@ -5,6 +5,19 @@ edition = "2021"
 description = "Verify that backports, cherry-picks, merges and reverts actually carry the change: a safety and audit layer on top of Git"
 license = "MIT OR Apache-2.0"
 rust-version = "1.80"
+repository = "https://github.com/eladb3/gitent"
+homepage = "https://github.com/eladb3/gitent"
+readme = "README.md"
+keywords = ["git", "backport", "cherry-pick", "ai-agents", "mcp"]
+categories = ["development-tools", "command-line-utilities"]
+# The crate is the CLI's source; demos, evals, docs and the Action stay on GitHub.
+include = ["src/**/*", "tests/**/*", "Cargo.toml", "Cargo.lock", "README.md", "CHANGELOG.md", "LICENSE-MIT", "LICENSE-APACHE"]
+
+# `cargo binstall gitent` downloads the release binary instead of compiling.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
 
 [[bin]]
 name = "gitent"

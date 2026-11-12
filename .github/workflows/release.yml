@@ -1,7 +1,8 @@
 name: release
 on:
   push:
-    tags: ["v*"]
+    # Version tags only: the moving `v0` tag the Action is used by must not make a release.
+    tags: ["v[0-9]+.[0-9]+.[0-9]+", "v[0-9]+.[0-9]+.[0-9]+-*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -38,5 +39,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "See CHANGELOG.md" || true
+          # Release notes: this version's section of CHANGELOG.md (`## 0.1.0` for tag v0.1.0).
+          awk -v v="${TAG#v}" 'index($0, "## " v) == 1 && (length($0) == length(v) + 3 || substr($0, length(v) + 4, 1) == " ") {p = 1; next}
+                               /^## / && p {exit} p' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "See CHANGELOG.md" > notes.md
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "gitent $TAG" --notes-file notes.md || true
           gh release upload "$TAG" gitent-${{ matrix.target }}.tar.gz gitent-${{ matrix.target }}.tar.gz.sha256 --clobber
