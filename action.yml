@@ -55,7 +55,7 @@ inputs:
     required: false
     default: "true"
   version:
-    description: "Gitent version to install (a release tag), or 'source' to build the action's own checkout. Default: the action's ref, falling back to building from source."
+    description: "Gitent version to install (a release tag), or 'source' to build the action's own checkout. Default: the action's ref (a moving tag such as v0 uses the release it points at), falling back to building from source."
     required: false
     default: ""
   github-token:

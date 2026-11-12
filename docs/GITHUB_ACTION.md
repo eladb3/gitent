@@ -73,7 +73,7 @@ instead.
 | `llm-provider` | empty (off: `--no-llm`) | opt-in LLM verifier: `anthropic` or `openai` (key from the step's `env`, see below) |
 | `llm-model` | provider default | model for the LLM verifier |
 | `comment` | `true` on `pull_request` events | maintain one sticky PR comment |
-| `version` | the action's own tag | Gitent version to install |
+| `version` | the action's own tag | Gitent version to install. A moving tag (`@v0`) installs the release it points at; `source` builds the action's checkout |
 
 ## Outputs
 

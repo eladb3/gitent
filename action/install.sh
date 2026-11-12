@@ -7,6 +7,18 @@ mkdir -p "$dest"
 version="${GITENT_VERSION:-}"
 [ -z "$version" ] && version="${GITENT_ACTION_REF:-}"
 
+# A moving tag (`uses: eladb3/gitent@v0` or `@v0.1`) has no release of its own:
+# use the exact version of the action's own checkout when it is in that series.
+if printf '%s' "$version" | grep -Eq '^v[0-9]+(\.[0-9]+)?$' && [ -f "${GITENT_ACTION_PATH:-}/Cargo.toml" ]; then
+  own="$(awk -F'"' '/^version *= *"/ {print $2; exit}' "$GITENT_ACTION_PATH/Cargo.toml")"
+  if printf '%s' "$own" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    case "v$own." in
+      "$version".*) echo "gitent: $version is a moving tag; using release v$own (the action's own version)"
+                    version="v$own" ;;
+    esac
+  fi
+fi
+
 case "$(uname -s)-$(uname -m)" in
   Linux-x86_64)  target="x86_64-unknown-linux-gnu" ;;
   Linux-aarch64) target="aarch64-unknown-linux-gnu" ;;

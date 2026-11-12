@@ -20,6 +20,8 @@ jobs:
         run: for f in action/*.sh action/selftest/*.sh; do bash -n "$f"; done
       - name: markdown escaping
         run: python3 action/md.py selftest
+      - name: release selection (moving tags such as v0 resolve to the exact release)
+        run: bash action/selftest/install-version.sh
 
   scenario:
     runs-on: ubuntu-latest
