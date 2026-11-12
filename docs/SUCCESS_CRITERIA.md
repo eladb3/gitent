@@ -105,6 +105,20 @@ Each row is one fault model from the external evaluation of 2026-11-07, checked 
 | I21 | The LLM verifier CLI runs in an empty directory, with the result in its prompt (the judged tree's `.claude/`, `.mcp.json` and `AGENTS.md` cannot configure it). | ✅ `llm_verifier_runs_in_an_empty_dir_and_sees_the_result_in_its_prompt` |
 | I12 | Known limit: hard-coding the tested inputs (F) passes any test oracle. Only a reviewer (human or the LLM verifier) can catch it. | 📌 `f_hard_coded_inputs_pass_the_oracle_documented_limit` pins the limit |
 
+## P. Prove every PR's tests (ADR 0017)
+
+| # | Criterion | Verified by |
+|---|---|---|
+| P1 | `gitent prove-pr BASE` runs each test the PR adds or modifies on the base with the PR's tests overlaid (it must fail) and on the PR (it must pass). A fix with a discriminating test is `proven` (exit 0). | ✅ `tests/prove_pr.rs::a_fix_with_a_test_that_fails_without_it_is_proven` |
+| P2 | A test that passes without the change is `passes_without_change`. With no proving test, the PR is `unproven` (exit 3). Code with no new test is `unproven`; a docs-only PR is `neutral`. | ✅ `a_test_that_passes_without_the_change_proves_nothing`, `code_without_tests_is_unproven_and_docs_only_is_neutral` |
+| P3 | A PR test failing on the PR, or an existing test gaining a skip marker, gives `rejected` (exit 2). | ✅ `a_test_failing_on_the_pr_or_a_skipped_existing_test_is_rejected` |
+| P4 | Deleting existing tests gives `unproven`; moving them to another file does not. | ✅ `deleting_an_existing_test_is_unproven_but_moving_it_is_fine` |
+| P5 | Characterization tests are listed without failing the PR; `--require-all` makes every test count. | ✅ `characterization_tests_are_listed_and_require_all_makes_them_count` |
+| P6 | A test that fails before only because the API it calls is missing is `proven_api`. | ✅ `a_new_feature_is_proven_by_its_missing_api`, `ops::prove_pr::tests::classifies_failures` |
+| P7 | Config comes from the base (a PR cannot set the selector to `true`); read-only (no notes); `--working-tree` leaves files and index untouched. | ✅ `the_pr_cannot_choose_how_it_is_proved`, `working_tree_mode_proves_uncommitted_edits_without_touching_them` |
+| P8 | Available over MCP as `gitent_prove_pr`. | ✅ `available_over_mcp` |
+| P9 | `uses: eladb3/gitent/prove@v0`: proven/neutral pass, unproven/rejected fail the job (`allow-unproven` softens it), with its own sticky comment next to verify-pr's. | ✅ locally through `action/run.sh` (all 5 fixture scenarios); ⏳ `prove-scenario` and `pr-comment` jobs in `action-selftest.yml` on GitHub runners |
+
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
 
 | ID | Criterion | Verified by |

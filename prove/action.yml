@@ -1,0 +1,118 @@
+name: "Gitent prove PR tests"
+description: "Prove that a pull request's new and changed tests actually test its change: each must fail without the change and pass with it."
+author: "eladb3"
+branding:
+  icon: "check-square"
+  color: "purple"
+
+inputs:
+  working-directory:
+    description: "Repository directory (for monorepos or checkouts into a subdirectory)."
+    required: false
+    default: "."
+  base:
+    description: "Branch the PR goes into. Default: origin/<pull request base branch>."
+    required: false
+    default: ""
+  head:
+    description: "The PR's result."
+    required: false
+    default: "HEAD"
+  test-command:
+    description: "Command that runs the project's tests (overrides .gitent/config.toml of the base)."
+    required: false
+    default: ""
+  test-selector:
+    description: "Command that runs one test. Placeholders (shell-quoted by gitent): {test}, {test_re}, {test_esc}, {file}, {module}."
+    required: false
+    default: ""
+  require-all:
+    description: "'true': every added or modified test must fail without the change. Default: at least one."
+    required: false
+    default: "false"
+  allow-unproven:
+    description: "When code changed but no test proves it (result `unproven`): 'false' fails the job, 'true' passes it with a warning."
+    required: false
+    default: "false"
+  comment:
+    description: "Maintain one sticky PR comment with the report (needs pull-requests: write)."
+    required: false
+    default: "true"
+  version:
+    description: "Gitent version to install (a release tag), or 'source' to build the action's own checkout. Default: the action's ref, falling back to building from source."
+    required: false
+    default: ""
+  github-token:
+    description: "Token used for the PR comment."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  result:
+    description: "proven | unproven | rejected | neutral | error"
+    value: ${{ steps.prove.outputs.result }}
+  report:
+    description: "Path to the Markdown report"
+    value: ${{ steps.prove.outputs.report }}
+  json:
+    description: "Path to the JSON result"
+    value: ${{ steps.prove.outputs.json }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install gitent
+      shell: bash
+      env:
+        GITENT_VERSION: ${{ inputs.version }}
+        GITENT_ACTION_REF: ${{ github.action_ref }}
+        # The repository root (this action lives in its prove/ subfolder).
+        GITENT_ACTION_PATH: ${{ github.action_path }}/..
+      run: bash "$GITHUB_ACTION_PATH/../action/install.sh"
+
+    - name: Prove
+      id: prove
+      shell: bash
+      env:
+        GITENT_MODE: prove-pr
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_TEST_COMMAND: ${{ inputs.test-command }}
+        INPUT_TEST_SELECTOR: ${{ inputs.test-selector }}
+        INPUT_REQUIRE_ALL: ${{ inputs.require-all }}
+        GITENT_BASE_REF: ${{ github.base_ref }}
+        # This step runs the PR's tests: no GitHub token here (ADR 0016).
+        GH_TOKEN: ""
+        GITHUB_TOKEN: ""
+      run: bash "$GITHUB_ACTION_PATH/../action/run.sh"
+
+    - name: Comment on the pull request
+      if: always() && inputs.comment == 'true' && github.event.pull_request.number != '' && steps.prove.outputs.report != ''
+      shell: bash
+      env:
+        GITENT_MARKER: "<!-- gitent-prove-pr -->"
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        REPORT: ${{ steps.prove.outputs.report }}
+      run: bash "$GITHUB_ACTION_PATH/../action/comment.sh"
+
+    - name: Result
+      shell: bash
+      env:
+        RESULT: ${{ steps.prove.outputs.result }}
+        ALLOW_UNPROVEN: ${{ inputs.allow-unproven }}
+      run: |
+        echo "gitent: $RESULT"
+        case "$RESULT" in
+          proven|neutral) exit 0 ;;
+          unproven)
+            if [ "$ALLOW_UNPROVEN" = "true" ]; then
+              echo "::warning::gitent: unproven (allowed by allow-unproven); the PR's tests do not prove its change"
+              exit 0
+            fi
+            echo "::error::gitent: unproven: no test fails without the change (set allow-unproven: 'true' to pass with a warning)"
+            exit 1 ;;
+          *) exit 1 ;;
+        esac

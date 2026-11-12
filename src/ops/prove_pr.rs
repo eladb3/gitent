@@ -270,7 +270,7 @@ fn s<'a>(v: &'a Value, k: &str) -> &'a str {
 
 /// The PR comment / step summary.
 pub fn markdown(v: &Value) -> String {
-    use super::verify_pr::{fence_for, md_inline};
+    use super::verify_pr::{code_inline, fence_for, md_inline};
     let mut m = format!("{MARKER}\n");
     let (icon, title) = match s(v, "result") {
         "proven" => ("✅", "tests prove the change"),
@@ -299,7 +299,7 @@ pub fn markdown(v: &Value) -> String {
             };
             m.push_str(&format!(
                 "| `{}` <sub>{}</sub> | {} | {} | {mark} {what} |\n",
-                md_inline(s(t, "test")),
+                code_inline(s(t, "test")),
                 md_inline(s(t, "file")),
                 s(t, "without_change"),
                 s(t, "with_change"),

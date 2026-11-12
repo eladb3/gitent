@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run `gitent verify-pr` and expose the result. Never fails by itself; the "Result" step decides.
+# Run `gitent verify-pr` (or `gitent prove-pr` with GITENT_MODE=prove-pr, used by
+# prove/action.yml) and expose the result. Never fails by itself; the "Result" step decides.
 #
 # Exit-code contract of `gitent verify-pr` (mapped explicitly, ADR 0014 section 9):
 #   0 = verified or neutral, 2 = rejected, 3 = unverified (nothing proved the
@@ -9,6 +10,12 @@ set -uo pipefail
 # step only (ADR 0016 section 1); gitent also scrubs its children's environment.
 unset GH_TOKEN GITHUB_TOKEN GITENT_TOKEN
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mode="${GITENT_MODE:-verify-pr}"
+case "$mode" in
+  verify-pr) marker='<!-- gitent-verify-pr -->'; ok_results="verified neutral"; soft="unverified" ;;
+  prove-pr)  marker='<!-- gitent-prove-pr -->';  ok_results="proven neutral";   soft="unproven" ;;
+  *) echo "::error::gitent: unknown GITENT_MODE '$mode'"; exit 1 ;;
+esac
 out="${RUNNER_TEMP:-/tmp}"
 report="$out/gitent-report.md"
 json="$out/gitent-result.json"
@@ -27,7 +34,7 @@ emit() {
 fail_early() {
   echo "::error::gitent: $1"
   printf '%s\n' "$1" > "$errlog"
-  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify\n\n'; python3 -I "$here/md.py" fence "$errlog"; } > "$report"
+  { printf '%s\n### ⚠️ Gitent: could not run %s\n\n' "$marker" "$mode"; python3 -I "$here/md.py" fence "$errlog"; } > "$report"
   cat "$report" >> "$GITHUB_STEP_SUMMARY"
   emit error
   exit 0
@@ -87,11 +94,16 @@ if [ -n "$provider" ]; then
   [ -n "${INPUT_LLM_MODEL:-}" ] && export GITENT_MODEL="$INPUT_LLM_MODEL"
 fi
 
-args+=(verify-pr --base "$base" --head "${INPUT_HEAD:-HEAD}" --markdown "$report")
-[ -z "$provider" ] && args+=(--no-llm)
-[ -n "${INPUT_SOURCE:-}" ] && args+=(--source "$INPUT_SOURCE")
-[ -n "${INPUT_KIND:-}" ]   && args+=(--kind "$INPUT_KIND")
-[ "${INPUT_REQUIRE_SOURCE:-false}" = "true" ] && args+=(--require-source)
+if [ "$mode" = "prove-pr" ]; then
+  args+=(prove-pr --base "$base" --head "${INPUT_HEAD:-HEAD}" --markdown "$report")
+  [ "${INPUT_REQUIRE_ALL:-false}" = "true" ] && args+=(--require-all)
+else
+  args+=(verify-pr --base "$base" --head "${INPUT_HEAD:-HEAD}" --markdown "$report")
+  [ -z "$provider" ] && args+=(--no-llm)
+  [ -n "${INPUT_SOURCE:-}" ] && args+=(--source "$INPUT_SOURCE")
+  [ -n "${INPUT_KIND:-}" ]   && args+=(--kind "$INPUT_KIND")
+  [ "${INPUT_REQUIRE_SOURCE:-false}" = "true" ] && args+=(--require-source)
+fi
 
 echo "gitent ${args[*]}"
 gitent "${args[@]}" > "$json" 2> "$errlog"
@@ -100,12 +112,13 @@ reported=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).ge
 
 case "$code" in
   0)
-    case "$reported" in
-      verified|neutral) result="$reported" ;;
-      *) result="error"; echo "::error::gitent: exit code 0 but result '${reported}'" ;;
-    esac ;;
+    if [ -n "$reported" ] && [[ " $ok_results " == *" $reported "* ]]; then
+      result="$reported"
+    else
+      result="error"; echo "::error::gitent: exit code 0 but result '${reported}'"
+    fi ;;
   2) result="rejected" ;;
-  3) result="unverified" ;;
+  3) result="$soft" ;;
   *) result="error" ;;
 esac
 
@@ -113,13 +126,14 @@ if [ ! -s "$report" ]; then
   err=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("error",""))' "$json" 2>/dev/null || true)
   if [ -n "$err" ]; then printf '%s\n' "$err" > "$out/gitent-error.txt"
   else cat "$json" "$errlog" 2>/dev/null | tail -40 > "$out/gitent-error.txt"; fi
-  { printf '<!-- gitent-verify-pr -->\n### ⚠️ Gitent: could not verify (exit code %s)\n\n' "$code"; python3 -I "$here/md.py" fence "$out/gitent-error.txt"; } > "$report"
+  { printf '%s\n### ⚠️ Gitent: could not run %s (exit code %s)\n\n' "$marker" "$mode" "$code"; python3 -I "$here/md.py" fence "$out/gitent-error.txt"; } > "$report"
 fi
 cat "$report" >> "$GITHUB_STEP_SUMMARY"
 case "$result" in
-  rejected)   echo "::error::gitent: backport rejected (see the job summary)" ;;
+  rejected)   echo "::error::gitent: $mode rejected (see the job summary)" ;;
   unverified) echo "::warning::gitent: backport unverified: nothing proved the change; needs human review (see the job summary)" ;;
-  error)      echo "::error::gitent: verification error, exit code $code (see the job summary)" ;;
+  unproven)   echo "::warning::gitent: the PR's tests do not prove its change; needs human review (see the job summary)" ;;
+  error)      echo "::error::gitent: $mode error, exit code $code (see the job summary)" ;;
 esac
 emit "$result"
 exit 0

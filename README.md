@@ -53,6 +53,7 @@ Gitent records **what each change is for and what it must keep doing**. It then
 | | | |
 |---|---|---|
 | 🧾 **Record** | `gitent commit` | Stores the change's intent and **requirements** next to the Git commit. Every test you add becomes a requirement, *proven* to fail before the change and pass after it. |
+| 🧪 **Prove** | `gitent prove-pr main` | For **any** PR: every test it adds or changes must **fail without the change** and pass with it. A test that passes either way does not test the change, however it is written. |
 | 🔍 **Verify** | `gitent verify <fix>` | Checks that a port carries the fix: the fix's requirements pass on the target, the target's own tests and requirements still pass, nothing was resurrected, dropped or deleted, and no test was skipped or weakened. Deterministic: **no AI needed**. An LLM verifier can be added. |
 | 🤖 **Operate** *(optional)* | `gitent cherry-pick <fix>` | Tries Git first. If Git can't do it, hands the job to *your* coding agent in an isolated worktree, verifies the result, and only then moves your branch. |
 
@@ -132,6 +133,41 @@ gitent verify <fix> --record        # if verified, record the port's provenance
 ```bash
 gitent check        # run every live requirement; names the change behind any failure
 gitent log          # history as intentions, with where each port came from
+```
+
+## Prove every PR's tests
+
+AI agents (and people) write tests that cannot fail: asserts on the mock,
+expected values copied from the buggy output, tests of something next to the
+change. `prove-pr` runs each test the PR adds or modifies twice: on the base
+with the PR's tests but **without its code**, then on the PR.
+
+```text
+$ gitent prove-pr main
+  ✓ tests/test_discount.py::test_discount_clamped  without: fail  with: pass  proves the change
+  ? tests/test_discount.py::test_zero_discount     without: pass  with: pass  passes WITHOUT the change: does not test it
+✓ proven: 1 of 2 test(s) fail without the change and pass with it
+```
+
+| result | when | exit |
+|---|---|:---:|
+| ✅ `proven` | at least one new/changed test fails without the change (`--require-all`: every one) | 0 |
+| ⚠️ `unproven` | code changed, but no test fails without it; or existing tests were deleted | 3 |
+| ❌ `rejected` | a PR test fails on the PR, or an existing test was skipped | 2 |
+| ➖ `neutral` | no code changed | 0 |
+
+No notes, markers or `gitent commit` needed. Agents can run it on their own
+uncommitted work (`--working-tree`, or the MCP tool `gitent_prove_pr`) before
+saying "done". In CI:
+
+```yaml
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - run: pip install -e . pytest
+      - uses: eladb3/gitent/prove@v0
+        with:
+          test-command: "python -m pytest -q"
+          test-selector: "python -m pytest -q {file} -k {test}"
 ```
 
 ## Use it in CI: verify every backport PR

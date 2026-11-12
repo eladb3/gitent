@@ -1,7 +1,16 @@
 # Changelog
 
 
-## Unreleased (round 2)
+## Unreleased
+
+- **New: `gitent prove-pr`** ([ADR 0017](docs/adr/0017-prove-pr.md)). For any PR, each test it adds or changes must fail without the change and pass with it.
+  - Per-test statuses: `proven`, `proven_api`, `passes_without_change`, `fails_on_pr`, `not_run`.
+  - Verdicts: `proven`, `unproven`, `rejected`, `neutral`.
+  - Flags: `--require-all`, and `--working-tree` for agents checking their own edits.
+  - Also available as the MCP tool `gitent_prove_pr`.
+- **New action:** `uses: eladb3/gitent/prove@v0`, with its own sticky comment. The run and comment scripts take `GITENT_MODE` and `GITENT_MARKER`.
+
+## Round 2
 
 Addresses the external re-evaluation (ADR 0015, ADR 0016).
 

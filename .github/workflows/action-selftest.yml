@@ -64,6 +64,50 @@ jobs:
           test -s "${{ steps.gitent.outputs.report }}"
           grep -q "gitent-verify-pr" "${{ steps.gitent.outputs.report }}"
 
+  # The prove-pr action (uses: ./prove): a PR's tests must fail without its change.
+  prove-scenario:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { scenario: proven,        expect: proven }
+          - { scenario: vacuous,       expect: unproven }
+          - { scenario: no-test,       expect: unproven }
+          - { scenario: skip-existing, expect: rejected }
+          - { scenario: docs,          expect: neutral }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: build fixture repository
+        run: bash action/selftest/prove_fixture.sh "$RUNNER_TEMP/pfx" "${{ matrix.scenario }}"
+      - name: run the prove action (uses ./prove)
+        id: gitent
+        continue-on-error: true
+        uses: ./prove
+        with:
+          version: source
+          working-directory: ${{ runner.temp }}/pfx
+          base: main
+          test-command: python3 -m unittest discover -q
+          test-selector: python3 -m unittest discover -q -k {test}
+          comment: "false"
+      - name: assert outcome
+        env:
+          RESULT: ${{ steps.gitent.outputs.result }}
+          OUTCOME: ${{ steps.gitent.outcome }}
+          EXPECT: ${{ matrix.expect }}
+        run: |
+          echo "result=$RESULT outcome=$OUTCOME expected=$EXPECT"
+          test "$RESULT" = "$EXPECT"
+          case "$EXPECT" in
+            proven|neutral) test "$OUTCOME" = "success" ;;
+            *)              test "$OUTCOME" = "failure" ;;
+          esac
+          test -s "${{ steps.gitent.outputs.report }}"
+          grep -q "gitent-prove-pr" "${{ steps.gitent.outputs.report }}"
+
   # Exercise the PR-comment path on this repository's own pull requests
   # (not backports, so the expected result is a single, updated "neutral" comment).
   pr-comment:
@@ -91,4 +135,24 @@ jobs:
           n=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --paginate \
                 --jq '[.[] | select(.body | contains("<!-- gitent-verify-pr -->"))] | length')
           echo "sticky comments: $n"
+          test "$n" = "1"
+      # The prove action keeps its own sticky comment next to verify-pr's.
+      # (Cheap stand-in commands: this checks the comment path, not this repo's tests.)
+      - id: prove
+        uses: ./prove
+        with:
+          version: source
+          test-command: "true"
+          test-selector: "true"
+          allow-unproven: "true"
+      - name: assert one prove comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ steps.prove.outputs.result }}
+        run: |
+          echo "prove result: $RESULT"
+          case "$RESULT" in proven|unproven|neutral) ;; *) exit 1 ;; esac
+          n=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --paginate \
+                --jq '[.[] | select(.body | contains("<!-- gitent-prove-pr -->"))] | length')
+          echo "prove sticky comments: $n"
           test "$n" = "1"

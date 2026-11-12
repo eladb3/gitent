@@ -27,6 +27,11 @@ and when you **move work between diverged branches**.
 - Your branch is only updated after validation passes.
 
 ## Verifying your own work (do this before you say "done")
+- After you change code and add or edit tests:
+  `gitent_prove_pr {"base": "<branch you will merge into>", "working_tree": true}`.
+  Every test you added or changed must fail without your change and pass with it. If a test
+  "passes without the change", it does not test your change: fix the test, do not delete it.
+  Never skip or delete existing tests to make things pass; that is reported (`rejected` / `unproven`).
 - After you backport, merge or revert anything by editing files yourself:
   `gitent_verify {"source": "<commit you moved>", "working_tree": true}` (`--kind revert|merge` as needed).
   It checks the change's requirements, the target's requirements and tests, and that you did not

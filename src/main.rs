@@ -867,6 +867,14 @@ fn render_prove_pr(v: &Value) {
         println!("{}", s(v, "markdown"));
         return;
     }
+    let label = |t: &Value| format!("{}::{}", s(t, "file"), s(t, "test"));
+    let width = v["tests"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|t| label(t).chars().count())
+        .max()
+        .unwrap_or(0);
     for t in v["tests"].as_array().into_iter().flatten() {
         let (mark, what) = match s(t, "status") {
             "proven" => (ok("✓"), "proves the change"),
@@ -882,8 +890,8 @@ fn render_prove_pr(v: &Value) {
             _ => ("–".to_string(), "not run"),
         };
         println!(
-            "  {mark} {:<40} without: {:<5} with: {:<5} {what}",
-            format!("{}::{}", s(t, "file"), s(t, "test")),
+            "  {mark} {:<width$}  without: {:<5} with: {:<5} {what}",
+            label(t),
             s(t, "without_change"),
             s(t, "with_change")
         );

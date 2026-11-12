@@ -365,6 +365,20 @@ pub(crate) fn md_inline(t: &str) -> String {
 }
 
 /// A code fence longer than any backtick run in `t`, so `t` cannot close it.
+/// Text going inside a `code span` in a table cell: escapes inside code spans are shown
+/// literally, so only what could end the span or the cell is replaced.
+pub(crate) fn code_inline(t: &str) -> String {
+    t.chars()
+        .filter(|c| !c.is_control() || *c == ' ')
+        .map(|c| match c {
+            '`' => "'".to_string(),
+            '|' => "\\|".to_string(),
+            '\n' | '\r' => " ".to_string(),
+            c => c.to_string(),
+        })
+        .collect()
+}
+
 pub(crate) fn fence_for(t: &str) -> String {
     let mut longest = 0;
     let mut run = 0;
