@@ -151,6 +151,27 @@ enum Cmd {
         #[arg(long)]
         trust_notes: bool,
     },
+    /// Prove a PR's tests test its change: each new/changed test must fail on BASE without
+    /// the change and pass with it (ADR 0017)
+    ProvePr {
+        /// Branch the PR goes into (e.g. main, origin/main); also accepted as --base
+        #[arg(value_name = "BASE", required_unless_present = "base")]
+        base_pos: Option<String>,
+        #[arg(long, hide = true, conflicts_with = "base_pos")]
+        base: Option<String>,
+        /// The PR's result (default HEAD)
+        #[arg(long)]
+        head: Option<String>,
+        /// Prove uncommitted changes against HEAD instead (your files and index are untouched)
+        #[arg(long, conflicts_with = "head")]
+        working_tree: bool,
+        /// Every added/modified test must prove the change (default: at least one)
+        #[arg(long)]
+        require_all: bool,
+        /// Also write the Markdown report to this file
+        #[arg(long)]
+        markdown: Option<PathBuf>,
+    },
     /// Run all live requirements (the ledger) on the working tree or a revision
     Check {
         rev: Option<String>,
@@ -440,6 +461,23 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             args["no_llm"] = json!(no_llm);
             ("verify", render_verify)
         }
+        Cmd::ProvePr {
+            base_pos,
+            base,
+            head,
+            working_tree,
+            require_all,
+            markdown,
+        } => {
+            args["base"] = json!(base_pos.clone().or(base.clone()));
+            if let Some(h) = head {
+                args["head"] = json!(h);
+            }
+            args["working_tree"] = json!(working_tree);
+            args["require_all"] = json!(require_all);
+            MARKDOWN_OUT.with(|m| *m.borrow_mut() = markdown.clone());
+            ("prove_pr", render_prove_pr)
+        }
         Cmd::VerifyPr {
             base_pos,
             base,
@@ -496,13 +534,15 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
         renderer(&v);
     }
     // 0 ok · 2 rejected/failed · 3 unverified (ADR 0013 §1) · 1 error
-    let code = if v["verdict"] == "unverified" || v["result"] == "unverified" {
-        3
-    } else if gitent::mcp::is_failed(&v) {
-        2
-    } else {
-        0
-    };
+    let code =
+        if v["verdict"] == "unverified" || v["result"] == "unverified" || v["result"] == "unproven"
+        {
+            3
+        } else if gitent::mcp::is_failed(&v) {
+            2
+        } else {
+            0
+        };
     Ok((v, code))
 }
 
@@ -819,6 +859,51 @@ fn render_verify(v: &Value) {
             short(result)
         );
     }
+}
+
+fn render_prove_pr(v: &Value) {
+    use std::io::IsTerminal;
+    if !std::io::stdout().is_terminal() {
+        println!("{}", s(v, "markdown"));
+        return;
+    }
+    for t in v["tests"].as_array().into_iter().flatten() {
+        let (mark, what) = match s(t, "status") {
+            "proven" => (ok("✓"), "proves the change"),
+            "proven_api" => (
+                ok("✓"),
+                "fails before only because the code it calls did not exist",
+            ),
+            "passes_without_change" => (
+                paint("?", "1;33"),
+                "passes WITHOUT the change: does not test it",
+            ),
+            "fails_on_pr" => (bad("✗"), "fails on the PR"),
+            _ => ("–".to_string(), "not run"),
+        };
+        println!(
+            "  {mark} {:<40} without: {:<5} with: {:<5} {what}",
+            format!("{}::{}", s(t, "file"), s(t, "test")),
+            s(t, "without_change"),
+            s(t, "with_change")
+        );
+    }
+    for (k, label) in [
+        ("skipped_existing", "skipped existing test"),
+        ("deleted_tests", "deleted existing test"),
+        ("notes", "note"),
+    ] {
+        for x in v[k].as_array().into_iter().flatten() {
+            println!("  {label}: {}", x.as_str().unwrap_or(""));
+        }
+    }
+    let head = match s(v, "result") {
+        "proven" => ok("✓ proven:"),
+        "neutral" => "– neutral:".to_string(),
+        "unproven" => paint("? unproven:", "1;33"),
+        _ => bad("✗ rejected:"),
+    };
+    println!("{head} {}", s(v, "reason"));
 }
 
 fn render_verify_pr(v: &Value) {

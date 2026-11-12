@@ -5,6 +5,7 @@ pub mod commit;
 pub mod containment;
 pub mod engine;
 pub mod plan;
+pub mod prove_pr;
 pub mod verify;
 pub mod verify_pr;
 
