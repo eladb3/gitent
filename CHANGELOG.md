@@ -3,6 +3,11 @@
 
 ## Unreleased
 
+- **New (experimental): `gitent bench`** ([ADR 0018](docs/adr/0018-bench.md)), to benchmark coding agents on your own history.
+  - `mine` turns commits whose tests fail before them and pass after them into tasks.
+  - `run --agent <preset>` runs each task in a fresh repository with no history and scores it on the hidden tests, counting false claims of success.
+  - `compare` tabulates runs.
+
 - **New: `gitent prove-pr`** ([ADR 0017](docs/adr/0017-prove-pr.md)). For any PR, each test it adds or changes must fail without the change and pass with it.
   - Per-test statuses: `proven`, `proven_api`, `passes_without_change`, `fails_on_pr`, `not_run`.
   - Verdicts: `proven`, `unproven`, `rejected`, `neutral`.

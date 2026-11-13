@@ -170,6 +170,38 @@ saying "done". In CI:
           test-selector: "python -m pytest -q {file} -k {test}"
 ```
 
+## Benchmark agents on your own history *(experimental)*
+
+Which coding agent works best on **your** code? Every commit that fixes
+something and adds a test that fails before it is already a benchmark task,
+with a known answer and an objective check.
+
+```bash
+gitent bench mine --limit 50 --out bench.json            # tasks: commits whose tests fail before and pass after
+gitent bench run bench.json --agent claude-code -o claude.json
+gitent bench run bench.json --agent codex       -o codex.json
+gitent bench compare claude.json codex.json
+```
+
+Real output, one Django task:
+
+| task | claude-code |
+|---|---|
+| `817df1c4d6` Fixed \#37463 -- Fixed attrs mutation in legend\_tag\(\). | ✅ |
+| **resolved** | 1/1 |
+| false claims | 0 |
+| median time | 39.3s |
+
+* The agent gets the commit's message (trailers removed) in a **fresh
+  repository with no history**, so it cannot `git show` the answer.
+* It is scored on the commit's **hidden tests**: the agent's own versions of
+  those test files are replaced before scoring.
+* **False claims** count when the agent said "done" but the hidden tests fail.
+* Any executor works: the presets, or `--executor command --executor-command '…'`.
+* On Django's recent history, `bench mine` found 5 tasks in 17 commits in under
+  3 minutes. Claude Code resolved the smallest one in 39 s
+  ([ADR 0018](docs/adr/0018-bench.md)).
+
 ## Use it in CI: verify every backport PR
 
 ```yaml
@@ -240,10 +272,10 @@ over HTTP (`gitent serve`, token-protected). The tool surfaces cannot choose
 which commands Gitent runs; that comes only from config and the CLI
 ([trust boundaries](docs/adr/0014-trust-boundaries.md)).
 
-**Core vs experimental.** `verify`, `verify-pr`, the Action, `commit` and
-`check` are the core. The operations (`cherry-pick`, `merge`, `rebase`,
-`revert`), `diff`, `annotate` and `serve` are marked `[experimental]` in
-`--help`.
+**Core vs experimental.** `prove-pr`, `verify`, `verify-pr`, both Actions,
+`commit` and `check` are the core. `bench`, the operations (`cherry-pick`,
+`merge`, `rebase`, `revert`), `diff`, `annotate` and `serve` are marked
+`[experimental]` in `--help`.
 
 ## Does it work? The evidence
 

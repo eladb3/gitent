@@ -49,38 +49,23 @@ pub fn failure_kind(output: &str) -> &'static str {
     }
 }
 
-struct PrTest {
-    name: String,
-    file: String,
-    change: &'static str, // added | modified
+pub struct PrTest {
+    pub name: String,
+    pub file: String,
+    pub change: &'static str, // added | modified
 }
 
-pub fn prove_pr(s: &Session, o: &ProveOptions) -> Result<Value> {
-    let repo = &s.repo;
-    let base_tip = repo.resolve(&o.base)?;
-    // The PR's result: a commit, or a snapshot of the working tree.
-    let head = if o.working_tree {
-        if o.head.is_some() {
-            bail!("--working-tree and --head are mutually exclusive");
-        }
-        let h = repo
-            .head_commit()?
-            .ok_or_else(|| anyhow::anyhow!("no HEAD to compare the working tree with"))?;
-        let mut idx = repo.git.index()?;
-        idx.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
-        idx.update_all(["*"].iter(), None)?;
-        let tree = idx.write_tree()?;
-        idx.read(true)?; // the user's index is untouched
-        repo.commit(
-            None,
-            "gitent prove-pr: working tree snapshot",
-            tree,
-            &[h.id()],
-        )?
-    } else {
-        repo.resolve(o.head.as_deref().unwrap_or("HEAD"))?
-    };
-    let onto = repo.merge_base(base_tip, head)?;
+/// What a change (`onto..head`) does to code and tests, without running anything.
+pub struct Shape {
+    pub code_files: Vec<String>,
+    pub tests: Vec<PrTest>,
+    pub skipped: Vec<String>,
+    pub deleted: Vec<String>,
+    pub notes: Vec<String>,
+}
+
+/// Classify a change: code files, tests added/modified, existing tests skipped/deleted.
+pub fn shape(repo: &crate::repo::Repo, onto: git2::Oid, head: git2::Oid) -> Result<Shape> {
     let (ot, ht) = (
         repo.git.find_commit(onto)?.tree()?,
         repo.git.find_commit(head)?.tree()?,
@@ -149,6 +134,24 @@ pub fn prove_pr(s: &Session, o: &ProveOptions) -> Result<Value> {
         .map(|(n, f)| format!("{f}::{n}"))
         .collect();
 
+    Ok(Shape {
+        code_files,
+        tests,
+        skipped,
+        deleted,
+        notes,
+    })
+}
+
+/// Run each test with the change (`head`) and without it (`onto` + head's test files).
+/// One JSON row per test: status proven | proven_api | passes_without_change | fails_on_pr | not_run.
+pub fn prove_tests(
+    s: &Session,
+    onto: git2::Oid,
+    head: git2::Oid,
+    tests: &[PrTest],
+) -> Result<Vec<Value>> {
+    let repo = &s.repo;
     // The proof: with the change (head) and without it (onto + the PR's test files).
     let reqs: Vec<Requirement> = tests
         .iter()
@@ -196,6 +199,43 @@ pub fn prove_pr(s: &Session, o: &ProveOptions) -> Result<Value> {
             "status": status, "detail": detail,
         }));
     }
+    Ok(rows)
+}
+
+pub fn prove_pr(s: &Session, o: &ProveOptions) -> Result<Value> {
+    let repo = &s.repo;
+    let base_tip = repo.resolve(&o.base)?;
+    // The PR's result: a commit, or a snapshot of the working tree.
+    let head = if o.working_tree {
+        if o.head.is_some() {
+            bail!("--working-tree and --head are mutually exclusive");
+        }
+        let h = repo
+            .head_commit()?
+            .ok_or_else(|| anyhow::anyhow!("no HEAD to compare the working tree with"))?;
+        let mut idx = repo.git.index()?;
+        idx.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+        idx.update_all(["*"].iter(), None)?;
+        let tree = idx.write_tree()?;
+        idx.read(true)?; // the user's index is untouched
+        repo.commit(
+            None,
+            "gitent prove-pr: working tree snapshot",
+            tree,
+            &[h.id()],
+        )?
+    } else {
+        repo.resolve(o.head.as_deref().unwrap_or("HEAD"))?
+    };
+    let onto = repo.merge_base(base_tip, head)?;
+    let Shape {
+        code_files,
+        tests,
+        skipped,
+        deleted,
+        notes,
+    } = shape(repo, onto, head)?;
+    let rows = prove_tests(s, onto, head, &tests)?;
     let count = |st: &str| rows.iter().filter(|r| r["status"] == st).count();
     let proving = count("proven") + count("proven_api");
     let (result, reason) = if !skipped.is_empty() {

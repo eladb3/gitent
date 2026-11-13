@@ -203,6 +203,54 @@ pub fn call(path: &Path, tool: &str, args: &Value, surface: Surface) -> Result<V
                 },
             )
         }
+        "bench_mine" | "bench_run" | "bench_compare" => {
+            // Runs agents and long test campaigns: CLI only (ADR 0018).
+            if surface == Surface::Agent {
+                bail!("`gitent bench` is CLI-only");
+            }
+            let list = |k: &str| -> Vec<String> {
+                args.get(k)
+                    .and_then(|v| v.as_array())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|x| x.as_str().map(String::from))
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            };
+            match tool {
+                "bench_mine" => crate::ops::bench::mine(
+                    &s,
+                    &crate::ops::bench::MineOptions {
+                        range: arg_str(args, "range"),
+                        limit: args
+                            .get("limit")
+                            .and_then(|v| v.as_u64())
+                            .map(|v| v as usize),
+                        scan: args.get("scan").and_then(|v| v.as_u64()).unwrap_or(300) as usize,
+                        max_files: args.get("max_files").and_then(|v| v.as_u64()).unwrap_or(20)
+                            as usize,
+                    },
+                ),
+                "bench_run" => crate::ops::bench::run(
+                    &s,
+                    &crate::ops::bench::RunOptions {
+                        bench: arg_str(args, "bench")
+                            .ok_or_else(|| anyhow!("`bench` is required"))?
+                            .into(),
+                        agent: arg_str(args, "agent"),
+                        tasks: list("tasks"),
+                        keep: arg_bool(args, "keep"),
+                    },
+                ),
+                _ => crate::ops::bench::compare(
+                    &list("results")
+                        .into_iter()
+                        .map(Into::into)
+                        .collect::<Vec<_>>(),
+                ),
+            }
+        }
         "prove_pr" => {
             let base = arg_str(args, "base").ok_or_else(|| anyhow!("`base` is required"))?;
             // Like verify-pr: the base's config decides how the PR is proved (ADR 0017 §6).

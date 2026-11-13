@@ -119,6 +119,17 @@ Each row is one fault model from the external evaluation of 2026-11-07, checked 
 | P8 | Available over MCP as `gitent_prove_pr`. | ✅ `available_over_mcp` |
 | P9 | `uses: eladb3/gitent/prove@v0`: proven/neutral pass, unproven/rejected fail the job (`allow-unproven` softens it), with its own sticky comment next to verify-pr's. | ✅ [action-selftest run](https://github.com/eladb3/gitent/actions/runs/43285049243): `prove-scenario` proven/vacuous/no-test/skip-existing/docs → proven/unproven/unproven/rejected/neutral; `pr-comment` posted one prove comment next to the verify comment on [eladb3/gitent#6](https://github.com/eladb3/gitent/pull/6) |
 
+## B. Benchmark agents on your own history (ADR 0018)
+
+| # | Criterion | Verified by |
+|---|---|---|
+| B1 | `gitent bench mine` keeps only non-merge commits that change code and whose added/modified tests are proven: they fail on the parent with the commit's tests overlaid and pass on the commit. Docs-only, untested and vacuously tested commits are skipped, with reasons. | ✅ `tests/bench.rs::mining_keeps_only_commits_with_proven_tests` |
+| B2 | Task statements are commit messages without trailers; hidden tests record whether they were proven by assertion or by a missing API. | ✅ same; `ops::bench::tests::statements_drop_trailers` |
+| B3 | `gitent bench run` gives each task to an agent in a fresh repository with one commit: no history, the fix commit unreachable, the hidden tests absent. | ✅ `agents_are_scored_on_hidden_tests_in_isolated_workspaces` (the agent checks what it can see) |
+| B4 | Scoring uses the commit's test files, replacing the agent's own versions; resolved = every hidden test passes; a false claim = the agent reported success on an unresolved task. | ✅ same, `an_agent_writing_its_own_weak_tests_is_still_scored_on_the_hidden_ones` |
+| B5 | `gitent bench compare` produces a task × agent table with resolved, false claims and median time. | ✅ `agents_are_scored_on_hidden_tests_in_isolated_workspaces` |
+| B6 | CLI-only; an executor that runs an agent is required. Live check: mined 5 tasks from 17 recent Django commits (2m42s); Claude Code resolved task `817df1c4d6` in 39 s. | ✅ `bench_needs_an_agent_and_is_cli_only`; 📊 live run 2026-11-13 |
+
 ## G. GitHub Action (ADR 0012, `docs/GITHUB_ACTION.md`), ship criteria
 
 | ID | Criterion | Verified by |
