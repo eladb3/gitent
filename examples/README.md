@@ -20,6 +20,8 @@ gitent verify <fix> --kind revert            # is the behaviour really gone?
 gitent prove-pr main                         # do this PR's tests test its change?
 gitent prove-pr main --working-tree          # ...before committing (agents: do this before "done")
 gitent verify-pr --base main                 # what the backport Action runs
+gitent bench mine --limit 50 -o bench.json   # tasks from your own history (experimental)
+gitent bench run bench.json --agent claude-code -o claude.json
 gitent check                                 # run every live requirement
 gitent log                                   # history as intentions + provenance
 ```

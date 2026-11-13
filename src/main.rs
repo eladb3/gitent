@@ -172,6 +172,11 @@ enum Cmd {
         #[arg(long)]
         markdown: Option<PathBuf>,
     },
+    /// [experimental] Benchmark coding agents on tasks mined from this repository's history (ADR 0018)
+    Bench {
+        #[command(subcommand)]
+        cmd: BenchCmd,
+    },
     /// Run all live requirements (the ledger) on the working tree or a revision
     Check {
         rev: Option<String>,
@@ -251,6 +256,50 @@ enum Cmd {
     },
     /// Print the JSON schema of semantic records
     Schema,
+}
+
+#[derive(Subcommand)]
+enum BenchCmd {
+    /// Turn commits whose tests fail before them and pass after them into tasks
+    Mine {
+        /// `A..B`, or a revision to scan back from (default: HEAD)
+        range: Option<String>,
+        /// Stop after N tasks
+        #[arg(long)]
+        limit: Option<usize>,
+        /// Commits to scan when no `A..B` range is given
+        #[arg(long, default_value_t = 300)]
+        scan: usize,
+        /// Skip commits touching more files than this
+        #[arg(long, default_value_t = 20)]
+        max_files: usize,
+        /// Write the bench file here
+        #[arg(long, short)]
+        out: Option<PathBuf>,
+    },
+    /// Give each task to an agent in an isolated repository and score it on the hidden tests
+    Run {
+        /// A bench file from `gitent bench mine`
+        bench: PathBuf,
+        /// Agent preset: claude-code, codex, kiro, gemini, aider, builtin (default: the configured executor)
+        #[arg(long)]
+        agent: Option<String>,
+        /// Only these task ids (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        tasks: Vec<String>,
+        /// Keep each task's workspace for inspection
+        #[arg(long)]
+        keep: bool,
+        /// Write the results here
+        #[arg(long, short)]
+        out: Option<PathBuf>,
+    },
+    /// Compare bench runs side by side
+    Compare {
+        /// Results files from `gitent bench run`
+        #[arg(required = true)]
+        results: Vec<PathBuf>,
+    },
 }
 
 #[derive(clap::Args, Default)]
@@ -461,6 +510,48 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
             args["no_llm"] = json!(no_llm);
             ("verify", render_verify)
         }
+        Cmd::Bench { cmd } => match cmd {
+            BenchCmd::Mine {
+                range,
+                limit,
+                scan,
+                max_files,
+                out,
+            } => {
+                if let Some(r) = range {
+                    args["range"] = json!(r);
+                }
+                if let Some(l) = limit {
+                    args["limit"] = json!(l);
+                }
+                args["scan"] = json!(scan);
+                args["max_files"] = json!(max_files);
+                JSON_OUT.with(|m| *m.borrow_mut() = out.clone());
+                ("bench_mine", render_bench_mine)
+            }
+            BenchCmd::Run {
+                bench,
+                agent,
+                tasks,
+                keep,
+                out,
+            } => {
+                args["bench"] = json!(bench);
+                if let Some(a) = agent {
+                    args["agent"] = json!(a);
+                }
+                args["tasks"] = json!(tasks);
+                args["keep"] = json!(keep);
+                JSON_OUT.with(|m| *m.borrow_mut() = out.clone());
+                ("bench_run", render_bench_run)
+            }
+            BenchCmd::Compare { results } => {
+                args["results"] = json!(results);
+                ("bench_compare", |v: &Value| {
+                    println!("{}", s(v, "markdown"))
+                })
+            }
+        },
         Cmd::ProvePr {
             base_pos,
             base,
@@ -526,6 +617,13 @@ fn run(cli: Cli) -> Result<(Value, i32)> {
         }),
     };
     let v = api::call(&path, tool, &args, Surface::Cli)?;
+    if let Some(p) = JSON_OUT.with(|m| m.borrow().clone()) {
+        std::fs::write(&p, serde_json::to_string_pretty(&v)?)
+            .with_context(|| format!("writing {}", p.display()))?;
+        if human {
+            eprintln!("gitent: wrote {}", p.display());
+        }
+    }
     if let Some(p) = MARKDOWN_OUT.with(|m| m.borrow().clone()) {
         std::fs::write(&p, v["markdown"].as_str().unwrap_or(""))
             .with_context(|| format!("writing {}", p.display()))?;
@@ -762,6 +860,7 @@ fn render_record(r: &Value) {
 
 thread_local! {
     static MARKDOWN_OUT: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+    static JSON_OUT: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
     static REQ_DRAFTS: std::cell::RefCell<Vec<Value>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
@@ -859,6 +958,57 @@ fn render_verify(v: &Value) {
             short(result)
         );
     }
+}
+
+fn render_bench_mine(v: &Value) {
+    let tasks = v["tasks"].as_array().cloned().unwrap_or_default();
+    for t in &tasks {
+        let n = t["hidden_tests"].as_array().map(|a| a.len()).unwrap_or(0);
+        println!(
+            "  {}  {:<60} {} hidden test(s), {} code line(s)",
+            s(t, "id"),
+            s(t, "title").chars().take(60).collect::<String>(),
+            n,
+            t["size"]["lines"]
+        );
+    }
+    println!(
+        "{} task(s) from {} commit(s) scanned",
+        tasks.len(),
+        v["scanned"]
+    );
+    if let Some(m) = v["skipped"].as_object() {
+        let parts: Vec<String> = m.iter().map(|(k, n)| format!("{k}: {n}")).collect();
+        if !parts.is_empty() {
+            println!("skipped: {}", parts.join(", "));
+        }
+    }
+}
+
+fn render_bench_run(v: &Value) {
+    for t in v["tasks"].as_array().into_iter().flatten() {
+        let mark = if t["resolved"] == true {
+            ok("✓ resolved")
+        } else if t["false_claim"] == true {
+            bad("✗ claimed done, hidden tests fail")
+        } else {
+            bad("✗ not resolved")
+        };
+        println!(
+            "  {}  {:<50} {mark}  ({:.0}s, {} lines)",
+            s(t, "id"),
+            s(t, "title").chars().take(50).collect::<String>(),
+            t["duration_ms"].as_u64().unwrap_or(0) as f64 / 1000.0,
+            t["diff"]["lines"]
+        );
+    }
+    println!(
+        "{}: resolved {}/{}, false claims {}",
+        s(v, "agent"),
+        v["resolved"],
+        v["total"],
+        v["false_claims"]
+    );
 }
 
 fn render_prove_pr(v: &Value) {

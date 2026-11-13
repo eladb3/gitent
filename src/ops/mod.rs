@@ -1,5 +1,6 @@
 //! Operations and the shared step engine (ADR 0003).
 
+pub mod bench;
 pub mod brief;
 pub mod commit;
 pub mod containment;
