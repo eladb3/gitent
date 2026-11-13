@@ -1,0 +1,214 @@
+{
+  "created_at": "2026-11-13T04:40:58Z",
+  "repo": "django",
+  "scanned": 17,
+  "schema": "gitent/bench@1",
+  "skipped": {
+    "no code change": 8,
+    "no test added or modified": 4
+  },
+  "tasks": [
+    {
+      "commit": "6b212c29e7dfa94f92110d5be034033f449a0cf2",
+      "date": "2026-11-02T16:12:28+00:00",
+      "hidden_tests": [
+        {
+          "file": "tests/defer/tests.py",
+          "proof": "assertion",
+          "test": "test_fetch_peers_accessed_instance_deleted"
+        },
+        {
+          "file": "tests/defer/tests.py",
+          "proof": "assertion",
+          "test": "test_fetch_peers_deleted_peer_does_not_cause_keyerror"
+        },
+        {
+          "file": "tests/defer/tests.py",
+          "proof": "assertion",
+          "test": "test_fetch_peers_preserves_local_modification"
+        },
+        {
+          "file": "tests/defer/tests.py",
+          "proof": "assertion",
+          "test": "test_fetch_peers_skips_peer_without_pk"
+        }
+      ],
+      "id": "6b212c29e7",
+      "parent": "308b6d6ac0927d2095d380c84d9c7d101c851d4f",
+      "size": {
+        "code_files": 1,
+        "files": 3,
+        "lines": 89
+      },
+      "statement": "Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.\n\nIf a deferred field has been plucked via `refresh_from_db(fields=...)`\nor modified by assigning an attribute, it shouldn't be overwritten when\nattribute access on a peer triggers a `fetch_many()`.\n\nThe peer fetching should also tolerate deleted instances.",
+      "title": "Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields."
+    },
+    {
+      "commit": "308b6d6ac0927d2095d380c84d9c7d101c851d4f",
+      "date": "2026-11-02T10:25:27+00:00",
+      "hidden_tests": [
+        {
+          "file": "tests/responses/test_cookie.py",
+          "proof": "assertion",
+          "test": "test_delete_cookie_secure_prefix"
+        },
+        {
+          "file": "tests/responses/test_cookie.py",
+          "proof": "assertion",
+          "test": "test_delete_cookie_http_prefix"
+        }
+      ],
+      "id": "308b6d6ac0",
+      "parent": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+      "size": {
+        "code_files": 1,
+        "files": 2,
+        "lines": 23
+      },
+      "statement": "Fixed #37467 -- Fixed deletion of cookies with __Http- and __Host-Http- prefixes.",
+      "title": "Fixed #37467 -- Fixed deletion of cookies with __Http- and __Host-Http- prefixes."
+    },
+    {
+      "commit": "817df1c4d6d38f416460d7d9354d7deab9d35139",
+      "date": "2026-10-29T12:01:01+00:00",
+      "hidden_tests": [
+        {
+          "file": "tests/forms_tests/tests/test_forms.py",
+          "proof": "assertion",
+          "test": "test_legend_has_required_css_class_multiple_render"
+        }
+      ],
+      "id": "817df1c4d6",
+      "parent": "c61620099cfa1874c12771a4637e405f59c287a8",
+      "size": {
+        "code_files": 1,
+        "files": 3,
+        "lines": 24
+      },
+      "statement": "Fixed #37463 -- Fixed attrs mutation in legend_tag().\n\nRegression in 0eec2a163a4b2ea4e82c53ae1d7b71bf43ac911d.",
+      "title": "Fixed #37463 -- Fixed attrs mutation in legend_tag()."
+    },
+    {
+      "commit": "e74c8a808ea232480674ec0ca73bac83ba8594aa",
+      "date": "2026-10-28T07:57:37+00:00",
+      "hidden_tests": [
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "assertion",
+          "test": "test_allow_multiline_tags_disabled"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+          "proof": "assertion",
+          "test": "test_named_verbatim_preserves_name_whitespace_legacy"
+        },
+        {
+          "file": "tests/template_tests/test_engine.py",
+          "proof": "assertion",
+          "test": "test_allow_multiline_tags_option_deprecated"
+        }
+      ],
+      "id": "e74c8a808e",
+      "parent": "0804aed32017f835eb8aa7cf053a935f5bea7c7f",
+      "size": {
+        "code_files": 2,
+        "files": 8,
+        "lines": 136
+      },
+      "statement": "Refs #35899 -- Added allow_multiline_tags transitional template option to disable multiline template tags.",
+      "title": "Refs #35899 -- Added allow_multiline_tags transitional template option to disable multiline template tags."
+    },
+    {
+      "commit": "0804aed32017f835eb8aa7cf053a935f5bea7c7f",
+      "date": "2026-10-28T07:57:37+00:00",
+      "hidden_tests": [
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_multiline_block_tag_debug_info"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_multiline_block_tags"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_multiline_block_tag_error_message"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_multiline_block_tag_message_truncates_source"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_unclosed_multiline_block_tag_error_suggests_templatetag"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_basic.py",
+          "proof": "missing_api",
+          "test": "test_multiline_block_tag_error_inside_block"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_comment.py",
+          "proof": "missing_api",
+          "test": "test_multiline_raw_block_closing_tags"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_named_endblock.py",
+          "proof": "missing_api",
+          "test": "test_namedendblock_multiline"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_partials.py",
+          "proof": "missing_api",
+          "test": "test_basic_parse_errors"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_partials.py",
+          "proof": "missing_api",
+          "test": "test_multiline_named_closing_tag"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_partials.py",
+          "proof": "missing_api",
+          "test": "test_partial_with_syntax_error_exception_info"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+          "proof": "missing_api",
+          "test": "test_multiline_raw_block_closing_tags"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+          "proof": "missing_api",
+          "test": "test_named_verbatim_name_whitespace_not_preserved"
+        },
+        {
+          "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+          "proof": "missing_api",
+          "test": "test_multiline_named_closing_tag"
+        },
+        {
+          "file": "tests/template_tests/test_base.py",
+          "proof": "assertion",
+          "test": "test_tokenize_multiline_block"
+        }
+      ],
+      "id": "0804aed320",
+      "parent": "a6304ac10554b97ea2458d27144e02db6dd95230",
+      "size": {
+        "code_files": 3,
+        "files": 11,
+        "lines": 409
+      },
+      "statement": "Fixed #35899 -- Allowed multiline template tags.",
+      "title": "Fixed #35899 -- Allowed multiline template tags."
+    }
+  ],
+  "test_command": "/home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput",
+  "test_selector": "f={file}; m=${f#tests/}; m=${m%.py}; /home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput -k {test} $(echo $m | tr / .)"
+}

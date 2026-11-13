@@ -1,0 +1,247 @@
+{
+ "agent": "claude-code (Haiku 5.5)",
+ "bench": "/tmp/claude-0/-home-user-gitent/e04cfd36-6633-5133-ac1d-ef58b5c65d95/scratchpad/django-bench.json",
+ "created_at": "2026-11-13T08:04:18Z",
+ "false_claims": 4,
+ "median_ms": 24931,
+ "resolved": 1,
+ "schema": "gitent/bench-run@1",
+ "tasks": [
+  {
+   "agent_summary": "\u2026(truncated)\u2026\n uses `.filter(pk__in=...).values_list(\"pk\", attname)` and only sets values for pks that came back. Previously a missing row raised `KeyError`.\n\nKnown gap: if the instance that triggered the access has been deleted from the database, its attribute is still not set, so access raises `KeyError`, as it did before. I did not change that path.\n\nI did not add a regression test. The relevant modules to run once approval is available are `fetch_mode`, `defer`, `defer_regress` and `model_fields`. I can run them and add a test for the plucked-field and deleted-peer cases if you approve the test command.",
+   "claimed_success": true,
+   "commit": "6b212c29e7dfa94f92110d5be034033f449a0cf2",
+   "diff": {
+    "files": 1,
+    "lines": 15
+   },
+   "duration_ms": 24931,
+   "false_claim": true,
+   "hidden_tests": [
+    {
+     "detail": "\u2026(truncated)\u2026\n for alias 'default'...\nE\n======================================================================\nERROR: test_fetch_peers_accessed_instance_deleted (defer.tests.DeferTests.test_fetch_peers_accessed_instance_deleted)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/6b212c29e7/repo/tests/defer/tests.py\", line 290, in test_fetch_peers_accessed_instance_deleted\n    p1.value\n  File \"/tmp/gitent-bench-QKJK7l/6b212c29e7/repo/django/db/models/query_utils.py\", line 291, in __get__\n    return data[field_name]\n           ~~~~^^^^^^^^^^^^\nKeyError: 'value'\n\n----------------------------------------------------------------------\nRan 1 test in 0.005s\n\nFAILED (errors=1)\nDestroying test database for alias 'default'...\n",
+     "file": "tests/defer/tests.py",
+     "status": "fail",
+     "test": "test_fetch_peers_accessed_instance_deleted"
+    },
+    {
+     "detail": "",
+     "file": "tests/defer/tests.py",
+     "status": "pass",
+     "test": "test_fetch_peers_deleted_peer_does_not_cause_keyerror"
+    },
+    {
+     "detail": "",
+     "file": "tests/defer/tests.py",
+     "status": "pass",
+     "test": "test_fetch_peers_preserves_local_modification"
+    },
+    {
+     "detail": "",
+     "file": "tests/defer/tests.py",
+     "status": "pass",
+     "test": "test_fetch_peers_skips_peer_without_pk"
+    }
+   ],
+   "id": "6b212c29e7",
+   "resolved": false,
+   "title": "Fixed #37436 -- Avoided overwriting when FETCH_PEERS fetches deferred fields.",
+   "workspace": ""
+  },
+  {
+   "agent_summary": "\u2026(truncated)\u2026\n existing `__Host-` match. The comment above the check is updated to match.\n- `tests/responses/test_cookie.py` (`test_delete_cookie_secure_prefix`): the subtest loop now also checks `__Http-c` and `__Host-Http-c`, asserting that `secure` is set on each.\n\n**Not done**\n\n- I did not run `tests/runtests.py responses` or the full suite. The change is checked only by reading it.\n- Nothing is committed, as requested.\n\nTo verify, run `/home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput responses` once Bash is approved. If you can approve it, I'll run it and report the output.",
+   "claimed_success": true,
+   "commit": "308b6d6ac0927d2095d380c84d9c7d101c851d4f",
+   "diff": {
+    "files": 2,
+    "lines": 11
+   },
+   "duration_ms": 19668,
+   "false_claim": true,
+   "hidden_tests": [
+    {
+     "detail": "",
+     "file": "tests/responses/test_cookie.py",
+     "status": "pass",
+     "test": "test_delete_cookie_secure_prefix"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\n~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '' is not True\n\n======================================================================\nFAIL: test_delete_cookie_http_prefix (responses.test_cookie.DeleteCookieTests.test_delete_cookie_http_prefix) (prefix='Host-Http')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/308b6d6ac0/repo/tests/responses/test_cookie.py\", line 148, in test_delete_cookie_http_prefix\n    self.assertIs(response.cookies[cookie_name][\"httponly\"], True)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '' is not True\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (failures=2)\n",
+     "file": "tests/responses/test_cookie.py",
+     "status": "fail",
+     "test": "test_delete_cookie_http_prefix"
+    }
+   ],
+   "id": "308b6d6ac0",
+   "resolved": false,
+   "title": "Fixed #37467 -- Fixed deletion of cookies with __Http- and __Host-Http- prefixes.",
+   "workspace": ""
+  },
+  {
+   "agent_summary": "\u2026(truncated)\u2026\n {})}`) before adding the class. The `for`/`id` handling above it already built a new dict, so it was not affected.\n\n**The test:** `test_legend_tag_does_not_mutate_attrs` in `tests/forms_tests/tests/test_forms.py` passes one `attrs` dict to both `legend_tag()` and `label_tag()` on a required field. It checks the rendered HTML includes `required` and that the dict still equals `{\"class\": \"foo\"}` afterwards.\n\nNothing is committed. To confirm, run `/home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput forms_tests model_forms` yourself, or approve it here and I will run it.",
+   "claimed_success": true,
+   "commit": "817df1c4d6d38f416460d7d9354d7deab9d35139",
+   "diff": {
+    "files": 2,
+    "lines": 26
+   },
+   "duration_ms": 21591,
+   "false_claim": false,
+   "hidden_tests": [
+    {
+     "detail": "",
+     "file": "tests/forms_tests/tests/test_forms.py",
+     "status": "pass",
+     "test": "test_legend_has_required_css_class_multiple_render"
+    }
+   ],
+   "id": "817df1c4d6",
+   "resolved": true,
+   "title": "Fixed #37463 -- Fixed attrs mutation in legend_tag().",
+   "workspace": ""
+  },
+  {
+   "agent_summary": "\u2026(truncated)\u2026\n option under the `Engine` arguments.\n- **`tests/template_tests/test_engine.py`**: new `AllowMultilineTagsTests` class covering the default, the enabled and disabled cases, debug mode, and a multiline comment.\n\n**Not verified:** the new tests, and the existing `template_tests` and `i18n` suites, have not been run. The likeliest place for a regression is the raw `comment`/`verbatim` handling, which I left unchanged.\n\n**To verify:** run `/home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput template_tests` once shell access is approved.\n\nI also did not add a release note.",
+   "claimed_success": true,
+   "commit": "e74c8a808ea232480674ec0ca73bac83ba8594aa",
+   "diff": {
+    "files": 4,
+    "lines": 74
+   },
+   "duration_ms": 40124,
+   "false_claim": true,
+   "hidden_tests": [
+    {
+     "detail": "\u2026(truncated)\u2026\now_multiline_tags_disabled (template_tests.syntax_tests.test_basic.BasicSyntaxTests.test_allow_multiline_tags_disabled) (debug=True)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/e74c8a808e/repo/tests/template_tests/syntax_tests/test_basic.py\", line 492, in test_allow_multiline_tags_disabled\n    with self.assertWarnsMessage(RemovedInDjango2029Warning, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 148, in __exit__\n    next(self.gen)\n    ~~~~^^^^^^^^^^\nAssertionError: RemovedInDjango2029Warning not triggered\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (failures=2)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_allow_multiline_tags_disabled"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nf.compile_nodelist()\n                    ~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/tmp/gitent-bench-QKJK7l/e74c8a808e/repo/django/template/base.py\", line 208, in compile_nodelist\n    nodelist = parser.parse()\n  File \"/tmp/gitent-bench-QKJK7l/e74c8a808e/repo/django/template/base.py\", line 675, in parse\n    self.invalid_block_tag(token, command, parse_until)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/e74c8a808e/repo/django/template/base.py\", line 767, in invalid_block_tag\n    raise self.error(token, error_msg)\ndjango.template.exceptions.TemplateSyntaxError: Invalid block tag on line 1: 'endverbatim'. Did you forget to register or load this tag?\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+     "status": "fail",
+     "test": "test_named_verbatim_preserves_name_whitespace_legacy"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nallow_multiline_tags_option_deprecated (template_tests.test_engine.EngineTest.test_allow_multiline_tags_option_deprecated) (value=False)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/e74c8a808e/repo/tests/template_tests/test_engine.py\", line 58, in test_allow_multiline_tags_option_deprecated\n    with self.assertWarnsMessage(RemovedInDjango2029Warning, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 148, in __exit__\n    next(self.gen)\n    ~~~~^^^^^^^^^^\nAssertionError: RemovedInDjango2029Warning not triggered\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nFAILED (failures=2)\n",
+     "file": "tests/template_tests/test_engine.py",
+     "status": "fail",
+     "test": "test_allow_multiline_tags_option_deprecated"
+    }
+   ],
+   "id": "e74c8a808e",
+   "resolved": false,
+   "title": "Refs #35899 -- Added allow_multiline_tags transitional template option to disable multiline template tags.",
+   "workspace": ""
+  },
+  {
+   "agent_summary": "\u2026(truncated)\u2026\nhitespace, so newlines between arguments should also work.\n\n**Test** (`tests/template_tests/test_parser.py`): added `ParserTests.test_multiline_tags`. It tokenizes a block tag, a variable tag and a comment that each span several lines, and checks the token types and contents.\n\n**Not verified:** I have not run `/home/user/realbench/venv/bin/python tests/runtests.py --parallel=1 --noinput template_tests` or the new test. I did not use the sandbox-bypass option to get around the approval block. Once Bash is approved, run that command. It is the one check that confirms the change and the new test.",
+   "claimed_success": true,
+   "commit": "0804aed32017f835eb8aa7cf053a935f5bea7c7f",
+   "diff": {
+    "files": 2,
+    "lines": 20
+   },
+   "duration_ms": 30586,
+   "false_claim": true,
+   "hidden_tests": [
+    {
+     "detail": "\u2026(truncated)\u2026\n_block_tag_debug_info (template_tests.syntax_tests.test_basic.BasicSyntaxTests.test_multiline_block_tag_debug_info)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/tests/template_tests/syntax_tests/test_basic.py\", line 447, in test_multiline_block_tag_debug_info\n    self.assertEqual(\n    ~~~~~~~~~~~~~~~~^\n        cm.exception.template_debug[\"during\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"{%</p>\\n<p>The close tag: %}\",\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nAssertionError: '' != '{%</p>\\n<p>The close tag: %}'\n+ {%</p>\n+ <p>The close tag: %}\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_multiline_block_tag_debug_info"
+    },
+    {
+     "detail": "",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "pass",
+     "test": "test_multiline_block_tags"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\n    with self.assertRaisesMessage(TemplateSyntaxError, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\nAssertionError: \"Invalid block tag on line 1: '</p>'. Did you forget to register or load this tag?\\nDjango interpreted lines 1-2 as a single block tag: '{%</p>\\\\n<p>The close tag: %}'.\\nIf the '{%' and '%}' sequences were intended as text, use '{% templatetag openblock %}' and '{% templatetag closeblock %}', respectively.\" not found in \"Template: in_text, Invalid block tag on line 1: '</p>'. Did you forget to register or load this tag?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_multiline_block_tag_error_message"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\n or load this tag?\\nDjango interpreted lines 1-2 as a single block tag: '{%aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa[\u2026]bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%}'.\\nIf the '{%' and '%}' sequences were intended as text, use '{% templatetag openblock %}' and '{% templatetag closeblock %}', respectively.\" not found in \"Template: long_error, Invalid block tag on line 1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'. Did you forget to register or load this tag?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_multiline_block_tag_message_truncates_source"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\ntiline_block_tag_error_suggests_templatetag\n    with self.assertRaisesMessage(TemplateSyntaxError, msg):\n         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\nAssertionError: \"Unclosed tag on line 1: 'if'. Looking for one of: elif, else, endif.\\nThe opening tag spans lines 1-2: '{%\\\\nif user %}'.\\nIf the '{%' and '%}' sequences were intended as text, use '{% templatetag openblock %}' and '{% templatetag closeblock %}', respectively.\" not found in \"Template: unclosed_multiline_tag, Unclosed tag on line 1: 'if'. Looking for one of: elif, else, endif.\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_unclosed_multiline_block_tag_error_suggests_templatetag"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\n~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/contextlib.py\", line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\nAssertionError: \"Invalid block tag on line 2: '</p>', expected 'elif', 'else' or 'endif'. Did you forget to register or load this tag?\\nDjango interpreted lines 2-3 as a single block tag: '{%</p>\\\\n<p>The close tag: %}'.\\nIf the '{%' and '%}' sequences were intended as text, use '{% templatetag openblock %}' and '{% templatetag closeblock %}', respectively.\" not found in \"Template: inside_block, Invalid block tag on line 2: '</p>', expected 'elif', 'else' or 'endif'. Did you forget to register or load this tag?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_basic.py",
+     "status": "fail",
+     "test": "test_multiline_block_tag_error_inside_block"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nline 646, in parse\n    compiled_result = compile_func(self, token)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/defaulttags.py\", line 609, in comment\n    parser.skip_past(\"endcomment\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 661, in skip_past\n    self.unclosed_block_tag([endtag])\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 720, in unclosed_block_tag\n    raise self.error(token, msg)\ndjango.template.exceptions.TemplateSyntaxError: Template: comment, Unclosed tag on line 1: 'comment'. Looking for one of: endcomment.\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_comment.py",
+     "status": "fail",
+     "test": "test_multiline_raw_block_closing_tags"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\n\", line 646, in parse\n    compiled_result = compile_func(self, token)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/loader_tags.py\", line 241, in do_block\n    parser.invalid_block_tag(endblock, \"endblock\", acceptable_endblocks)\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 697, in invalid_block_tag\n    raise self.error(\n    ...<8 lines>...\n    )\ndjango.template.exceptions.TemplateSyntaxError: Template: namedendblock_multiline, Invalid block tag on line 3: 'endblock', expected 'endblock' or 'endblock navheader'. Did you forget to register or load this tag?\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_named_endblock.py",
+     "status": "fail",
+     "test": "test_namedendblock_multiline"
+    },
+    {
+     "detail": "",
+     "file": "tests/template_tests/syntax_tests/test_partials.py",
+     "status": "pass",
+     "test": "test_basic_parse_errors"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\niled_result = compile_func(self, token)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/defaulttags.py\", line 1251, in partialdef_func\n    parser.invalid_block_tag(endpartial, \"endpartialdef\", valid_endpartials)\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 697, in invalid_block_tag\n    raise self.error(\n    ...<8 lines>...\n    )\ndjango.template.exceptions.TemplateSyntaxError: Template: multiline_endpartialdef, Invalid block tag on line 1: 'endpartialdef', expected 'endpartialdef' or 'endpartialdef greeting'. Did you forget to register or load this tag?\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_partials.py",
+     "status": "fail",
+     "test": "test_multiline_named_closing_tag"
+    },
+    {
+     "detail": "",
+     "file": "tests/template_tests/syntax_tests/test_partials.py",
+     "status": "pass",
+     "test": "test_partial_with_syntax_error_exception_info"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nmplate/base.py\", line 646, in parse\n    compiled_result = compile_func(self, token)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/defaulttags.py\", line 1611, in verbatim\n    nodelist = parser.parse((\"endverbatim\",))\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 653, in parse\n    self.unclosed_block_tag(parse_until)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 720, in unclosed_block_tag\n    raise self.error(token, msg)\ndjango.template.exceptions.TemplateSyntaxError: Template: verbatim, Unclosed tag on line 1: 'verbatim'. Looking for one of: endverbatim.\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+     "status": "fail",
+     "test": "test_multiline_raw_block_closing_tags"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nce_not_preserved)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/test/utils.py\", line 471, in inner\n    return func(*args, **kwargs)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/tests/template_tests/utils.py\", line 59, in inner\n    func(self)\n    ~~~~^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/tests/template_tests/syntax_tests/test_verbatim.py\", line 125, in test_named_verbatim_name_whitespace_not_preserved\n    with self.assertRaises(TemplateSyntaxError):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: TemplateSyntaxError not raised\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nFAILED (failures=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+     "status": "fail",
+     "test": "test_named_verbatim_name_whitespace_not_preserved"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nmplate/base.py\", line 646, in parse\n    compiled_result = compile_func(self, token)\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/defaulttags.py\", line 1611, in verbatim\n    nodelist = parser.parse((\"endverbatim\",))\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 653, in parse\n    self.unclosed_block_tag(parse_until)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/django/template/base.py\", line 720, in unclosed_block_tag\n    raise self.error(token, msg)\ndjango.template.exceptions.TemplateSyntaxError: Template: verbatim, Unclosed tag on line 1: 'verbatim'. Looking for one of: endverbatim.\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (errors=1)\n",
+     "file": "tests/template_tests/syntax_tests/test_verbatim.py",
+     "status": "fail",
+     "test": "test_multiline_named_closing_tag"
+    },
+    {
+     "detail": "\u2026(truncated)\u2026\nf foo\\n%}\")\n                     ^^^^^^^^^^^^^^^^^^\nAttributeError: 'Token' object has no attribute 'raw_contents'\n\n======================================================================\nERROR: test_tokenize_multiline_block (template_tests.test_base.LexerTests.test_tokenize_multiline_block)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/gitent-bench-QKJK7l/0804aed320/repo/tests/template_tests/test_base.py\", line 38, in test_tokenize_multiline_block\n    self.assertEqual(token.raw_contents, \"{%\\nif foo\\n%}\")\n                     ^^^^^^^^^^^^^^^^^^\nAttributeError: 'Token' object has no attribute 'raw_contents'\n\n----------------------------------------------------------------------\nRan 2 tests in 0.002s\n\nFAILED (errors=2)\n",
+     "file": "tests/template_tests/test_base.py",
+     "status": "fail",
+     "test": "test_tokenize_multiline_block"
+    }
+   ],
+   "id": "0804aed320",
+   "resolved": false,
+   "title": "Fixed #35899 -- Allowed multiline template tags.",
+   "workspace": ""
+  }
+ ],
+ "total": 5
+}
