@@ -14,6 +14,42 @@ Raw data: `evals/results/run*.json` · Harness: `evals/run.py`, scenarios: `eval
 *false success* is an arm reporting success on a result that fails the hidden
 tests.
 
+## `gitent bench` on Django: first real comparison (2026-11-13, ADR 0018)
+
+Raw data: `evals/results/bench-django-2026-11-13/`.
+
+* **Tasks:** `gitent bench mine --scan 40 --limit 5` on Django `main` found 5
+  tasks among 17 recent commits (8 had no code change, 4 no test).
+* **Isolation:** each agent got only the commit message, in a fresh
+  repository without history.
+* **Scoring:** on the commit's own hidden tests.
+* **Agent:** Claude Code CLI 2.1.323 in two configurations, the default model
+  and `--model claude-haiku-5-5`.
+
+| task | code lines | hidden tests | Claude Code (default) | Claude Code (Haiku 5.5) |
+|---|---:|---:|---|---|
+| `6b212c29e7` FETCH_PEERS overwrote deferred fields | 89 | 4 | ❌ 3/4, claimed done | ❌ 3/4, claimed done |
+| `308b6d6ac0` deleting `__Http-`/`__Host-Http-` cookies | 23 | 2 | ✅ | ❌ 1/2, claimed done |
+| `817df1c4d6` `legend_tag()` mutated attrs | 24 | 1 | ✅ | ✅ |
+| `e74c8a808e` `allow_multiline_tags` transitional option | 136 | 3 | ❌ 0/3, claimed done | ❌ 0/3, claimed done |
+| `0804aed320` multiline template tags | 409 | 15 | ❌ 5/15, claimed done | ❌ 3/15, claimed done |
+| **resolved** | | | **2/5** | **1/5** |
+| **false claims** (said done, hidden tests fail) | | | **3** | **4** |
+| median time | | | 42.6 s | 24.9 s |
+
+**What this does and does not show.**
+* **Five tasks** are a smoke test of the pipeline, not a ranking. The pipeline
+  works end to end on real history.
+* **Every unresolved task was a false claim.** Neither configuration ever said
+  it could not finish. The report-vs-reality gap seen in the backport evals
+  shows up here too.
+* **Some hidden tests check things the statement never mentions:** exact error
+  messages, a deprecation-warning class, a new `Token.raw_contents` attribute.
+  `e74c8a808e` and `0804aed320` are therefore partly unfair to *any* agent
+  given only a commit message. This is the known limit in ADR 0018 (statements
+  are commit messages, not specifications). Partial credit, meaning the share
+  of hidden tests that pass, would separate "close" from "nowhere".
+
 ## External review: more fault models (2026-11-07, ADR 0013)
 
 **Read the "0 false successes" numbers below with this caveat.** They measure
